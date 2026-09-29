@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>The Thirteenth Chime</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body, html {
+      width: 100%; height: 100%;
+      overflow: hidden;
+      background: #0a0a12;
+      font-family: 'Courier New', monospace;
+    }
+    #app {
+      position: relative;
+      width: 100%; height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    #game-container {
+      position: relative;
+    }
+    canvas {
+      image-rendering: -moz-crisp-edges;
+      image-rendering: -webkit-crisp-edges;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+    #ui-overlay {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      user-select: none;
+      z-index: 10;
+    }
+    .interactive {
+      pointer-events: auto;
+    }
+    /* Dialogue box styling */
+    #dialogue-container {
+      display: none;
+      position: absolute;
+      bottom: 10%;
+      left: 5%; right: 5%;
+      background: rgba(10, 10, 20, 0.92);
+      border: 2px solid #4a8a9a;
+      border-radius: 4px;
+      padding: 16px;
+      color: #e0e8f0;
+      font-size: 14px;
+      line-height: 1.5;
+      pointer-events: auto;
+    }
+    #dialogue-speaker {
+      color: #7ac4d4;
+      font-weight: bold;
+      margin-bottom: 6px;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    #dialogue-text {
+      min-height: 40px;
+    }
+    #dialogue-choices {
+      margin-top: 10px;
+    }
+    .dialogue-choice {
+      display: block;
+      width: 100%;
+      text-align: left;
+      background: rgba(74, 138, 154, 0.15);
+      border: 1px solid rgba(74, 138, 154, 0.4);
+      color: #c0d8e0;
+      padding: 8px 12px;
+      margin: 4px 0;
+      cursor: pointer;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      border-radius: 3px;
+      transition: background 0.15s;
+    }
+    .dialogue-choice:hover {
+      background: rgba(74, 138, 154, 0.35);
+      color: #fff;
+    }
+    #dialogue-continue {
+      display: none;
+      margin-top: 8px;
+      text-align: right;
+      color: #5a9aaa;
+      font-size: 12px;
+      cursor: pointer;
+      animation: blink 1.2s infinite;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+    /* Notebook overlay */
+    #notebook-overlay {
+      display: none;
+      position: absolute;
+      top: 3%; bottom: 3%;
+      left: 5%; right: 5%;
+      background: rgba(15, 12, 10, 0.96);
+      border: 2px solid #8a7a5a;
+      border-radius: 4px;
+      padding: 20px;
+      color: #d4c8a8;
+      overflow-y: auto;
+      pointer-events: auto;
+      z-index: 20;
+    }
+    .notebook-title {
+      color: #c4a44a;
+      font-size: 16px;
+      font-weight: bold;
+      border-bottom: 1px solid #5a4a2a;
+      padding-bottom: 8px;
+      margin-bottom: 12px;
+    }
+    .notebook-tab {
+      display: inline-block;
+      padding: 6px 14px;
+      margin: 0 2px 8px 0;
+      cursor: pointer;
+      background: rgba(138, 122, 90, 0.2);
+      border: 1px solid #5a4a2a;
+      color: #a09070;
+      font-size: 12px;
+      border-radius: 3px 3px 0 0;
+    }
+    .notebook-tab.active {
+      background: rgba(138, 122, 90, 0.5);
+      color: #d4c8a8;
+    }
+    .evidence-item {
+      padding: 8px 0;
+      border-bottom: 1px dotted #3a3020;
+    }
+    .evidence-name {
+      color: #c4a44a;
+      font-weight: bold;
+    }
+    .evidence-desc {
+      color: #a09878;
+      font-size: 13px;
+      margin-top: 4px;
+    }
+    .close-btn {
+      position: absolute;
+      top: 10px; right: 14px;
+      cursor: pointer;
+      color: #8a7a5a;
+      font-size: 18px;
+    }
+    .close-btn:hover { color: #c4a44a; }
+    /* Settings overlay */
+    #settings-overlay {
+      display: none;
+      position: absolute;
+      top: 10%; bottom: 10%;
+      left: 15%; right: 15%;
+      background: rgba(10, 10, 20, 0.96);
+      border: 2px solid #4a6a7a;
+      border-radius: 4px;
+      padding: 24px;
+      color: #c0d0e0;
+      pointer-events: auto;
+      z-index: 25;
+    }
+    .settings-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin: 12px 0;
+    }
+    .settings-label { font-size: 14px; }
+    .settings-slider {
+      width: 150px;
+      accent-color: #4a8a9a;
+    }
+    /* HUD */
+    #hud-bar {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 32px;
+      background: rgba(10, 10, 20, 0.7);
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      pointer-events: auto;
+      z-index: 15;
+    }
+    .hud-btn {
+      background: none;
+      border: 1px solid rgba(74, 138, 154, 0.5);
+      color: #7ac4d4;
+      padding: 4px 10px;
+      margin: 0 4px;
+      cursor: pointer;
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      border-radius: 3px;
+    }
+    .hud-btn:hover {
+      background: rgba(74, 138, 154, 0.3);
+    }
+    #objective-text {
+      flex: 1;
+      text-align: center;
+      color: #5a8a9a;
+      font-size: 11px;
+    }
+    /* Touch controls */
+    #touch-controls {
+      display: none;
+      position: absolute;
+      bottom: 15%;
+      left: 5%;
+      pointer-events: auto;
+      z-index: 15;
+    }
+    .touch-dpad {
+      display: grid;
+      grid-template-columns: 44px 44px 44px;
+      grid-template-rows: 44px 44px 44px;
+      gap: 2px;
+    }
+    .touch-btn {
+      width: 44px; height: 44px;
+      background: rgba(74, 138, 154, 0.25);
+      border: 1px solid rgba(74, 138, 154, 0.5);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #7ac4d4;
+      font-size: 18px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .touch-btn:active {
+      background: rgba(74, 138, 154, 0.5);
+    }
+    .touch-btn.empty { background: none; border: none; }
+    #touch-action {
+      display: none;
+      position: absolute;
+      bottom: 18%;
+      right: 8%;
+      width: 56px; height: 56px;
+      background: rgba(196, 164, 74, 0.3);
+      border: 2px solid rgba(196, 164, 74, 0.6);
+      border-radius: 50%;
+      color: #c4a44a;
+      font-size: 12px;
+      font-weight: bold;
+      font-family: 'Courier New', monospace;
+      cursor: pointer;
+      pointer-events: auto;
+      z-index: 15;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    /* Loading screen */
+    #loading-screen {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: #0a0a12;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #4a8a9a;
+      font-family: 'Courier New', monospace;
+      z-index: 100;
+    }
+    #loading-text { font-size: 14px; margin-bottom: 12px; }
+    #loading-bar-bg {
+      width: 200px; height: 4px;
+      background: #1a1a2a;
+      border-radius: 2px;
+    }
+    #loading-bar {
+      width: 0%; height: 100%;
+      background: #4a8a9a;
+      border-radius: 2px;
+      transition: width 0.2s;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div id="game-container">
+      <div id="ui-overlay">
+        <div id="loading-screen">
+          <div id="loading-text">Loading...</div>
+          <div id="loading-bar-bg"><div id="loading-bar"></div></div>
+        </div>
+        <div id="hud-bar" style="display:none">
+          <button class="hud-btn" id="btn-notebook">📓 Notes</button>
+          <button class="hud-btn" id="btn-gadgets">🔧 Gadgets</button>
+          <button class="hud-btn" id="btn-hint">💡 Hint</button>
+          <span id="objective-text"></span>
+          <button class="hud-btn" id="btn-settings">⚙</button>
+          <button class="hud-btn" id="btn-pause">⏸</button>
+        </div>
+        <div id="dialogue-container">
+          <div id="dialogue-speaker"></div>
+          <div id="dialogue-text"></div>
+          <div id="dialogue-choices"></div>
+          <div id="dialogue-continue">▼ Click to continue</div>
+        </div>
+        <div id="notebook-overlay">
+          <span class="close-btn" id="notebook-close">✕</span>
+          <div class="notebook-title">CASE NOTEBOOK</div>
+          <div style="margin-bottom:12px">
+            <span class="notebook-tab active" data-tab="evidence">Evidence</span>
+            <span class="notebook-tab" data-tab="suspects">Suspects</span>
+            <span class="notebook-tab" data-tab="objectives">Objectives</span>
+            <span class="notebook-tab" data-tab="history">History</span>
+          </div>
+          <div id="notebook-content"></div>
+        </div>
+        <div id="settings-overlay">
+          <span class="close-btn" id="settings-close">✕</span>
+          <div class="notebook-title">SETTINGS</div>
+          <div class="settings-row">
+            <span class="settings-label">Music Volume</span>
+            <input type="range" class="settings-slider" id="vol-music" min="0" max="100" value="70">
+          </div>
+          <div class="settings-row">
+            <span class="settings-label">Ambience Volume</span>
+            <input type="range" class="settings-slider" id="vol-ambience" min="0" max="100" value="60">
+          </div>
+          <div class="settings-row">
+            <span class="settings-label">SFX Volume</span>
+            <input type="range" class="settings-slider" id="vol-sfx" min="0" max="100" value="80">
+          </div>
+          <div class="settings-row">
+            <span class="settings-label">Text Speed</span>
+            <input type="range" class="settings-slider" id="text-speed" min="1" max="5" value="3">
+          </div>
+          <div class="settings-row">
+            <span class="settings-label">Reduced Motion</span>
+            <label><input type="checkbox" id="reduced-motion"> Enable</label>
+          </div>
+          <div class="settings-row">
+            <span class="settings-label">Sound Captions</span>
+            <label><input type="checkbox" id="sound-captions"> Enable</label>
+          </div>
+        </div>
+        <div id="touch-controls">
+          <div class="touch-dpad">
+            <div class="touch-btn empty"></div>
+            <div class="touch-btn" data-dir="up">▲</div>
+            <div class="touch-btn empty"></div>
+            <div class="touch-btn" data-dir="left">◄</div>
+            <div class="touch-btn empty"></div>
+            <div class="touch-btn" data-dir="right">►</div>
+            <div class="touch-btn empty"></div>
+            <div class="touch-btn" data-dir="down">▼</div>
+            <div class="touch-btn empty"></div>
+          </div>
+        </div>
+        <div id="touch-action">ACT</div>
+      </div>
+    </div>
+  </div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
