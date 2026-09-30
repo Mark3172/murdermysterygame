@@ -373,20 +373,47 @@ export class ExplorationScene extends Phaser.Scene {
   private drawFeatures(room: any, w: number, h: number) {
     if (!room.features) return;
     for (const f of room.features) {
-      if (f==='rain_window') {
+      if (f==='rain_window' || f==='rain_effect') {
         this.add.rectangle(w-TILE*3,h/2,TILE*2,TILE*4,0x1a2a4a,0.5).setDepth(2);
         this.add.rectangle(w-TILE*3,h/2,TILE*2,TILE*4).setStrokeStyle(2,0x3a4a5a).setDepth(3);
         for(let i=0;i<8;i++){const s=this.add.rectangle(w-TILE*4+Math.random()*TILE*3,h/2-TILE*2+Math.random()*TILE*4,1,6+Math.random()*6,0x5a7a9a,0.4).setDepth(4);this.tweens.add({targets:s,y:s.y+TILE*4,x:s.x-TILE,duration:800+Math.random()*400,repeat:-1,onRepeat:()=>{s.setPosition(w-TILE*4+Math.random()*TILE*3,h/2-TILE*2);}});}
-      } else if (f==='clockwork_gears') {
+      } else if (f==='clockwork_gears' || f==='giant_gears') {
         for(let i=0;i<3;i++){const g=this.add.graphics();g.lineStyle(2,0xc4a44a,0.5);g.strokeCircle(0,0,12+i*4);for(let a=0;a<8;a++){const an=(a/8)*Math.PI*2;g.moveTo(Math.cos(an)*8,Math.sin(an)*8);g.lineTo(Math.cos(an)*(16+i*4),Math.sin(an)*(16+i*4));}g.setPosition(TILE*3+i*TILE*6,TILE*3).setDepth(3);this.tweens.add({targets:g,angle:360,duration:8000+i*3000,repeat:-1});}
-      } else if (f==='pendulum') {
+      } else if (f==='pendulum' || f==='swinging_pendulum') {
         const p=this.add.graphics();p.lineStyle(2,0x8a7a5a,0.8);p.moveTo(0,0);p.lineTo(0,60);p.fillStyle(0xc4a44a);p.fillCircle(0,60,6);p.setPosition(w/2,TILE*2).setDepth(3);this.tweens.add({targets:p,angle:-15,yoyo:true,repeat:-1,duration:1500,ease:'Sine.easeInOut'});
-      } else if (f==='bookshelves') {
+      } else if (f==='bookshelves' || f==='dust_motes') {
         for(let i=0;i<4;i++){for(let b=0;b<6;b++){this.add.rectangle(TILE*2+b*6,TILE*2+i*TILE*3,5,TILE-2,[0x8a2a2a,0x2a5a5a,0x5a4a2a,0x3a3a6a,0x6a5a2a,0x4a2a4a][b%6]).setDepth(3);}this.add.rectangle(TILE*2+18,TILE*2+i*TILE*3+8,42,2,0x3a2a1a).setDepth(2);}
-      } else if (f==='telescope') {
+      } else if (f==='telescope' || f==='telescopes') {
         this.add.triangle(w/2,TILE*4,0,20,-4,0,4,0,0x4a4a5a).setDepth(3);this.add.circle(w/2,TILE*4-4,6,0x3a3a4a).setDepth(3);
-      } else if (f==='display_cases') {
+      } else if (f==='display_cases' || f==='prototype_display') {
         for(let i=0;i<3;i++){const cx=TILE*6+i*TILE*8;this.add.rectangle(cx,h/2,TILE*3,TILE*2,0x2a3a4a,0.3).setDepth(3);this.add.rectangle(cx,h/2,TILE*3,TILE*2).setStrokeStyle(1,0x4a6a7a,0.5).setDepth(4);}
+      } else if (f==='brass_railings' || f==='marble_floor') {
+        // Draw decorative floor/railing accents
+        const g=this.add.graphics();g.lineStyle(1,0xc4a44a,0.25);
+        for(let i=1;i<5;i++){g.moveTo(TILE*2,TILE*2+i*(h-TILE*4)/5);g.lineTo(w-TILE*2,TILE*2+i*(h-TILE*4)/5);}
+        g.setDepth(1);
+      } else if (f==='steam_vents') {
+        for(let i=0;i<4;i++){
+          const vx=TILE*4+i*(w-TILE*8)/3, vy=h-TILE*2;
+          const vent=this.add.rectangle(vx,vy,TILE,4,0x4a4a5a).setDepth(3);
+          // Steam particles
+          for(let j=0;j<3;j++){
+            const steam=this.add.circle(vx+Math.random()*8-4,vy-4,2+Math.random()*2,0xcccccc,0.15).setDepth(4);
+            this.tweens.add({targets:steam,y:vy-30-Math.random()*20,alpha:0,duration:2000+Math.random()*1000,repeat:-1,yoyo:false,
+              onRepeat:()=>{steam.setPosition(vx+Math.random()*8-4,vy-4);steam.setAlpha(0.15);}});
+          }
+        }
+      } else if (f==='locked_door') {
+        // Draw a heavy door indicator
+        const g=this.add.graphics();g.fillStyle(0x4a3a2a,0.8);g.fillRect(w/2-TILE,TILE,TILE*2,TILE*2);
+        g.lineStyle(2,0x8b4513);g.strokeRect(w/2-TILE,TILE,TILE*2,TILE*2);
+        g.fillStyle(0xd4af37);g.fillCircle(w/2+TILE-4,TILE+TILE,3); // doorknob
+        g.setDepth(3);
+      } else if (f==='echoing_walls') {
+        // Draw subtle concentric arcs to suggest acoustics
+        const g=this.add.graphics();g.lineStyle(1,0x8e44ad,0.1);
+        for(let r=30;r<120;r+=20){g.strokeCircle(w/2,h/2,r);}
+        g.setDepth(1);
       }
     }
   }
