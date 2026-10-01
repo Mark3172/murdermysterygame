@@ -28,6 +28,7 @@ export class ExplorationScene extends Phaser.Scene {
   private nextFootstepTime = 0;
   private lightningTimer?: Phaser.Time.TimerEvent;
   private interactionPrompt!: Phaser.GameObjects.Text;
+  private doorCooldown = true;
 
   constructor() { super('ExplorationScene'); }
 
@@ -35,6 +36,7 @@ export class ExplorationScene extends Phaser.Scene {
     this.roomId = data?.roomId || gameState.getCurrentRoom() || 'main_hall';
     this.inDialogue = false;
     this.activeGadget = null;
+    this.doorCooldown = true;
   }
 
   create() {
@@ -84,6 +86,12 @@ export class ExplorationScene extends Phaser.Scene {
     this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
     this.cameras.main.fadeIn(300);
 
+    // Guard to prevent accidental immediate bounce loop on room entry
+    this.doorCooldown = true;
+    this.time.delayedCall(1200, () => {
+      this.doorCooldown = false;
+    });
+
     // 4. Grand Ornate Doors & Exits
     if (room.exits) for (const exit of room.exits) {
       if (exit.direction === 'hidden') continue;
@@ -117,11 +125,13 @@ export class ExplorationScene extends Phaser.Scene {
         backgroundColor: '#0a0d1aec', padding: { x: 5, y: 2 }
       }).setOrigin(0.5).setDepth(150);
 
-      // Zone trigger
-      const z = this.add.zone(ex, ey, TILE * 2.5, TILE * 2.5);
+      // Zone trigger with cooldown guard
+      const z = this.add.zone(ex, ey, TILE * 2, TILE * 2);
       this.physics.add.existing(z, true);
       this.physics.add.overlap(this.player, z, () => {
-        if (!this.inDialogue) this.goToRoom(exit.targetRoom, exit.direction);
+        if (!this.doorCooldown && !this.inDialogue) {
+          this.goToRoom(exit.targetRoom, exit.direction);
+        }
       });
     }
 
@@ -488,19 +498,35 @@ export class ExplorationScene extends Phaser.Scene {
   }
 
   private goToRoom(target: string, fromDir: string) {
-    if (this.inDialogue) return;
+    if (this.doorCooldown || this.inDialogue) return;
+    this.doorCooldown = true;
     this.inDialogue = true;
     AudioManager.getInstance().playSFX('doorOpen');
     const td = rooms[target]; if (!td) return;
-    let sx = (td.width||40)*TILE/2, sy = (td.height||22)*TILE/2;
-    if (fromDir==='up') sy=(td.height||22)*TILE-TILE*3;
-    if (fromDir==='down') sy=TILE*3;
-    if (fromDir==='left') sx=(td.width||40)*TILE-TILE*3;
-    if (fromDir==='right') sx=TILE*3;
-    this.cameras.main.fadeOut(300);
-    this.cameras.main.once('camerafadeoutcomplete',()=>{
-      this.registry.set('spawnX',sx); this.registry.set('spawnY',sy);
-      this.scene.restart({roomId:target});
+
+    // Calculate safe spawn positions away from doors (5 tiles away from the wall)
+    let sx = (td.width || 40) * TILE / 2;
+    let sy = (td.height || 22) * TILE / 2;
+
+    if (fromDir === 'up') {
+      // Player went up through top door, enters near bottom of next room facing up
+      sy = (td.height || 22) * TILE - TILE * 5;
+    } else if (fromDir === 'down') {
+      // Player went down through bottom door, enters near top of next room facing down
+      sy = TILE * 5;
+    } else if (fromDir === 'left') {
+      // Player went left through left door, enters near right of next room facing left
+      sx = (td.width || 40) * TILE - TILE * 5;
+    } else if (fromDir === 'right') {
+      // Player went right through right door, enters near left of next room facing right
+      sx = TILE * 5;
+    }
+
+    this.cameras.main.fadeOut(250);
+    this.cameras.main.once('camerafadeoutcomplete', () => {
+      this.registry.set('spawnX', sx);
+      this.registry.set('spawnY', sy);
+      this.scene.restart({ roomId: target });
     });
   }
 
