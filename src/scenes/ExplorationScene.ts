@@ -45,100 +45,164 @@ export class ExplorationScene extends Phaser.Scene {
     const rw = (room.width || 40) * TILE;
     const rh = (room.height || 22) * TILE;
 
-    // Draw room
-    const bg = this.add.graphics();
-    const bgc = Phaser.Display.Color.HexStringToColor(room.backgroundColor || '#1a1a2a').color;
-    const acc = Phaser.Display.Color.HexStringToColor(room.accentColor || '#2a2a3a').color;
-    bg.fillStyle(bgc); bg.fillRect(0, 0, rw, rh);
-    for (let x = 0; x < rw / TILE; x++) for (let y = 0; y < rh / TILE; y++) {
-      bg.fillStyle((x + y) % 2 === 0 ? bgc + 0x050505 : bgc, 0.3);
-      bg.fillRect(x * TILE, y * TILE, TILE, TILE);
-      bg.lineStyle(1, acc, 0.08); bg.strokeRect(x * TILE, y * TILE, TILE, TILE);
-    }
-    bg.fillStyle(0x2a2a3a); bg.fillRect(0,0,rw,TILE); bg.fillRect(0,rh-TILE,rw,TILE);
-    bg.fillRect(0,0,TILE,rh); bg.fillRect(rw-TILE,0,TILE,rh);
-    bg.lineStyle(2, acc, 0.5); bg.strokeRect(TILE, TILE, rw-TILE*2, rh-TILE*2);
+    // 1. Draw Architectural Room Architecture (Walls, Floors, Carpets)
+    this.renderRoomArchitecture(room, rw, rh);
 
-    // Room features
+    // 2. Room features (props, machinery, windows)
     this.drawFeatures(room, rw, rh);
 
-    // Player
+    // 3. Player with detective sprite and shadow
     const sx = this.registry.get('spawnX') as number || (room.spawnPoint?.x || rw/2/TILE) * TILE;
     const sy = this.registry.get('spawnY') as number || (room.spawnPoint?.y || rh/2/TILE) * TILE;
     this.registry.remove('spawnX'); this.registry.remove('spawnY');
 
-    this.player = this.add.rectangle(sx, sy, 12, 20, 0x3366aa).setDepth(100);
+    // Shadow
+    this.add.ellipse(sx, sy + 10, 16, 6, 0x000000, 0.45).setDepth(45);
+    this.player = this.add.rectangle(sx, sy, 14, 22, 0x224488).setDepth(100);
     this.physics.add.existing(this.player);
     (this.player.body as Phaser.Physics.Arcade.Body).setCollideWorldBounds(true);
 
-    this.playerHead = this.add.circle(sx, sy - 8, 5, 0xe8c8a8).setDepth(101);
-    this.playerHair = this.add.rectangle(sx, sy - 12, 10, 4, 0x2a1a0a).setDepth(102);
+    // Detective details
+    this.playerHead = this.add.circle(sx, sy - 9, 6, 0xf0cfb2).setDepth(101);
+    this.playerHair = this.add.rectangle(sx, sy - 14, 12, 5, 0x1a1a1a).setDepth(102);
+    // Red tie and coat lapel
+    const tie = this.add.rectangle(sx, sy - 2, 2, 8, 0xbb2222).setDepth(103);
+    this.tweens.add({targets: tie, alpha: 1, duration: 100}); // keep in container logic
+
+    // Player tag
+    const playerTag = this.add.text(sx, sy - 22, '🕵️ Ren', {
+      fontSize: '8px', color: '#7ab4f8', fontFamily: 'Courier New', backgroundColor: '#060a16d0', padding: { x: 3, y: 1 }
+    }).setOrigin(0.5).setDepth(200);
+
+    this.events.on('update', () => {
+      playerTag.setPosition(this.player.x, this.player.y - 24);
+      tie.setPosition(this.player.x, this.player.y - 2);
+    });
 
     this.physics.world.setBounds(0, 0, rw, rh);
     this.cameras.main.setBounds(0, 0, rw, rh);
     this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
     this.cameras.main.fadeIn(300);
 
-    // Exits
+    // 4. Grand Ornate Doors & Exits
     if (room.exits) for (const exit of room.exits) {
-      if (exit.direction === 'hidden') continue; // hidden exits found via gadgets
+      if (exit.direction === 'hidden') continue;
       const ex = exit.x * TILE, ey = exit.y * TILE;
-      const z = this.add.zone(ex, ey, TILE*2, TILE*2);
-      this.physics.add.existing(z, true);
-      const arrow = this.add.text(ex, ey, exit.direction==='up'?'▲':exit.direction==='down'?'▼':exit.direction==='left'?'◄':'►', {
-        fontSize:'12px', color:'#4a8a9a', fontFamily:'Courier New'
-      }).setOrigin(0.5).setDepth(50);
-      this.tweens.add({targets:arrow, alpha:0.3, yoyo:true, repeat:-1, duration:800});
       const tgt = rooms[exit.targetRoom];
-      if (tgt) this.add.text(ex, ey+14, tgt.name, {fontSize:'7px',color:'#4a8a9a',fontFamily:'Courier New'}).setOrigin(0.5).setDepth(50).setAlpha(0.6);
-      this.physics.add.overlap(this.player, z, () => { if (!this.inDialogue) this.goToRoom(exit.targetRoom, exit.direction); });
+      const targetName = tgt ? tgt.name.toUpperCase() : exit.targetRoom.toUpperCase();
+
+      // Doorway architecture
+      const doorBg = this.add.rectangle(ex, ey, 28, 28, 0x2a1a10).setDepth(10);
+      const doorFrame = this.add.graphics();
+      doorFrame.lineStyle(2, 0xd4af37, 0.85);
+      doorFrame.strokeRect(ex - 14, ey - 14, 28, 28);
+      // Door planks
+      doorFrame.lineStyle(1, 0x5a3a20, 0.7);
+      doorFrame.moveTo(ex, ey - 14); doorFrame.lineTo(ex, ey + 14);
+      doorFrame.strokePath();
+      doorFrame.fillStyle(0xd4af37, 1);
+      doorFrame.fillCircle(ex - 3, ey, 2);
+      doorFrame.fillCircle(ex + 3, ey, 2);
+      doorFrame.setDepth(11);
+
+      // Entrance lanterns
+      const l1 = this.add.circle(ex - 18, ey, 3, 0xffea70, 0.8).setDepth(12);
+      const l2 = this.add.circle(ex + 18, ey, 3, 0xffea70, 0.8).setDepth(12);
+      this.tweens.add({ targets: [l1, l2], alpha: 0.5, yoyo: true, repeat: -1, duration: 1200 });
+
+      // High-contrast Door Banner
+      const labelY = exit.direction === 'down' ? ey - 18 : ey + 18;
+      const doorBadge = this.add.text(ex, labelY, `🚪 TO ${targetName}`, {
+        fontSize: '8px', color: '#ffea70', fontFamily: 'Courier New, monospace', fontStyle: 'bold',
+        backgroundColor: '#0a0d1aec', padding: { x: 5, y: 2 }
+      }).setOrigin(0.5).setDepth(150);
+
+      // Zone trigger
+      const z = this.add.zone(ex, ey, TILE * 2.5, TILE * 2.5);
+      this.physics.add.existing(z, true);
+      this.physics.add.overlap(this.player, z, () => {
+        if (!this.inDialogue) this.goToRoom(exit.targetRoom, exit.direction);
+      });
     }
 
-    // Interactables
+    // 5. Interactables (Clues with golden sparkles)
     this.interactableObjects = [];
     if (room.interactables) for (const obj of room.interactables) {
       if (obj.evidenceId && gameState.hasEvidence(obj.evidenceId)) continue;
-      // Skip items requiring gadgets the player doesn't have yet (unless no gadget required)
       if (obj.gadgetRequired && obj.gadgetRequired !== 'none' && obj.gadgetRequired !== 'tranquility_focus' && !gameState.hasGadget(obj.gadgetRequired)) continue;
       const ox = obj.x * TILE, oy = obj.y * TILE;
       const ow = (obj.width || 2) * TILE, oh = (obj.height || 1) * TILE;
-      const z = this.add.zone(ox, oy, ow, oh);
+
+      const z = this.add.zone(ox, oy, ow + 8, oh + 8);
       this.physics.add.existing(z, true);
       z.setInteractive({ useHandCursor: true });
       z.on('pointerdown', () => {
         if (!this.inDialogue) this.interact(obj);
       });
 
-      this.add.rectangle(ox, oy, ow, oh, 0x3a3a4a, 0.4).setDepth(5);
-      const mk = this.add.graphics(); mk.fillStyle(0xc4a44a, 0.8); mk.fillRect(-3,-3,6,6);
-      mk.setPosition(ox, oy-16).setDepth(150);
-      this.tweens.add({targets:mk, y:oy-20, yoyo:true, repeat:-1, duration:600});
-      const lb = this.add.text(ox, oy+12, obj.name, {fontSize:'9px',color:'#c4a44a',fontFamily:'Courier New',backgroundColor:'#0a0a12e0',padding:{x:4,y:2}}).setOrigin(0.5).setDepth(150).setVisible(false);
-      this.interactableObjects.push({zone:z, data:obj, marker:mk, label:lb});
+      // Prop base
+      this.add.rectangle(ox, oy, ow, oh, 0x3d2817).setDepth(15);
+      this.add.rectangle(ox, oy, ow, oh).setStrokeStyle(1.5, 0x8a6438).setDepth(16);
+
+      // Golden diamond sparkle marker
+      const mk = this.add.text(ox, oy - 16, '✧', { fontSize: '13px', color: '#ffd700' }).setOrigin(0.5).setDepth(160);
+      this.tweens.add({ targets: mk, y: oy - 20, alpha: 0.6, yoyo: true, repeat: -1, duration: 700 });
+
+      // Label
+      const lb = this.add.text(ox, oy + 14, `🔍 ${obj.name}`, {
+        fontSize: '8px', color: '#ffd700', fontFamily: 'Courier New', backgroundColor: '#090d18ee', padding: { x: 4, y: 2 }
+      }).setOrigin(0.5).setDepth(160).setVisible(false);
+
+      this.interactableObjects.push({ zone: z, data: obj, marker: mk as any, label: lb });
     }
 
-    // NPCs
+    // 6. NPCs with Role Badges and Unread Indicators
     this.npcObjects = [];
     if (room.npcs) for (const npc of room.npcs) {
       const sus = npc.suspectId ? suspects[npc.suspectId] : null;
       const c = sus?.portraitColors;
-      const oc = c ? Phaser.Display.Color.HexStringToColor(c.outfit).color : 0x666666;
-      const sc = c ? Phaser.Display.Color.HexStringToColor(c.skin).color : 0xe8c8a8;
+      const oc = c ? Phaser.Display.Color.HexStringToColor(c.outfit).color : 0x4a5568;
+      const sc = c ? Phaser.Display.Color.HexStringToColor(c.skin).color : 0xf0cfb2;
       const nx = npc.x * TILE, ny = npc.y * TILE;
+
+      // Shadow
+      this.add.ellipse(nx, ny + 10, 16, 6, 0x000000, 0.45).setDepth(45);
+
+      // Character body
       const sp = this.add.rectangle(nx, ny, 14, 22, oc).setDepth(ny);
       sp.setInteractive({ useHandCursor: true });
       sp.on('pointerdown', () => {
         if (!this.inDialogue) {
           this.inDialogue = true;
           const did = npc.suspectId ? `${npc.suspectId}_interview` : 'intro_arrival';
-          this.scene.launch('DialogueScene', {dialogueId:did, suspectId:npc.suspectId});
+          this.scene.launch('DialogueScene', { dialogueId: did, suspectId: npc.suspectId });
         }
       });
 
-      this.add.circle(nx, ny-9, 6, sc).setDepth(ny+1);
-      this.tweens.add({targets:sp, x:nx+1, yoyo:true, repeat:-1, duration:2000+Math.random()*1000});
-      const lb = this.add.text(nx, ny+16, sus?.name||npc.id, {fontSize:'9px',color:'#e0e8f0',fontFamily:'Courier New',backgroundColor:'#0a0a12e0',padding:{x:4,y:2}}).setOrigin(0.5).setDepth(200);
-      this.npcObjects.push({sprite:sp, data:npc, label:lb});
+      // Head and hair
+      this.add.circle(nx, ny - 9, 6, sc).setDepth(ny + 1);
+      const hc = c ? Phaser.Display.Color.HexStringToColor(c.hair).color : 0x222222;
+      this.add.rectangle(nx, ny - 13, 12, 4, hc).setDepth(ny + 2);
+
+      this.tweens.add({ targets: sp, x: nx + 1, yoyo: true, repeat: -1, duration: 2200 + Math.random() * 800 });
+
+      // Role and title badge
+      const roleIcons: Record<string, string> = {
+        nadia: '🎵', vale: '🧪', hugo: '👨‍⚕️', petra: '📷', felix: '💎', iris: '⚙️'
+      };
+      const icon = sus ? roleIcons[sus.id] || '👤' : '👤';
+      const roleLabel = sus ? `${icon} ${sus.name} • ${sus.title}` : npc.id;
+      const lb = this.add.text(nx, ny + 16, roleLabel, {
+        fontSize: '8px', color: '#ffffff', fontFamily: 'Courier New', backgroundColor: '#090d1af0', padding: { x: 5, y: 2 }
+      }).setOrigin(0.5).setDepth(300);
+
+      // Exclamation mark for un-interviewed suspects
+      if (sus && !gameState.isSuspectInterviewed(sus.id)) {
+        const exclaim = this.add.text(nx, ny - 24, '❗', { fontSize: '10px', color: '#ffea70' }).setOrigin(0.5).setDepth(301);
+        this.tweens.add({ targets: exclaim, y: ny - 28, yoyo: true, repeat: -1, duration: 600 });
+      }
+
+      this.npcObjects.push({ sprite: sp, data: npc, label: lb });
     }
 
     // Dust particles
@@ -455,6 +519,128 @@ export class ExplorationScene extends Phaser.Scene {
     const d=this.add.text(320,155,desc,{fontSize:'9px',color:'#a0b0c0',fontFamily:'Courier New',wordWrap:{width:350},align:'center'}).setOrigin(0.5,0).setDepth(501).setScrollFactor(0);
     this.tweens.add({targets:[h,n,d],alpha:0,delay:4000,duration:1000,onComplete:()=>{h.destroy();n.destroy();d.destroy();}});
     EventBus.emit('evidence-found', name);
+  }
+
+  private renderRoomArchitecture(room: any, w: number, h: number) {
+    const bg = this.add.graphics();
+    const wallH = TILE * 2.5;
+
+    // 1. Base floor color
+    const isLibrary = room.id === 'library';
+    const isClockwork = room.id === 'clockwork_gallery';
+    const isMainHall = room.id === 'main_hall';
+
+    if (isMainHall) {
+      // Polished Victorian black and ivory checkerboard tiles
+      for (let x = 0; x < w; x += TILE * 1.5) {
+        for (let y = wallH; y < h; y += TILE * 1.5) {
+          const isCheck = ((Math.floor(x / (TILE * 1.5)) + Math.floor(y / (TILE * 1.5))) % 2 === 0);
+          bg.fillStyle(isCheck ? 0x161824 : 0x222838, 1);
+          bg.fillRect(x, y, TILE * 1.5, TILE * 1.5);
+          bg.lineStyle(1, 0x10131e, 0.4);
+          bg.strokeRect(x, y, TILE * 1.5, TILE * 1.5);
+        }
+      }
+      // Grand royal crimson runner carpet with gold embroidery down the center
+      const carpetW = TILE * 5;
+      const carpetX = w / 2 - carpetW / 2;
+      bg.fillStyle(0x701420, 0.95);
+      bg.fillRect(carpetX, wallH, carpetW, h - wallH);
+      bg.lineStyle(2, 0xd4af37, 0.9);
+      bg.strokeRect(carpetX + 2, wallH, carpetW - 4, h - wallH);
+      // Gold fringe pattern
+      for (let y = wallH + 10; y < h; y += 24) {
+        bg.fillStyle(0xd4af37, 0.4);
+        bg.fillCircle(carpetX + 6, y, 2);
+        bg.fillCircle(carpetX + carpetW - 6, y, 2);
+      }
+    } else if (isLibrary) {
+      // Warm dark oak parquet wood floor
+      for (let x = 0; x < w; x += TILE * 2) {
+        for (let y = wallH; y < h; y += TILE) {
+          const alt = (Math.floor(x / (TILE * 2)) + Math.floor(y / TILE)) % 2 === 0;
+          bg.fillStyle(alt ? 0x2e1b10 : 0x24150c, 1);
+          bg.fillRect(x, y, TILE * 2, TILE);
+          bg.lineStyle(1, 0x180d07, 0.5);
+          bg.strokeRect(x, y, TILE * 2, TILE);
+        }
+      }
+      // Large emerald oriental rug in reading area
+      bg.fillStyle(0x133827, 0.9);
+      bg.fillRect(TILE * 6, wallH + TILE * 2, w - TILE * 12, h - wallH - TILE * 4);
+      bg.lineStyle(2, 0xc49a45, 0.85);
+      bg.strokeRect(TILE * 6 + 2, wallH + TILE * 2 + 2, w - TILE * 12 - 4, h - wallH - TILE * 4 - 4);
+    } else if (isClockwork) {
+      // Industrial steel grating with bronze sub-glow
+      bg.fillStyle(0x18202c, 1);
+      bg.fillRect(0, wallH, w, h - wallH);
+      bg.lineStyle(1, 0x263445, 0.6);
+      for (let x = 0; x < w; x += TILE) {
+        bg.moveTo(x, wallH); bg.lineTo(x, h);
+      }
+      for (let y = wallH; y < h; y += TILE) {
+        bg.moveTo(0, y); bg.lineTo(w, y);
+      }
+      bg.strokePath();
+      // Glowing clockwork gears underneath floor grates
+      for (let i = 0; i < 4; i++) {
+        bg.lineStyle(2, 0xc49a45, 0.4);
+        bg.strokeCircle(TILE * 5 + i * TILE * 7, wallH + TILE * 4, 20);
+      }
+    } else {
+      // Deep polished slate / granite
+      bg.fillStyle(0x141824, 1);
+      bg.fillRect(0, wallH, w, h - wallH);
+      bg.lineStyle(1, 0x242a3a, 0.4);
+      for (let x = 0; x < w; x += TILE * 2) {
+        for (let y = wallH; y < h; y += TILE * 2) {
+          bg.strokeRect(x, y, TILE * 2, TILE * 2);
+        }
+      }
+    }
+
+    // 2. High Architectural Wall Header
+    bg.fillStyle(0x10131d, 1);
+    bg.fillRect(0, 0, w, wallH);
+    // Stone crown molding
+    bg.fillStyle(0x282f42, 1);
+    bg.fillRect(0, 0, w, 8);
+    // Wooden wainscot band
+    bg.fillStyle(0x1a1518, 1);
+    bg.fillRect(0, wallH - 10, w, 10);
+    bg.lineStyle(2, 0xd4af37, 0.7);
+    bg.moveTo(0, wallH); bg.lineTo(w, wallH);
+    bg.strokePath();
+
+    // Wall panels and brass sconces
+    for (let x = TILE * 3; x < w - TILE * 2; x += TILE * 5) {
+      // Wood panel framing
+      bg.lineStyle(1, 0x3a2c22, 0.8);
+      bg.strokeRect(x - 14, 12, 28, wallH - 24);
+      // Wall lantern
+      bg.fillStyle(0xd4af37, 1);
+      bg.fillRect(x - 2, 16, 4, 6);
+      bg.fillStyle(0xfff0aa, 0.9);
+      bg.fillCircle(x, 20, 3);
+      // Ambient warm light cone on floor
+      bg.fillStyle(0xffe899, 0.05);
+      bg.beginPath();
+      bg.moveTo(x, 22);
+      bg.lineTo(x - 28, wallH + 35);
+      bg.lineTo(x + 28, wallH + 35);
+      bg.closePath();
+      bg.fillPath();
+    }
+
+    // Room name engraved in wall center
+    this.add.text(w / 2, 18, `★ ${room.name.toUpperCase()} ★`, {
+      fontFamily: 'serif',
+      fontSize: '11px',
+      color: '#d4af37',
+      fontStyle: 'bold'
+    }).setOrigin(0.5).setDepth(4);
+
+    bg.setDepth(1);
   }
 
   private drawFeatures(room: any, w: number, h: number) {

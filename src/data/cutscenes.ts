@@ -33,16 +33,116 @@ export const cutscenes: Record<string, CutsceneData> = {
     skippable: true,
     music: 'tense_theme',
     panels: [
-      { type: 'text', text: 'Rain batters the glass of the Stellara Observatory.', textColor: '#ffffff', animation: 'fade_in', duration: 2000, autoAdvance: true, autoAdvanceDelay: 3000 },
-      { type: 'image', backgroundColor: '#000000', elements: [{ type: 'circle', x: 320, y: 180, width: 100, height: 100, color: '#4a4a4a' }], animation: 'zoom_in', sound: 'heavy_rain' },
-      { type: 'text', text: 'A heavy pendulum swings. Tick. Tock.', textColor: '#aaaaaa', animation: 'fade_in' },
-      { type: 'image', backgroundColor: '#111111', elements: [{ type: 'line', x: 200, y: 180, width: 440, height: 180, color: '#888888' }], animation: 'slide_right', sound: 'deep_whoosh' },
-      { type: 'text', text: 'A trembling hand reaches for a pocket watch.', textColor: '#ffffff', animation: 'fade_in' },
-      { type: 'image', backgroundColor: '#050505', elements: [{ type: 'circle', x: 320, y: 180, width: 50, height: 50, color: '#d4af37' }, { type: 'line', x: 300, y: 160, width: 340, height: 200, color: '#000000' }], animation: 'flash', sound: 'glass_shatter' },
-      { type: 'text', text: 'The glass is shattered.', textColor: '#ff0000', animation: 'fade_in' },
-      { type: 'image', backgroundColor: '#000000', animation: 'none', sound: 'power_down', autoAdvance: true, autoAdvanceDelay: 1000 },
-      { type: 'text', text: 'Then, total darkness.', textColor: '#ffffff', animation: 'fade_in', autoAdvance: true, autoAdvanceDelay: 2000 },
-      { type: 'text', text: 'And the thirteenth chime begins.', textColor: '#ff5555', textSize: 32, animation: 'shake', sound: 'chime_13', autoAdvance: true, autoAdvanceDelay: 4000 }
+      {
+        type: 'image',
+        backgroundColor: '#070a14',
+        elements: [
+          // Mountain silhouette
+          { type: 'rect', x: 320, y: 300, width: 640, height: 120, color: '#0d1322' },
+          // Observatory dome
+          { type: 'circle', x: 320, y: 220, width: 140, height: 140, color: '#161d30' },
+          { type: 'rect', x: 320, y: 250, width: 140, height: 80, color: '#161d30' },
+          // Dome slit
+          { type: 'rect', x: 320, y: 200, width: 12, height: 70, color: '#ffd700' },
+          // Lightning flash line
+          { type: 'line', x: 140, y: 40, width: 180, height: 160, color: '#c8e2ff' },
+          { type: 'text', x: 320, y: 70, text: 'STELLARA MOUNTAIN OBSERVATORY • 7:55 PM', fontSize: 13, color: '#ffd700' }
+        ],
+        animation: 'fade_in',
+        sound: 'thunder',
+        autoAdvance: true,
+        autoAdvanceDelay: 3200
+      },
+      {
+        type: 'text',
+        text: 'A violent gale batters the glass dome. Tonight was supposed to be a grand reopening.',
+        textColor: '#e0ecf8',
+        textSize: 15,
+        animation: 'fade_in',
+        autoAdvance: true,
+        autoAdvanceDelay: 3500
+      },
+      {
+        type: 'image',
+        backgroundColor: '#0c0e18',
+        elements: [
+          // Clock face backing
+          { type: 'circle', x: 320, y: 170, width: 160, height: 160, color: '#1a2233' },
+          { type: 'circle', x: 320, y: 170, width: 150, height: 150, color: '#121724' },
+          // Clockwork gears
+          { type: 'circle', x: 260, y: 140, width: 60, height: 60, color: '#c49a45' },
+          { type: 'circle', x: 370, y: 190, width: 80, height: 80, color: '#8a652a' },
+          // Pendulum rod & brass bob
+          { type: 'line', x: 320, y: 70, width: 0, height: 180, color: '#ffd700' },
+          { type: 'circle', x: 320, y: 250, width: 36, height: 36, color: '#d4af37' },
+          { type: 'text', x: 320, y: 310, text: 'Tick.   Tock.   Tick.   Tock.', fontSize: 13, color: '#a0b4c8' }
+        ],
+        animation: 'zoom_in',
+        sound: 'clockTick',
+        autoAdvance: true,
+        autoAdvanceDelay: 3200
+      },
+      {
+        type: 'image',
+        backgroundColor: '#08080c',
+        elements: [
+          // Gold pocket watch case
+          { type: 'circle', x: 320, y: 160, width: 130, height: 130, color: '#d4af37' },
+          { type: 'circle', x: 320, y: 160, width: 116, height: 116, color: '#f5f0dc' },
+          // Hands frozen at 8:00
+          { type: 'line', x: 320, y: 160, width: 0, height: -45, color: '#1a1a1a' },
+          { type: 'line', x: 320, y: 160, width: 0, height: 35, color: '#1a1a1a' },
+          // Shatter lines
+          { type: 'line', x: 280, y: 120, width: 70, height: 70, color: '#3a6688' },
+          { type: 'line', x: 330, y: 130, width: -40, height: 50, color: '#3a6688' },
+          { type: 'text', x: 320, y: 280, text: 'A trembling hand drops a shattered pocket watch...', fontSize: 13, color: '#ff6666' }
+        ],
+        animation: 'shake',
+        sound: 'glass_shatter',
+        autoAdvance: true,
+        autoAdvanceDelay: 3400
+      },
+      {
+        type: 'image',
+        backgroundColor: '#000000',
+        elements: [
+          { type: 'text', x: 320, y: 150, text: '⚡ BLACKOUT ⚡', fontSize: 20, color: '#ff3333' },
+          { type: 'text', x: 320, y: 190, text: 'The entire observatory power grid collapses.', fontSize: 13, color: '#cccccc' }
+        ],
+        animation: 'flash',
+        sound: 'doorOpen',
+        autoAdvance: true,
+        autoAdvanceDelay: 2500
+      },
+      {
+        type: 'image',
+        backgroundColor: '#050711',
+        elements: [
+          // Acoustic resonance waves
+          { type: 'circle', x: 320, y: 160, width: 70, height: 70, color: '#4ac4d4' },
+          { type: 'circle', x: 320, y: 160, width: 140, height: 140, color: '#2a5a7a' },
+          { type: 'circle', x: 320, y: 160, width: 220, height: 220, color: '#1a334a' },
+          // Great bronze bell
+          { type: 'rect', x: 320, y: 160, width: 44, height: 50, color: '#d4af37' },
+          { type: 'circle', x: 320, y: 185, width: 54, height: 30, color: '#c49a34' },
+          { type: 'text', x: 320, y: 270, text: 'DING... DING... DING...', fontSize: 15, color: '#ffd700' },
+          { type: 'text', x: 320, y: 305, text: 'Twelve chimes for eight o\'clock. But then...', fontSize: 12, color: '#a0c0d8' }
+        ],
+        animation: 'zoom_in',
+        sound: 'bellChime',
+        autoAdvance: true,
+        autoAdvanceDelay: 3500
+      },
+      {
+        type: 'text',
+        text: 'B O O M !   A   T H I R T E E N T H   C H I M E .\n\nEveryone heard Professor Sable speak.\nNobody saw him alive.',
+        textColor: '#ffdd66',
+        textSize: 16,
+        animation: 'shake',
+        sound: 'bellChime',
+        autoAdvance: true,
+        autoAdvanceDelay: 4200
+      }
     ]
   },
   opening_title: {
@@ -51,9 +151,45 @@ export const cutscenes: Record<string, CutsceneData> = {
     skippable: true,
     music: 'main_theme',
     panels: [
-      { type: 'image', backgroundColor: '#1a1a2e', elements: [{ type: 'text', x: 320, y: 150, text: 'THE THIRTEENTH CHIME', fontSize: 48, color: '#cda434' }], animation: 'fade_in', duration: 3000 },
-      { type: 'dialogue', speaker: 'Ren', dialogue: 'I never thought a school trip to an observatory would end like this.', animation: 'slide_up' },
-      { type: 'dialogue', speaker: 'Dr. Vale', dialogue: 'Keep your eyes peeled, Ren. Science is about observing the details others miss.', animation: 'slide_left' }
+      {
+        type: 'image',
+        backgroundColor: '#0a0d1a',
+        elements: [
+          { type: 'rect', x: 320, y: 180, width: 620, height: 340, color: '#121828' },
+          { type: 'rect', x: 320, y: 180, width: 610, height: 330, color: '#090d18' },
+          // Golden title plate
+          { type: 'text', x: 320, y: 110, text: 'THE THIRTEENTH CHIME', fontSize: 26, color: '#d4af37' },
+          { type: 'text', x: 320, y: 145, text: 'EPISODE 01: THE CLOCKWORK OBSERVATORY', fontSize: 11, color: '#88a6c8' },
+          { type: 'line', x: 180, y: 165, width: 280, height: 0, color: '#d4af37' },
+          // Ren & Vale profile boxes
+          { type: 'rect', x: 230, y: 230, width: 90, height: 90, color: '#1a2a44' },
+          { type: 'circle', x: 230, y: 220, width: 40, height: 40, color: '#f0cfb2' },
+          { type: 'rect', x: 230, y: 250, width: 50, height: 35, color: '#224488' },
+          { type: 'text', x: 230, y: 290, text: 'REN KASUGA\nHigh School Detective', fontSize: 9, color: '#7ab4f8' },
+
+          { type: 'rect', x: 410, y: 230, width: 90, height: 90, color: '#1a3328' },
+          { type: 'circle', x: 410, y: 220, width: 40, height: 40, color: '#f0cfb2' },
+          { type: 'rect', x: 410, y: 250, width: 50, height: 35, color: '#338866' },
+          { type: 'text', x: 410, y: 290, text: 'DR. MIRA VALE\nEccentric Inventor', fontSize: 9, color: '#68d391' }
+        ],
+        animation: 'zoom_in',
+        sound: 'discoveryString',
+        duration: 2500,
+        autoAdvance: true,
+        autoAdvanceDelay: 4500
+      },
+      {
+        type: 'dialogue',
+        speaker: 'Ren',
+        dialogue: 'Dr. Vale, that thirteenth chime wasn\'t mechanical. The resonance pattern was completely unnatural.',
+        animation: 'slide_up'
+      },
+      {
+        type: 'dialogue',
+        speaker: 'Dr. Vale',
+        dialogue: 'Precisely, Ren! Use the scientific gadgets in your coat. Observe every detail, uncover the false timeline, and expose the truth!',
+        animation: 'slide_left'
+      }
     ]
   },
   discovery_scene: {
