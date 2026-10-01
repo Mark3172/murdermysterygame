@@ -4,6 +4,7 @@ import { gameState } from '../logic/GameState';
 import { storyManager } from '../logic/StoryPhaseManager';
 import { SaveManager } from '../engine/SaveManager';
 import { AudioManager } from '../engine/AudioManager';
+import { PixelRenderer } from '../rendering/PixelRenderer';
 import { rooms } from '../data/rooms';
 import { suspects } from '../data/suspects';
 import { evidence as evidenceData } from '../data/evidence';
@@ -13,16 +14,17 @@ const SPEED = 80;
 
 export class ExplorationScene extends Phaser.Scene {
   private roomId = 'main_hall';
-  private player!: Phaser.GameObjects.Rectangle;
-  private playerHead!: Phaser.GameObjects.Arc;
-  private playerHair!: Phaser.GameObjects.Rectangle;
+  private player!: Phaser.Physics.Arcade.Sprite;
+  private playerShadow!: Phaser.GameObjects.Ellipse;
+  private playerTag!: Phaser.GameObjects.Text;
+  private playerFacing: 'down' | 'up' | 'left' | 'right' = 'down';
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private keys: Record<string, Phaser.Input.Keyboard.Key> = {};
   private inDialogue = false;
   private activeGadget: string | null = null;
   private gadgetOverlay: Phaser.GameObjects.Rectangle | null = null;
-  private interactableObjects: Array<{zone: Phaser.GameObjects.Zone; data: any; marker: Phaser.GameObjects.Graphics; label: Phaser.GameObjects.Text}> = [];
-  private npcObjects: Array<{sprite: Phaser.GameObjects.Rectangle; data: any; label: Phaser.GameObjects.Text}> = [];
+  private interactableObjects: Array<{zone: Phaser.GameObjects.Zone; data: any; marker: any; label: Phaser.GameObjects.Text; propSprite?: Phaser.GameObjects.Image}> = [];
+  private npcObjects: Array<{sprite: Phaser.GameObjects.Sprite | Phaser.GameObjects.Rectangle; data: any; label: Phaser.GameObjects.Text}> = [];
   private touchDir = {x:0, y:0};
   private touchAction = false;
   private nextFootstepTime = 0;
@@ -53,33 +55,26 @@ export class ExplorationScene extends Phaser.Scene {
     // 2. Room features (props, machinery, windows)
     this.drawFeatures(room, rw, rh);
 
-    // 3. Player with detective sprite and shadow
+    // 3. Player with authentic animated detective pixel art sprite
     const sx = this.registry.get('spawnX') as number || (room.spawnPoint?.x || rw/2/TILE) * TILE;
     const sy = this.registry.get('spawnY') as number || (room.spawnPoint?.y || rh/2/TILE) * TILE;
     this.registry.remove('spawnX'); this.registry.remove('spawnY');
 
-    // Shadow
-    this.add.ellipse(sx, sy + 10, 16, 6, 0x000000, 0.45).setDepth(45);
-    this.player = this.add.rectangle(sx, sy, 14, 22, 0x224488).setDepth(100);
-    this.physics.add.existing(this.player);
-    (this.player.body as Phaser.Physics.Arcade.Body).setCollideWorldBounds(true);
+    PixelRenderer.generateCharacterSprite(this, 'ren');
 
-    // Detective details
-    this.playerHead = this.add.circle(sx, sy - 9, 6, 0xf0cfb2).setDepth(101);
-    this.playerHair = this.add.rectangle(sx, sy - 14, 12, 5, 0x1a1a1a).setDepth(102);
-    // Red tie and coat lapel
-    const tie = this.add.rectangle(sx, sy - 2, 2, 8, 0xbb2222).setDepth(103);
-    this.tweens.add({targets: tie, alpha: 1, duration: 100}); // keep in container logic
+    // Shadow
+    this.playerShadow = this.add.ellipse(sx, sy + 11, 16, 6, 0x000000, 0.45).setDepth(sy - 1);
+
+    // Player sprite
+    this.player = this.physics.add.sprite(sx, sy, 'char_ren', 'down_0').setDepth(sy);
+    (this.player.body as Phaser.Physics.Arcade.Body).setSize(14, 12).setOffset(2, 14);
+    (this.player.body as Phaser.Physics.Arcade.Body).setCollideWorldBounds(true);
+    this.playerFacing = 'down';
 
     // Player tag
-    const playerTag = this.add.text(sx, sy - 22, '🕵️ Ren', {
-      fontSize: '8px', color: '#7ab4f8', fontFamily: 'Courier New', backgroundColor: '#060a16d0', padding: { x: 3, y: 1 }
-    }).setOrigin(0.5).setDepth(200);
-
-    this.events.on('update', () => {
-      playerTag.setPosition(this.player.x, this.player.y - 24);
-      tie.setPosition(this.player.x, this.player.y - 2);
-    });
+    this.playerTag = this.add.text(sx, sy - 20, '🕵️ Ren', {
+      fontSize: '8px', color: '#7ab4f8', fontFamily: 'Courier New', backgroundColor: '#060a16d0', padding: { x: 4, y: 1 }
+    }).setOrigin(0.5).setDepth(300);
 
     this.physics.world.setBounds(0, 0, rw, rh);
     this.cameras.main.setBounds(0, 0, rw, rh);
@@ -135,8 +130,10 @@ export class ExplorationScene extends Phaser.Scene {
       });
     }
 
-    // 5. Interactables (Clues with golden sparkles)
+    // 5. Interactables (Dedicated Pixel Art Props & Gleaming Clues)
     this.interactableObjects = [];
+    PixelRenderer.generateAllProps(this);
+
     if (room.interactables) for (const obj of room.interactables) {
       if (obj.evidenceId && gameState.hasEvidence(obj.evidenceId)) continue;
       if (obj.gadgetRequired && obj.gadgetRequired !== 'none' && obj.gadgetRequired !== 'tranquility_focus' && !gameState.hasGadget(obj.gadgetRequired)) continue;
@@ -150,36 +147,46 @@ export class ExplorationScene extends Phaser.Scene {
         if (!this.inDialogue) this.interact(obj);
       });
 
-      // Prop base
-      this.add.rectangle(ox, oy, ow, oh, 0x3d2817).setDepth(15);
-      this.add.rectangle(ox, oy, ow, oh).setStrokeStyle(1.5, 0x8a6438).setDepth(16);
+      // Shadow under prop
+      this.add.ellipse(ox, oy + oh/2 + 2, Math.max(ow * 0.85, 14), 6, 0x000000, 0.45).setDepth(oy - 1);
 
-      // Golden diamond sparkle marker
-      const mk = this.add.text(ox, oy - 16, '✧', { fontSize: '13px', color: '#ffd700' }).setOrigin(0.5).setDepth(160);
-      this.tweens.add({ targets: mk, y: oy - 20, alpha: 0.6, yoyo: true, repeat: -1, duration: 700 });
+      // Dedicated Pixel Art Prop Texture
+      const propKey = PixelRenderer.getPropKey(obj.id);
+      const propSprite = this.add.image(ox, oy, propKey).setDepth(oy);
+
+      // Special animations for interactive props
+      if (obj.id === 'main_gear') {
+        this.tweens.add({ targets: propSprite, angle: 360, duration: 20000, repeat: -1 });
+      } else if (obj.id === 'pendulum') {
+        this.tweens.add({ targets: propSprite, angle: -12, yoyo: true, repeat: -1, duration: 1800, ease: 'Sine.easeInOut' });
+      }
+
+      // Golden diamond sparkle marker with gleaming pulse
+      const mk = this.add.image(ox, oy - oh/2 - 8, 'sparkle_gleam').setDepth(oy + 20);
+      this.tweens.add({ targets: mk, y: oy - oh/2 - 12, alpha: 0.5, scale: 0.85, yoyo: true, repeat: -1, duration: 600 });
 
       // Label
-      const lb = this.add.text(ox, oy + 14, `🔍 ${obj.name}`, {
-        fontSize: '8px', color: '#ffd700', fontFamily: 'Courier New', backgroundColor: '#090d18ee', padding: { x: 4, y: 2 }
-      }).setOrigin(0.5).setDepth(160).setVisible(false);
+      const lb = this.add.text(ox, oy + oh/2 + 10, `🔍 ${obj.name}`, {
+        fontSize: '8px', color: '#ffea70', fontFamily: 'Courier New', backgroundColor: '#090d18ee', padding: { x: 5, y: 2 }
+      }).setOrigin(0.5).setDepth(oy + 30).setVisible(false);
 
-      this.interactableObjects.push({ zone: z, data: obj, marker: mk as any, label: lb });
+      this.interactableObjects.push({ zone: z, data: obj, marker: mk as any, label: lb, propSprite });
     }
 
-    // 6. NPCs with Role Badges and Unread Indicators
+    // 6. NPCs with Real Pixel Art Sprites, Role Badges and Unread Indicators
     this.npcObjects = [];
     if (room.npcs) for (const npc of room.npcs) {
       const sus = npc.suspectId ? suspects[npc.suspectId] : null;
-      const c = sus?.portraitColors;
-      const oc = c ? Phaser.Display.Color.HexStringToColor(c.outfit).color : 0x4a5568;
-      const sc = c ? Phaser.Display.Color.HexStringToColor(c.skin).color : 0xf0cfb2;
+      const charId = npc.suspectId || 'nadia';
+      PixelRenderer.generateCharacterSprite(this, charId);
+
       const nx = npc.x * TILE, ny = npc.y * TILE;
 
-      // Shadow
-      this.add.ellipse(nx, ny + 10, 16, 6, 0x000000, 0.45).setDepth(45);
+      // Soft Shadow
+      this.add.ellipse(nx, ny + 11, 16, 6, 0x000000, 0.45).setDepth(ny - 1);
 
-      // Character body
-      const sp = this.add.rectangle(nx, ny, 14, 22, oc).setDepth(ny);
+      // Character pixel art sprite
+      const sp = this.add.sprite(nx, ny, `char_${charId}`, 'down_0').setDepth(ny);
       sp.setInteractive({ useHandCursor: true });
       sp.on('pointerdown', () => {
         if (!this.inDialogue) {
@@ -189,12 +196,8 @@ export class ExplorationScene extends Phaser.Scene {
         }
       });
 
-      // Head and hair
-      this.add.circle(nx, ny - 9, 6, sc).setDepth(ny + 1);
-      const hc = c ? Phaser.Display.Color.HexStringToColor(c.hair).color : 0x222222;
-      this.add.rectangle(nx, ny - 13, 12, 4, hc).setDepth(ny + 2);
-
-      this.tweens.add({ targets: sp, x: nx + 1, yoyo: true, repeat: -1, duration: 2200 + Math.random() * 800 });
+      // Subtle breathing idle tween
+      this.tweens.add({ targets: sp, y: ny - 1, yoyo: true, repeat: -1, duration: 1800 + Math.random() * 600, ease: 'Sine.easeInOut' });
 
       // Role and title badge
       const roleIcons: Record<string, string> = {
@@ -202,17 +205,17 @@ export class ExplorationScene extends Phaser.Scene {
       };
       const icon = sus ? roleIcons[sus.id] || '👤' : '👤';
       const roleLabel = sus ? `${icon} ${sus.name} • ${sus.title}` : npc.id;
-      const lb = this.add.text(nx, ny + 16, roleLabel, {
+      const lb = this.add.text(nx, ny + 18, roleLabel, {
         fontSize: '8px', color: '#ffffff', fontFamily: 'Courier New', backgroundColor: '#090d1af0', padding: { x: 5, y: 2 }
-      }).setOrigin(0.5).setDepth(300);
+      }).setOrigin(0.5).setDepth(ny + 100);
 
       // Exclamation mark for un-interviewed suspects
       if (sus && !gameState.isSuspectInterviewed(sus.id)) {
-        const exclaim = this.add.text(nx, ny - 24, '❗', { fontSize: '10px', color: '#ffea70' }).setOrigin(0.5).setDepth(301);
+        const exclaim = this.add.text(nx, ny - 24, '❗', { fontSize: '10px', color: '#ffea70' }).setOrigin(0.5).setDepth(ny + 101);
         this.tweens.add({ targets: exclaim, y: ny - 28, yoyo: true, repeat: -1, duration: 600 });
       }
 
-      this.npcObjects.push({ sprite: sp, data: npc, label: lb });
+      this.npcObjects.push({ sprite: sp as any, data: npc, label: lb });
     }
 
     // Dust particles
@@ -332,15 +335,25 @@ export class ExplorationScene extends Phaser.Scene {
     const len = Math.sqrt(dx*dx+dy*dy);
     if (len > 0) {
       dx=(dx/len)*SPEED; dy=(dy/len)*SPEED;
+      if (Math.abs(dy) >= Math.abs(dx)) {
+        this.playerFacing = dy > 0 ? 'down' : 'up';
+      } else {
+        this.playerFacing = dx > 0 ? 'right' : 'left';
+      }
+      this.player.anims.play(`ren_walk_${this.playerFacing}`, true);
+
       if (this.time.now > this.nextFootstepTime) {
         AudioManager.getInstance().playSFX('footstep');
         this.nextFootstepTime = this.time.now + 360;
       }
+    } else {
+      this.player.anims.stop();
+      this.player.setFrame(`${this.playerFacing}_0`);
     }
     (this.player.body as Phaser.Physics.Arcade.Body).setVelocity(dx, dy);
 
-    this.playerHead.setPosition(this.player.x, this.player.y-8);
-    this.playerHair.setPosition(this.player.x, this.player.y-12);
+    this.playerShadow.setPosition(this.player.x, this.player.y + 11);
+    this.playerTag.setPosition(this.player.x, this.player.y - 20);
     this.player.setDepth(this.player.y);
 
     // Proximity
@@ -648,14 +661,19 @@ export class ExplorationScene extends Phaser.Scene {
       bg.fillRect(x - 2, 16, 4, 6);
       bg.fillStyle(0xfff0aa, 0.9);
       bg.fillCircle(x, 20, 3);
+
       // Ambient warm light cone on floor
-      bg.fillStyle(0xffe899, 0.05);
+      bg.fillStyle(0xffe899, 0.08);
       bg.beginPath();
       bg.moveTo(x, 22);
-      bg.lineTo(x - 28, wallH + 35);
-      bg.lineTo(x + 28, wallH + 35);
+      bg.lineTo(x - 34, wallH + 42);
+      bg.lineTo(x + 34, wallH + 42);
       bg.closePath();
       bg.fillPath();
+
+      // Soft radial glow on floor
+      bg.fillStyle(0xffd700, 0.04);
+      bg.fillCircle(x, wallH + 24, 28);
     }
 
     // Room name engraved in wall center

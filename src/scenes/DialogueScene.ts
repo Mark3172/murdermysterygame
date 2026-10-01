@@ -171,11 +171,51 @@ export class DialogueScene extends Scene {
 
   private updatePortraitColor(hexColor: string) {
     const avatarEl = document.getElementById('dialogue-avatar');
-    if (avatarEl) {
-      avatarEl.style.backgroundColor = hexColor;
-      avatarEl.style.borderColor = hexColor;
-      avatarEl.textContent = this.speakerEl.textContent ? this.speakerEl.textContent.charAt(0) : '?';
+    if (!avatarEl) return;
+
+    avatarEl.style.borderColor = hexColor;
+
+    // Map speaker to character ID
+    const speakerMap: Record<string, string> = {
+      'Ren': 'ren',
+      'Dr. Vale': 'vale',
+      'Nadia': 'nadia',
+      'Nadia Thorn': 'nadia',
+      'Hugo': 'hugo',
+      'Dr. Hugo': 'hugo',
+      'Dr. Hugo Wren': 'hugo',
+      'Petra': 'petra',
+      'Petra Solano': 'petra',
+      'Felix': 'felix',
+      'Felix Ashworth': 'felix',
+      'Iris': 'iris',
+      'Iris Blackwell': 'iris',
+      'Aldric': 'aldric',
+      'Professor Sable': 'aldric'
+    };
+
+    const charId = speakerMap[this.speakerEl.textContent || ''] || this.suspectId || 'ren';
+    const portraitKey = `portrait_${charId}_neutral`;
+
+    if (this.textures.exists(portraitKey)) {
+      try {
+        const tex = this.textures.get(portraitKey);
+        const src = tex.getSourceImage() as HTMLCanvasElement;
+        if (src && src.toDataURL) {
+          avatarEl.style.backgroundImage = `url(${src.toDataURL()})`;
+          avatarEl.style.backgroundSize = 'cover';
+          avatarEl.style.backgroundPosition = 'center';
+          avatarEl.style.imageRendering = 'pixelated';
+          avatarEl.textContent = '';
+          return;
+        }
+      } catch (e) {}
     }
+
+    // Fallback if texture not yet rendered
+    avatarEl.style.backgroundImage = 'none';
+    avatarEl.style.backgroundColor = hexColor;
+    avatarEl.textContent = this.speakerEl.textContent ? this.speakerEl.textContent.charAt(0) : '?';
   }
 
   private startTypewriter(text: string) {

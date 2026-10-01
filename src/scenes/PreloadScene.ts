@@ -82,7 +82,9 @@ export class PreloadScene extends Phaser.Scene {
 
         const generateOtherAssets = async () => {
             try {
-                if (PixelRenderer && PixelRenderer.generateInteractionMarker) {
+                if (PixelRenderer && PixelRenderer.generateAllProps) {
+                    PixelRenderer.generateAllProps(this);
+                } else if (PixelRenderer && PixelRenderer.generateInteractionMarker) {
                     PixelRenderer.generateInteractionMarker(this);
                 } else {
                     this.generateFallbackMarker();
