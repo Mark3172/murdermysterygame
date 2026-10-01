@@ -19,10 +19,31 @@ export class PreloadScene extends Phaser.Scene {
     }
 
     async create() {
+        const loadingScreen = document.getElementById('loading-screen');
+        const loadingContainer = document.getElementById('loading-container');
+        const loadingBar = document.getElementById('loading-bar');
+        const loadingText = document.getElementById('loading-text');
+
         const characters = ['ren', 'vale', 'nadia', 'hugo', 'petra', 'felix', 'iris'];
         const expressions = ['neutral', 'angry', 'sad', 'surprised', 'thinking', 'nervous', 'smiling'];
 
+        const hideLoadingUI = () => {
+            if (loadingScreen) loadingScreen.style.display = 'none';
+            if (loadingContainer) loadingContainer.style.display = 'none';
+        };
+
+        // Safety fallback timer to ensure player is never stuck on loading screen
+        const safetyTimer = setTimeout(() => {
+            hideLoadingUI();
+            if (!this.scene.isActive('TitleScene')) {
+                this.scene.start('TitleScene');
+            }
+        }, 3000);
+
         const generateCharacterAssets = async () => {
+            const totalSteps = characters.length * (1 + expressions.length);
+            let currentStep = 0;
+
             for (let i = 0; i < characters.length; i++) {
                 const char = characters[i];
                 try {
@@ -34,6 +55,10 @@ export class PreloadScene extends Phaser.Scene {
                 } catch (e) {
                     this.generateFallbackCharacterSprite(char);
                 }
+                currentStep++;
+                const pct = Math.round((currentStep / totalSteps) * 90);
+                if (loadingBar) loadingBar.style.width = `${pct}%`;
+                if (loadingText) loadingText.innerText = `Preparing Observatory... ${pct}%`;
 
                 for (let j = 0; j < expressions.length; j++) {
                     const expr = expressions[j];
@@ -46,10 +71,12 @@ export class PreloadScene extends Phaser.Scene {
                     } catch (e) {
                         this.generateFallbackPortrait(char, expr);
                     }
+                    currentStep++;
+                    const subPct = Math.round((currentStep / totalSteps) * 90);
+                    if (loadingBar) loadingBar.style.width = `${subPct}%`;
                 }
                 
-                // Allow UI to update
-                await new Promise(resolve => setTimeout(resolve, 10));
+                await new Promise(resolve => setTimeout(resolve, 8));
             }
         };
 
@@ -65,16 +92,19 @@ export class PreloadScene extends Phaser.Scene {
             }
 
             this.generateFallbackParticles();
+            if (loadingBar) loadingBar.style.width = '100%';
+            if (loadingText) loadingText.innerText = 'Ready!';
         };
 
-        await generateCharacterAssets();
-        await generateOtherAssets();
-
-        // Hide loading UI
-        const loadingContainer = document.getElementById('loading-container');
-        if (loadingContainer) {
-            loadingContainer.style.display = 'none';
+        try {
+            await generateCharacterAssets();
+            await generateOtherAssets();
+        } catch (e) {
+            console.error('Error during preload asset generation:', e);
         }
+
+        clearTimeout(safetyTimer);
+        hideLoadingUI();
 
         this.scene.start('TitleScene');
     }
