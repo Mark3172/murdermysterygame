@@ -52,6 +52,10 @@ export class UIScene extends Phaser.Scene {
         this.updateGadgetText();
 
         EventBus.on('gadget-unlocked', this.updateGadgetText, this);
+        EventBus.on('gadget-changed', (g: string | null) => {
+            this.currentGadget = g;
+            this.updateGadgetText();
+        }, this);
     }
 
     createFallbackHUD() {
@@ -61,33 +65,39 @@ export class UIScene extends Phaser.Scene {
         hud.style.top = '0';
         hud.style.width = '100%';
         hud.style.height = '30px';
-        hud.style.backgroundColor = '#333';
+        hud.style.backgroundColor = '#16192b';
+        hud.style.borderBottom = '1px solid #3a4260';
         hud.style.color = '#fff';
         hud.style.display = 'flex';
         hud.style.justifyContent = 'space-between';
         hud.style.alignItems = 'center';
-        hud.style.padding = '0 10px';
+        hud.style.padding = '0 12px';
+        hud.style.zIndex = '50';
         
         hud.innerHTML = `
-            <span id="objective-text">Objective: ???</span>
+            <span id="objective-text" style="font-family:'Courier New', monospace; font-size:12px; color:#d4af37;">Objective: Explore the observatory</span>
             <div>
-                <button id="btn-notebook">Notebook</button>
-                <button id="btn-gadgets">Gadgets</button>
-                <button id="btn-hint">Hint</button>
-                <button id="btn-settings">⚙</button>
+                <button id="btn-notebook" style="background:#20283e; color:#fff; border:1px solid #4a567a; padding:3px 8px; margin:0 2px; cursor:pointer;">Notebook [N]</button>
+                <button id="btn-gadgets" style="background:#20283e; color:#fff; border:1px solid #4a567a; padding:3px 8px; margin:0 2px; cursor:pointer;">Gadgets [1-5]</button>
+                <button id="btn-hint" style="background:#20283e; color:#ffdf6d; border:1px solid #4a567a; padding:3px 8px; margin:0 2px; cursor:pointer;">Hint [H]</button>
+                <button id="btn-settings" style="background:#20283e; color:#fff; border:1px solid #4a567a; padding:3px 8px; margin:0 2px; cursor:pointer;">⚙ [ESC]</button>
             </div>
         `;
         document.body.appendChild(hud);
     }
 
     update(time: number, delta: number) {
-        if (this.objectiveText && storyManager) {
-            // just an example of keeping it updated, could be event-driven
-            // this.objectiveText.innerText = storyManager.getCurrentObjective();
+        if (this.objectiveText) {
+            const currentObj = storyManager.getObjective();
+            const textToDisplay = currentObj ? `Objective: ${currentObj}` : 'Objective: Investigate the observatory';
+            if (this.objectiveText.innerText !== textToDisplay) {
+                this.objectiveText.innerText = textToDisplay;
+            }
         }
     }
 
     toggleNotebook() {
+        AudioManager.getInstance().playSFX('paperRustle');
         if (this.scene.isActive('NotebookScene')) {
             this.scene.stop('NotebookScene');
         } else {
@@ -106,7 +116,8 @@ export class UIScene extends Phaser.Scene {
         this.currentGadget = unlocked[idx];
         
         this.updateGadgetText();
-        AudioManager.getInstance().playSFX('ui_click');
+        AudioManager.getInstance().playSFX('gadget_beep');
+        EventBus.emit('gadget-selected', this.currentGadget);
     }
 
     updateGadgetText() {
@@ -114,33 +125,38 @@ export class UIScene extends Phaser.Scene {
         if (gadgetId) {
             const gadget = (gadgets as any)[gadgetId];
             this.gadgetText.setText(`Gadget: ${gadget ? gadget.name : gadgetId}`);
+            this.gadgetText.setColor('#4ac47a');
         } else {
             this.gadgetText.setText('Gadget: None');
+            this.gadgetText.setColor('#aaaaaa');
         }
     }
 
     showHint() {
+        AudioManager.getInstance().playSFX('bellChime');
         const hintObj = hintSystem.getHint();
         const hintText = hintObj ? `[Hint L${hintObj.level}] ${hintObj.text}` : 'No hint available.';
         // show toast
-        const toast = this.add.text(320, 50, hintText, { backgroundColor: '#000000e0', color: '#ffea70', fontFamily: 'Courier New', fontSize: '11px', padding: { x: 8, y: 4 }, wordWrap: { width: 450 } }).setOrigin(0.5);
+        const toast = this.add.text(320, 50, hintText, { backgroundColor: '#050710f0', color: '#ffea70', fontFamily: 'Courier New', fontSize: '11px', padding: { x: 10, y: 6 }, wordWrap: { width: 480 } }).setOrigin(0.5);
         this.tweens.add({
             targets: toast,
             alpha: 0,
-            delay: 4000,
+            delay: 4500,
             duration: 1000,
             onComplete: () => toast.destroy()
         });
     }
 
     toggleSettings() {
-        const settings = document.getElementById('settings-overlay');
-        if (settings) {
-            settings.style.display = settings.style.display === 'none' ? 'block' : 'none';
+        AudioManager.getInstance().playSFX('ui_click');
+        if (this.scene.isActive('SettingsScene')) {
+            this.scene.stop('SettingsScene');
+        } else {
+            this.scene.launch('SettingsScene');
         }
     }
 
     togglePause() {
-        // Implement pause
+        this.toggleSettings();
     }
 }

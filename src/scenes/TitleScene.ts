@@ -67,33 +67,43 @@ export class TitleScene extends Phaser.Scene {
             fontStyle: 'italic'
         }).setOrigin(0.5);
 
+        // Menu music
+        try {
+            AudioManager.getInstance().startMusic('menu');
+        } catch(e) {}
+
         // Menu buttons
         let menuY = 220;
 
         this.createMenuButton(320, menuY, 'New Game', () => {
+            AudioManager.getInstance().playSFX('ui_click');
             this.startGame();
         });
 
         if (SaveManager.hasSave()) {
             menuY += 30;
             this.createMenuButton(320, menuY, 'Continue', () => {
+                AudioManager.getInstance().playSFX('ui_click');
                 this.continueGame();
             });
         }
 
         menuY += 30;
         this.createMenuButton(320, menuY, 'Settings', () => {
-            EventBus.emit('open-settings');
+            AudioManager.getInstance().playSFX('ui_click');
+            this.scene.launch('SettingsScene');
         });
 
         menuY += 30;
         this.createMenuButton(320, menuY, 'Credits', () => {
+            AudioManager.getInstance().playSFX('ui_click');
+            if (this.clockTimer) this.clockTimer.remove();
             this.scene.start('CreditsScene');
         });
 
         // Clock ticking sound
         this.clockTimer = this.time.addEvent({
-            delay: 800,
+            delay: 1000,
             loop: true,
             callback: () => {
                 try {
@@ -110,22 +120,26 @@ export class TitleScene extends Phaser.Scene {
             if (soundManager.context && soundManager.context.state === 'suspended') {
                 soundManager.context.resume();
             }
+            try {
+                AudioManager.getInstance().startMusic('menu');
+            } catch(e) {}
         });
     }
 
     private createMenuButton(x: number, y: number, text: string, callback: () => void) {
         const btn = this.add.text(x, y, text, {
-            fontFamily: 'sans-serif',
-            fontSize: '20px',
-            color: '#ffffff'
+            fontFamily: 'serif',
+            fontSize: '18px',
+            color: '#e0e8f0'
         }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
         btn.on('pointerover', () => {
             btn.setColor('#d4af37');
-            btn.setScale(1.1);
+            btn.setScale(1.08);
+            try { AudioManager.getInstance().playSFX('type_blip'); } catch(e) {}
         });
         btn.on('pointerout', () => {
-            btn.setColor('#ffffff');
+            btn.setColor('#e0e8f0');
             btn.setScale(1);
         });
         btn.on('pointerdown', callback);

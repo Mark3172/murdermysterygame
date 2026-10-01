@@ -25,6 +25,8 @@ export class ExplorationScene extends Phaser.Scene {
   private npcObjects: Array<{sprite: Phaser.GameObjects.Rectangle; data: any; label: Phaser.GameObjects.Text}> = [];
   private touchDir = {x:0, y:0};
   private touchAction = false;
+  private nextFootstepTime = 0;
+  private lightningTimer?: Phaser.Time.TimerEvent;
 
   constructor() { super('ExplorationScene'); }
 
@@ -171,6 +173,9 @@ export class ExplorationScene extends Phaser.Scene {
     EventBus.on('dialogue-ended', () => { this.inDialogue = false; this.checkAdvance(); });
     EventBus.on('start-reconstruction', () => this.scene.start('ReconstructionScene'));
     EventBus.on('start-deduction', () => this.scene.start('DeductionScene'));
+    EventBus.on('gadget-selected', (gadgetId: string) => {
+      this.useGadget(gadgetId);
+    });
     EventBus.on('toggle-notebook', () => {
       if (this.scene.isActive('NotebookScene')) this.scene.stop('NotebookScene');
       else this.scene.launch('NotebookScene');
@@ -181,8 +186,29 @@ export class ExplorationScene extends Phaser.Scene {
     if (phase?.cutsceneOnEnter && !gameState.hasCutsceneSeen(phase.cutsceneOnEnter))
       this.scene.start('CutsceneScene', { cutsceneId: phase.cutsceneOnEnter });
 
-    // Audio
-    try { AudioManager.getInstance().init(); } catch(e) {}
+    // Audio & Atmosphere
+    try {
+      AudioManager.getInstance().init();
+      const track = storyManager.getMusicTrack() || 'exploration';
+      AudioManager.getInstance().startMusic(track);
+    } catch(e) {}
+
+    // Storm lightning effect
+    this.lightningTimer = this.time.addEvent({
+      delay: Phaser.Math.Between(16000, 28000),
+      loop: true,
+      callback: () => {
+        if (!this.cameras?.main) return;
+        this.cameras.main.flash(280, 210, 225, 255);
+        this.time.delayedCall(400, () => {
+          AudioManager.getInstance().playSFX('thunder');
+        });
+      }
+    });
+
+    this.events.once('shutdown', () => {
+      if (this.lightningTimer) this.lightningTimer.destroy();
+    });
 
     this.save();
   }
@@ -198,7 +224,13 @@ export class ExplorationScene extends Phaser.Scene {
     if (this.touchDir.x||this.touchDir.y) { dx=this.touchDir.x; dy=this.touchDir.y; }
 
     const len = Math.sqrt(dx*dx+dy*dy);
-    if (len > 0) { dx=(dx/len)*SPEED; dy=(dy/len)*SPEED; }
+    if (len > 0) {
+      dx=(dx/len)*SPEED; dy=(dy/len)*SPEED;
+      if (this.time.now > this.nextFootstepTime) {
+        AudioManager.getInstance().playSFX('footstep');
+        this.nextFootstepTime = this.time.now + 360;
+      }
+    }
     (this.player.body as Phaser.Physics.Arcade.Body).setVelocity(dx, dy);
 
     this.playerHead.setPosition(this.player.x, this.player.y-8);
@@ -349,6 +381,7 @@ export class ExplorationScene extends Phaser.Scene {
   private goToRoom(target: string, fromDir: string) {
     if (this.inDialogue) return;
     this.inDialogue = true;
+    AudioManager.getInstance().playSFX('doorOpen');
     const td = rooms[target]; if (!td) return;
     let sx = (td.width||40)*TILE/2, sy = (td.height||22)*TILE/2;
     if (fromDir==='up') sy=(td.height||22)*TILE-TILE*3;
@@ -363,11 +396,13 @@ export class ExplorationScene extends Phaser.Scene {
   }
 
   private showMsg(text: string) {
+    AudioManager.getInstance().playSFX('ui_click');
     const m=this.add.text(320,300,text,{fontSize:'10px',color:'#e0e8f0',fontFamily:'Courier New',backgroundColor:'#0a0a12',padding:{x:8,y:4},wordWrap:{width:400}}).setOrigin(0.5).setDepth(300).setScrollFactor(0);
     this.tweens.add({targets:m,alpha:0,delay:3000,duration:500,onComplete:()=>m.destroy()});
   }
 
   private showDiscovery(name: string, desc: string) {
+    AudioManager.getInstance().playSFX('discoveryString');
     const f=this.add.rectangle(320,180,640,360,0xc4a44a,0.15).setDepth(500).setScrollFactor(0);
     this.tweens.add({targets:f,alpha:0,duration:500,onComplete:()=>f.destroy()});
     const h=this.add.text(320,100,'📋 EVIDENCE FOUND',{fontSize:'12px',color:'#c4a44a',fontFamily:'Courier New'}).setOrigin(0.5).setDepth(501).setScrollFactor(0);
