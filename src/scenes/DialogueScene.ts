@@ -39,14 +39,18 @@ export class DialogueScene extends Scene {
 
     this.setupDOM();
 
-    this.portraitRect = this.add.rectangle(100, this.scale.height - 150, 80, 80, 0xffffff);
-
     this.input.keyboard?.on('keydown-SPACE', this.handleAdvance, this);
+    this.input.keyboard?.on('keydown-E', this.handleAdvance, this);
     this.input.on('pointerdown', this.handleAdvance, this);
     
     this.input.keyboard?.on('keydown-UP', this.handleChoiceUp, this);
     this.input.keyboard?.on('keydown-DOWN', this.handleChoiceDown, this);
     this.input.keyboard?.on('keydown-ENTER', this.handleChoiceEnter, this);
+
+    this.input.keyboard?.on('keydown-ONE', () => this.makeChoice(0), this);
+    this.input.keyboard?.on('keydown-TWO', () => this.makeChoice(1), this);
+    this.input.keyboard?.on('keydown-THREE', () => this.makeChoice(2), this);
+    this.input.keyboard?.on('keydown-FOUR', () => this.makeChoice(3), this);
 
     this.tree = dialogue[this.dialogueId];
 
@@ -76,7 +80,14 @@ export class DialogueScene extends Scene {
       this.container.style.zIndex = '1000';
       document.body.appendChild(this.container);
     }
-    this.container.style.display = 'block';
+    this.container.style.display = 'flex';
+
+    let avatarEl = document.getElementById('dialogue-avatar');
+    if (!avatarEl) {
+      avatarEl = document.createElement('div');
+      avatarEl.id = 'dialogue-avatar';
+      this.container.prepend(avatarEl);
+    }
 
     this.speakerEl = document.getElementById('dialogue-speaker') as HTMLElement;
     if (!this.speakerEl) {
@@ -159,8 +170,12 @@ export class DialogueScene extends Scene {
   }
 
   private updatePortraitColor(hexColor: string) {
-    const colorInt = parseInt(hexColor.replace('#', '0x'), 16);
-    this.portraitRect.setFillStyle(colorInt);
+    const avatarEl = document.getElementById('dialogue-avatar');
+    if (avatarEl) {
+      avatarEl.style.backgroundColor = hexColor;
+      avatarEl.style.borderColor = hexColor;
+      avatarEl.textContent = this.speakerEl.textContent ? this.speakerEl.textContent.charAt(0) : '?';
+    }
   }
 
   private startTypewriter(text: string) {
@@ -233,12 +248,8 @@ export class DialogueScene extends Scene {
     this.choicesEl.innerHTML = '';
     this.currentChoices.forEach((choice, index) => {
       const btn = document.createElement('div');
-      btn.textContent = `> ${choice.text}`;
-      btn.style.cursor = 'pointer';
-      btn.style.padding = '5px';
-      btn.style.marginTop = '5px';
-      btn.style.color = index === this.selectedChoiceIndex ? '#fff' : '#aaa';
-      btn.style.backgroundColor = index === this.selectedChoiceIndex ? '#333' : 'transparent';
+      btn.className = `dialogue-choice ${index === this.selectedChoiceIndex ? 'selected' : ''}`;
+      btn.textContent = `[${index + 1}] ${choice.text}`;
       
       btn.onmouseenter = () => {
         this.selectedChoiceIndex = index;

@@ -27,6 +27,7 @@ export class ExplorationScene extends Phaser.Scene {
   private touchAction = false;
   private nextFootstepTime = 0;
   private lightningTimer?: Phaser.Time.TimerEvent;
+  private interactionPrompt!: Phaser.GameObjects.Text;
 
   constructor() { super('ExplorationScene'); }
 
@@ -103,11 +104,16 @@ export class ExplorationScene extends Phaser.Scene {
       const ow = (obj.width || 2) * TILE, oh = (obj.height || 1) * TILE;
       const z = this.add.zone(ox, oy, ow, oh);
       this.physics.add.existing(z, true);
+      z.setInteractive({ useHandCursor: true });
+      z.on('pointerdown', () => {
+        if (!this.inDialogue) this.interact(obj);
+      });
+
       this.add.rectangle(ox, oy, ow, oh, 0x3a3a4a, 0.4).setDepth(5);
       const mk = this.add.graphics(); mk.fillStyle(0xc4a44a, 0.8); mk.fillRect(-3,-3,6,6);
       mk.setPosition(ox, oy-16).setDepth(150);
       this.tweens.add({targets:mk, y:oy-20, yoyo:true, repeat:-1, duration:600});
-      const lb = this.add.text(ox, oy+12, obj.name, {fontSize:'7px',color:'#c4a44a',fontFamily:'Courier New',backgroundColor:'#0a0a12',padding:{x:2,y:1}}).setOrigin(0.5).setDepth(150).setVisible(false);
+      const lb = this.add.text(ox, oy+12, obj.name, {fontSize:'9px',color:'#c4a44a',fontFamily:'Courier New',backgroundColor:'#0a0a12e0',padding:{x:4,y:2}}).setOrigin(0.5).setDepth(150).setVisible(false);
       this.interactableObjects.push({zone:z, data:obj, marker:mk, label:lb});
     }
 
@@ -119,10 +125,19 @@ export class ExplorationScene extends Phaser.Scene {
       const oc = c ? Phaser.Display.Color.HexStringToColor(c.outfit).color : 0x666666;
       const sc = c ? Phaser.Display.Color.HexStringToColor(c.skin).color : 0xe8c8a8;
       const nx = npc.x * TILE, ny = npc.y * TILE;
-      const sp = this.add.rectangle(nx, ny, 12, 20, oc).setDepth(ny);
-      this.add.circle(nx, ny-8, 5, sc).setDepth(ny+1);
+      const sp = this.add.rectangle(nx, ny, 14, 22, oc).setDepth(ny);
+      sp.setInteractive({ useHandCursor: true });
+      sp.on('pointerdown', () => {
+        if (!this.inDialogue) {
+          this.inDialogue = true;
+          const did = npc.suspectId ? `${npc.suspectId}_interview` : 'intro_arrival';
+          this.scene.launch('DialogueScene', {dialogueId:did, suspectId:npc.suspectId});
+        }
+      });
+
+      this.add.circle(nx, ny-9, 6, sc).setDepth(ny+1);
       this.tweens.add({targets:sp, x:nx+1, yoyo:true, repeat:-1, duration:2000+Math.random()*1000});
-      const lb = this.add.text(nx, ny+14, sus?.name||npc.id, {fontSize:'7px',color:'#e0e8f0',fontFamily:'Courier New',backgroundColor:'#0a0a12',padding:{x:2,y:1}}).setOrigin(0.5).setDepth(200);
+      const lb = this.add.text(nx, ny+16, sus?.name||npc.id, {fontSize:'9px',color:'#e0e8f0',fontFamily:'Courier New',backgroundColor:'#0a0a12e0',padding:{x:4,y:2}}).setOrigin(0.5).setDepth(200);
       this.npcObjects.push({sprite:sp, data:npc, label:lb});
     }
 
@@ -206,6 +221,19 @@ export class ExplorationScene extends Phaser.Scene {
       }
     });
 
+    // Interactive HUD prompt
+    this.interactionPrompt = this.add.text(320, 325, '', {
+      fontSize: '11px',
+      color: '#ffea70',
+      backgroundColor: '#0a0e1cf0',
+      padding: { x: 12, y: 5 },
+      fontFamily: 'Courier New, monospace'
+    }).setOrigin(0.5).setDepth(600).setScrollFactor(0).setVisible(false).setInteractive({ useHandCursor: true });
+
+    this.interactionPrompt.on('pointerdown', () => {
+      this.touchAction = true;
+    });
+
     this.events.once('shutdown', () => {
       if (this.lightningTimer) this.lightningTimer.destroy();
     });
@@ -214,7 +242,11 @@ export class ExplorationScene extends Phaser.Scene {
   }
 
   update() {
-    if (this.inDialogue) { (this.player.body as Phaser.Physics.Arcade.Body).setVelocity(0,0); return; }
+    if (this.inDialogue) {
+      (this.player.body as Phaser.Physics.Arcade.Body).setVelocity(0,0);
+      this.interactionPrompt.setVisible(false);
+      return;
+    }
 
     let dx=0, dy=0;
     if (this.cursors?.left?.isDown || this.keys.A?.isDown) dx -= 1;
@@ -239,23 +271,36 @@ export class ExplorationScene extends Phaser.Scene {
 
     // Proximity
     let nearObj: typeof this.interactableObjects[0]|null = null;
-    let nearDist = 40;
+    let nearDist = 45;
     for (const ia of this.interactableObjects) {
       const d = Phaser.Math.Distance.Between(this.player.x, this.player.y, ia.zone.x, ia.zone.y);
-      ia.label.setVisible(d < 40);
+      ia.label.setVisible(d < 45);
       if (d < nearDist) { nearObj = ia; nearDist = d; }
     }
 
     let nearNpc: typeof this.npcObjects[0]|null = null;
     for (const n of this.npcObjects) {
       const d = Phaser.Math.Distance.Between(this.player.x, this.player.y, n.sprite.x, n.sprite.y);
-      if (d < 40) nearNpc = n;
+      if (d < 45) nearNpc = n;
+    }
+
+    // Update floating interaction prompt
+    if (nearNpc) {
+      const sus = nearNpc.data.suspectId ? suspects[nearNpc.data.suspectId] : null;
+      this.interactionPrompt.setText(`💬 [E] Talk to ${sus?.name || nearNpc.data.id}`);
+      this.interactionPrompt.setVisible(true);
+    } else if (nearObj) {
+      this.interactionPrompt.setText(`🔍 [E] Examine ${nearObj.data.name}`);
+      this.interactionPrompt.setVisible(true);
+    } else {
+      this.interactionPrompt.setVisible(false);
     }
 
     if (this.keys.E && Phaser.Input.Keyboard.JustDown(this.keys.E) || this.touchAction) {
       this.touchAction = false;
       if (nearNpc) {
         this.inDialogue = true;
+        this.interactionPrompt.setVisible(false);
         const did = nearNpc.data.suspectId ? `${nearNpc.data.suspectId}_interview` : 'intro_arrival';
         this.scene.launch('DialogueScene', {dialogueId:did, suspectId:nearNpc.data.suspectId});
       } else if (nearObj) {

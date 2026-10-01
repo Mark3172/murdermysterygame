@@ -47,8 +47,15 @@ export class UIScene extends Phaser.Scene {
         this.input.keyboard?.on('keydown-H', () => this.showHint());
         this.input.keyboard?.on('keydown-ESC', () => this.togglePause());
 
-        // Gadget Text
-        this.gadgetText = this.add.text(500, 340, 'Gadget: None', { fontSize: '12px', color: '#fff', backgroundColor: '#000' }).setOrigin(1, 1);
+        // Gadget Text badge
+        this.gadgetText = this.add.text(16, 346, '🔧 Gadget: None [Press 1-5]', { 
+            fontSize: '10px', 
+            color: '#8899aa', 
+            backgroundColor: '#0a0e1cee',
+            padding: { x: 8, y: 4 },
+            fontFamily: 'Courier New, monospace'
+        }).setOrigin(0, 1).setInteractive({ useHandCursor: true });
+        this.gadgetText.on('pointerdown', () => this.cycleGadgets());
         this.updateGadgetText();
 
         EventBus.on('gadget-unlocked', this.updateGadgetText, this);
@@ -124,11 +131,11 @@ export class UIScene extends Phaser.Scene {
         const gadgetId = this.currentGadget;
         if (gadgetId) {
             const gadget = (gadgets as any)[gadgetId];
-            this.gadgetText.setText(`Gadget: ${gadget ? gadget.name : gadgetId}`);
+            this.gadgetText.setText(`🔧 Active: ${gadget ? gadget.name : gadgetId} [Press 1-5 to switch]`);
             this.gadgetText.setColor('#4ac47a');
         } else {
-            this.gadgetText.setText('Gadget: None');
-            this.gadgetText.setColor('#aaaaaa');
+            this.gadgetText.setText('🔧 Gadget: None [Press 1-5 to equip]');
+            this.gadgetText.setColor('#8899aa');
         }
     }
 

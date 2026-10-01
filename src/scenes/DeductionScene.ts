@@ -152,7 +152,8 @@ export class DeductionScene extends Phaser.Scene {
 
         const collectedIds = gameState.getCollectedEvidence();
         
-        this.add.text(width/2, 50, 'SELECT EVIDENCE', { fontSize: '20px', fontFamily: 'Courier', color: '#fff' }).setOrigin(0.5);
+        const pickerTitle = this.add.text(width/2, 50, 'SELECT EVIDENCE', { fontSize: '18px', fontFamily: 'Courier New', color: '#d4af37', fontStyle: 'bold' }).setOrigin(0.5);
+        this.evidencePickerContainer.add(pickerTitle);
         
         collectedIds.forEach((id, i) => {
             const e = evidenceData[id];
