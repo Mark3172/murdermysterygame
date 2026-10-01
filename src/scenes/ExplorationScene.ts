@@ -60,8 +60,8 @@ export class ExplorationScene extends Phaser.Scene {
     this.drawFeatures(room, rw, rh);
 
     // Player
-    const sx = this.registry.get('spawnX') as number || room.spawnPoint?.x || rw/2;
-    const sy = this.registry.get('spawnY') as number || room.spawnPoint?.y || rh/2;
+    const sx = this.registry.get('spawnX') as number || (room.spawnPoint?.x || rw/2/TILE) * TILE;
+    const sy = this.registry.get('spawnY') as number || (room.spawnPoint?.y || rh/2/TILE) * TILE;
     this.registry.remove('spawnX'); this.registry.remove('spawnY');
 
     this.player = this.add.rectangle(sx, sy, 12, 20, 0x3366aa).setDepth(100);
@@ -78,14 +78,16 @@ export class ExplorationScene extends Phaser.Scene {
 
     // Exits
     if (room.exits) for (const exit of room.exits) {
-      const z = this.add.zone(exit.x, exit.y, TILE*2, TILE*2);
+      if (exit.direction === 'hidden') continue; // hidden exits found via gadgets
+      const ex = exit.x * TILE, ey = exit.y * TILE;
+      const z = this.add.zone(ex, ey, TILE*2, TILE*2);
       this.physics.add.existing(z, true);
-      const arrow = this.add.text(exit.x, exit.y, exit.direction==='up'?'▲':exit.direction==='down'?'▼':exit.direction==='left'?'◄':'►', {
+      const arrow = this.add.text(ex, ey, exit.direction==='up'?'▲':exit.direction==='down'?'▼':exit.direction==='left'?'◄':'►', {
         fontSize:'12px', color:'#4a8a9a', fontFamily:'Courier New'
       }).setOrigin(0.5).setDepth(50);
       this.tweens.add({targets:arrow, alpha:0.3, yoyo:true, repeat:-1, duration:800});
       const tgt = rooms[exit.targetRoom];
-      if (tgt) this.add.text(exit.x, exit.y+14, tgt.name, {fontSize:'7px',color:'#4a8a9a',fontFamily:'Courier New'}).setOrigin(0.5).setDepth(50).setAlpha(0.6);
+      if (tgt) this.add.text(ex, ey+14, tgt.name, {fontSize:'7px',color:'#4a8a9a',fontFamily:'Courier New'}).setOrigin(0.5).setDepth(50).setAlpha(0.6);
       this.physics.add.overlap(this.player, z, () => { if (!this.inDialogue) this.goToRoom(exit.targetRoom, exit.direction); });
     }
 
@@ -93,13 +95,17 @@ export class ExplorationScene extends Phaser.Scene {
     this.interactableObjects = [];
     if (room.interactables) for (const obj of room.interactables) {
       if (obj.evidenceId && gameState.hasEvidence(obj.evidenceId)) continue;
-      const z = this.add.zone(obj.x, obj.y, obj.width||TILE*2, obj.height||TILE);
+      // Skip items requiring gadgets the player doesn't have yet (unless no gadget required)
+      if (obj.gadgetRequired && obj.gadgetRequired !== 'none' && obj.gadgetRequired !== 'tranquility_focus' && !gameState.hasGadget(obj.gadgetRequired)) continue;
+      const ox = obj.x * TILE, oy = obj.y * TILE;
+      const ow = (obj.width || 2) * TILE, oh = (obj.height || 1) * TILE;
+      const z = this.add.zone(ox, oy, ow, oh);
       this.physics.add.existing(z, true);
-      this.add.rectangle(obj.x, obj.y, obj.width||TILE*2, obj.height||TILE, 0x3a3a4a, 0.4).setDepth(5);
+      this.add.rectangle(ox, oy, ow, oh, 0x3a3a4a, 0.4).setDepth(5);
       const mk = this.add.graphics(); mk.fillStyle(0xc4a44a, 0.8); mk.fillRect(-3,-3,6,6);
-      mk.setPosition(obj.x, obj.y-16).setDepth(150);
-      this.tweens.add({targets:mk, y:obj.y-20, yoyo:true, repeat:-1, duration:600});
-      const lb = this.add.text(obj.x, obj.y+12, obj.name, {fontSize:'7px',color:'#c4a44a',fontFamily:'Courier New',backgroundColor:'#0a0a12',padding:{x:2,y:1}}).setOrigin(0.5).setDepth(150).setVisible(false);
+      mk.setPosition(ox, oy-16).setDepth(150);
+      this.tweens.add({targets:mk, y:oy-20, yoyo:true, repeat:-1, duration:600});
+      const lb = this.add.text(ox, oy+12, obj.name, {fontSize:'7px',color:'#c4a44a',fontFamily:'Courier New',backgroundColor:'#0a0a12',padding:{x:2,y:1}}).setOrigin(0.5).setDepth(150).setVisible(false);
       this.interactableObjects.push({zone:z, data:obj, marker:mk, label:lb});
     }
 
@@ -110,10 +116,11 @@ export class ExplorationScene extends Phaser.Scene {
       const c = sus?.portraitColors;
       const oc = c ? Phaser.Display.Color.HexStringToColor(c.outfit).color : 0x666666;
       const sc = c ? Phaser.Display.Color.HexStringToColor(c.skin).color : 0xe8c8a8;
-      const sp = this.add.rectangle(npc.x, npc.y, 12, 20, oc).setDepth(npc.y);
-      this.add.circle(npc.x, npc.y-8, 5, sc).setDepth(npc.y+1);
-      this.tweens.add({targets:sp, x:npc.x+1, yoyo:true, repeat:-1, duration:2000+Math.random()*1000});
-      const lb = this.add.text(npc.x, npc.y+14, sus?.name||npc.id, {fontSize:'7px',color:'#e0e8f0',fontFamily:'Courier New',backgroundColor:'#0a0a12',padding:{x:2,y:1}}).setOrigin(0.5).setDepth(200);
+      const nx = npc.x * TILE, ny = npc.y * TILE;
+      const sp = this.add.rectangle(nx, ny, 12, 20, oc).setDepth(ny);
+      this.add.circle(nx, ny-8, 5, sc).setDepth(ny+1);
+      this.tweens.add({targets:sp, x:nx+1, yoyo:true, repeat:-1, duration:2000+Math.random()*1000});
+      const lb = this.add.text(nx, ny+14, sus?.name||npc.id, {fontSize:'7px',color:'#e0e8f0',fontFamily:'Courier New',backgroundColor:'#0a0a12',padding:{x:2,y:1}}).setOrigin(0.5).setDepth(200);
       this.npcObjects.push({sprite:sp, data:npc, label:lb});
     }
 

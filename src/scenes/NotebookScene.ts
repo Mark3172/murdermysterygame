@@ -95,9 +95,12 @@ export class NotebookScene extends Phaser.Scene {
             });
             html += '</ul>';
         } else if (tabName === 'objectives') {
+            const phase = storyManager.getCurrentPhase();
             html = '<h2>Objectives</h2>';
-            html += `<p>Current Phase: Phase ${storyManager.getCurrentPhase()}</p>`;
-            html += `<p>Objective: Investigate the mansion.</p>`; // simplified
+            html += `<p><strong>Current Phase:</strong> ${phase?.name || 'Unknown'}</p>`;
+            html += `<p><strong>Objective:</strong> ${storyManager.getObjective() || 'Explore and investigate.'}</p>`;
+            html += `<p><strong>Evidence Found:</strong> ${gameState.getCollectedEvidence().length} / 12</p>`;
+            html += `<p><strong>Gadgets:</strong> ${gameState.getUnlockedGadgets().join(', ') || 'None'}</p>`;
         }
 
         content.innerHTML = html;

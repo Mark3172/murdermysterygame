@@ -27,7 +27,8 @@ export const rooms: Record<string, RoomData> = {
       { direction: 'up', targetRoom: 'observation_deck', x: 16, y: 1 },
       { direction: 'down', targetRoom: 'clockwork_gallery', x: 16, y: 22 },
       { direction: 'left', targetRoom: 'library', x: 1, y: 12 },
-      { direction: 'right', targetRoom: 'pendulum_room', x: 30, y: 12 }
+      { direction: 'right', targetRoom: 'pendulum_room', x: 30, y: 12 },
+      { direction: 'up', targetRoom: 'exhibition_chamber', x: 8, y: 1 }
     ],
     interactables: [
       { id: 'pa_speaker', name: 'PA Speaker', x: 16, y: 5, width: 2, height: 2, description: 'The main speaker system. It crackles with static.', evidenceId: 'spliced_recording', gadgetRequired: 'voice_prism', dialogueOnInteract: 'The announcement came from this speaker. If I use the Voice Prism, I might be able to analyze the audio playback.' }
@@ -102,7 +103,7 @@ export const rooms: Record<string, RoomData> = {
     interactables: [
       { id: 'shelf_3', name: 'Shelf 3', x: 5, y: 5, width: 4, height: 1, description: 'Emergency supplies usually kept here.', evidenceId: 'missing_lantern', gadgetRequired: 'trace_light', dialogueOnInteract: 'The Trace Light shows a perfect rectangular area free of dust. A lantern is missing.' },
       { id: 'archive_desk', name: 'Archive Desk', x: 13, y: 13, width: 3, height: 2, description: 'Ledgers and inkwells.' },
-      { id: 'spilled_ink', name: 'Spilled Ink', x: 14, y: 13, width: 1, height: 1, description: 'A fresh, violet ink stain on the ledger.', evidenceId: 'felix_ink_stain', gadgetRequired: 'chemical_sniffer', dialogueOnInteract: 'The Sniffer confirms this ink is a very specific, rare violet blend.' },
+      { id: 'spilled_ink', name: 'Spilled Ink', x: 14, y: 13, width: 1, height: 1, description: 'A fresh, violet ink stain on the ledger.', evidenceId: 'felix_ink_stain', gadgetRequired: 'trace_light', dialogueOnInteract: 'The Sniffer confirms this ink is a very specific, rare violet blend.' },
       { id: 'old_files', name: 'Filing Cabinet', x: 2, y: 20, width: 2, height: 2, description: 'Old project records.', evidenceId: 'project_echo_notes', dialogueOnInteract: 'These are the files for Project Echo. The calibration numbers look altered.' },
       { id: 'potted_plant', name: 'Potted Plant', x: 20, y: 2, width: 2, height: 2, description: 'A large fern.', evidenceId: 'nadia_vial', gadgetRequired: 'trace_light', dialogueOnInteract: 'Something is glowing in the dirt of this plant under the Trace Light.' }
     ],
@@ -127,7 +128,7 @@ export const rooms: Record<string, RoomData> = {
     interactables: [
       { id: 'pendulum', name: 'Great Pendulum', x: 15, y: 14, width: 4, height: 4, description: 'A heavy brass weight swinging eternally.' },
       { id: 'acoustics', name: 'Room Acoustics', x: 15, y: 5, width: 2, height: 2, description: 'The echo in here is very distinct.', evidenceId: 'thirteenth_chime_resonance', gadgetRequired: 'echo_lens', dialogueOnInteract: 'The Echo Lens maps the sound waves of this room perfectly to the 13th chime.' },
-      { id: 'floor_grates', name: 'Floor Grates', x: 10, y: 14, width: 2, height: 2, description: 'Ventilation grates with built-in weight sensors for maintenance logging.', evidenceId: 'pendulum_weight_sensor', gadgetRequired: 'data_slicer', dialogueOnInteract: 'The Data Slicer can pull the logs from these floor weight sensors.' }
+      { id: 'floor_grates', name: 'Floor Grates', x: 10, y: 14, width: 2, height: 2, description: 'Ventilation grates with built-in weight sensors for maintenance logging.', evidenceId: 'pendulum_weight_sensor', gadgetRequired: 'echo_lens', dialogueOnInteract: 'The Data Slicer can pull the logs from these floor weight sensors.' }
     ],
     npcs: [
       { id: 'npc_iris', suspectId: 'iris', x: 20, y: 20 }
@@ -149,7 +150,7 @@ export const rooms: Record<string, RoomData> = {
     ],
     interactables: [
       { id: 'telescope', name: 'Telescope', x: 10, y: 5, width: 2, height: 2, description: 'A large optical telescope, currently capped.' },
-      { id: 'deck_sensors', name: 'Weather Sensors', x: 2, y: 2, width: 2, height: 2, description: 'Environmental monitoring equipment.', evidenceId: 'rain_sensor_data', gadgetRequired: 'data_slicer', dialogueOnInteract: 'The Data Slicer can connect to the weather station logs to check foot traffic.' }
+      { id: 'deck_sensors', name: 'Weather Sensors', x: 2, y: 2, width: 2, height: 2, description: 'Environmental monitoring equipment.', evidenceId: 'rain_sensor_data', gadgetRequired: 'echo_lens', dialogueOnInteract: 'The Data Slicer can connect to the weather station logs to check foot traffic.' }
     ],
     npcs: [],
     spawnPoint: { x: 10, y: 13 },
