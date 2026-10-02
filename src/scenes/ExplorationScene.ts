@@ -8,6 +8,7 @@ import { PixelRenderer } from '../rendering/PixelRenderer';
 import { rooms } from '../data/rooms';
 import { suspects } from '../data/suspects';
 import { evidence as evidenceData } from '../data/evidence';
+import { dialogue } from '../data/dialogue';
 
 const TILE = 16;
 const SPEED = 80;
@@ -62,9 +63,14 @@ export class ExplorationScene extends Phaser.Scene {
     this.drawFeatures(room, rw, rh);
 
     // 3. Player with authentic 16-bit RPG animated detective pixel art sprite
-    const sx = this.registry.get('spawnX') as number || (room.spawnPoint?.x || rw/2/TILE) * TILE;
-    const sy = this.registry.get('spawnY') as number || (room.spawnPoint?.y || rh/2/TILE) * TILE;
+    const wallH = TILE * 3;
+    let rawSx = this.registry.get('spawnX') as number || (room.spawnPoint?.x || rw/2/TILE) * TILE;
+    let rawSy = this.registry.get('spawnY') as number || (room.spawnPoint?.y || rh/2/TILE) * TILE;
     this.registry.remove('spawnX'); this.registry.remove('spawnY');
+
+    // Safety clamp to ensure Ren is in the open floor area and never trapped inside walls
+    const sx = Phaser.Math.Clamp(rawSx, 32, rw - 32);
+    const sy = Phaser.Math.Clamp(rawSy, wallH + 20, rh - 32);
 
     // Shadow
     this.playerShadow = this.add.ellipse(sx, sy + 15, 18, 7, 0x000000, 0.45).setDepth(sy - 1);
@@ -326,6 +332,11 @@ export class ExplorationScene extends Phaser.Scene {
   }
 
   update() {
+    // Safety: auto-recover if inDialogue was set but DialogueScene is no longer active
+    if (this.inDialogue && !this.scene.isActive('DialogueScene')) {
+      this.inDialogue = false;
+    }
+
     if (this.inDialogue) {
       (this.player.body as Phaser.Physics.Arcade.Body).setVelocity(0,0);
       this.interactionPrompt.setVisible(false);
@@ -358,6 +369,16 @@ export class ExplorationScene extends Phaser.Scene {
       this.player.setFrame(`${this.playerFacing}_0`);
     }
     (this.player.body as Phaser.Physics.Arcade.Body).setVelocity(dx, dy);
+
+    // Continuous floor position clamping to guarantee Ren is never wedged in walls or world bounds
+    const curRoom = rooms[this.roomId];
+    if (curRoom) {
+      const wallH = TILE * 3;
+      const rw = (curRoom.width || 40) * TILE;
+      const rh = (curRoom.height || 22) * TILE;
+      this.player.x = Phaser.Math.Clamp(this.player.x, 16, rw - 16);
+      this.player.y = Phaser.Math.Clamp(this.player.y, wallH + 16, rh - 24);
+    }
 
     this.playerShadow.setPosition(this.player.x, this.player.y + 15);
     this.playerTag.setPosition(this.player.x, this.player.y - 24);
@@ -416,8 +437,13 @@ export class ExplorationScene extends Phaser.Scene {
       this.save(); return;
     }
     if (obj.dialogueOnInteract) {
-      this.inDialogue = true;
-      this.scene.launch('DialogueScene', {dialogueId:obj.dialogueOnInteract}); return;
+      if (dialogue[obj.dialogueOnInteract]) {
+        this.inDialogue = true;
+        this.scene.launch('DialogueScene', {dialogueId:obj.dialogueOnInteract});
+      } else {
+        this.showMsg(obj.dialogueOnInteract);
+      }
+      return;
     }
     this.showMsg(obj.description||'Nothing unusual here.');
   }
@@ -556,8 +582,13 @@ export class ExplorationScene extends Phaser.Scene {
       }
     } else if (td.spawnPoint) {
       sx = td.spawnPoint.x * TILE;
-      sy = Math.max(td.spawnPoint.y * TILE, wallH + 16);
+      sy = Math.max(td.spawnPoint.y * TILE, wallH + 20);
     }
+
+    const tw = (td.width || 40) * TILE;
+    const th = (td.height || 22) * TILE;
+    sx = Phaser.Math.Clamp(sx, 32, tw - 32);
+    sy = Phaser.Math.Clamp(sy, wallH + 20, th - 32);
 
     this.cameras.main.fadeOut(250);
     this.cameras.main.once('camerafadeoutcomplete', () => {
@@ -769,8 +800,8 @@ export class ExplorationScene extends Phaser.Scene {
     this.obstacleColliders = this.physics.add.staticGroup();
     const wallH = TILE * 3;
 
-    // Top wall segments (leaving gaps for doors)
-    const topExits = (room.exits || []).filter((e: any) => e.direction === 'up' || e.y <= 2);
+    // Top wall segments (leaving gaps only for real visible doors)
+    const topExits = (room.exits || []).filter((e: any) => e.direction !== 'hidden' && (e.direction === 'up' || e.y <= 2));
     if (topExits.length === 0) {
       const topObstacle = this.add.rectangle(w / 2, wallH / 2, w, wallH);
       this.obstacleColliders.add(topObstacle);
@@ -778,8 +809,8 @@ export class ExplorationScene extends Phaser.Scene {
       let curX = 0;
       const sorted = [...topExits].sort((a: any, b: any) => a.x - b.x);
       for (const ex of sorted) {
-        const dl = ex.x * TILE - 20;
-        const dr = ex.x * TILE + 20;
+        const dl = ex.x * TILE - 24;
+        const dr = ex.x * TILE + 24;
         if (dl > curX) {
           const segW = dl - curX;
           const seg = this.add.rectangle(curX + segW / 2, wallH / 2, segW, wallH);
@@ -795,57 +826,57 @@ export class ExplorationScene extends Phaser.Scene {
     }
 
     // Left wall segments
-    const leftExits = (room.exits || []).filter((e: any) => e.direction === 'left' || e.x <= 2);
+    const leftExits = (room.exits || []).filter((e: any) => e.direction !== 'hidden' && (e.direction === 'left' || e.x <= 2));
     if (leftExits.length === 0) {
-      const leftObstacle = this.add.rectangle(4, (wallH + h) / 2, 8, h - wallH);
+      const leftObstacle = this.add.rectangle(8, (wallH + h) / 2, 16, h - wallH);
       this.obstacleColliders.add(leftObstacle);
     } else {
       for (const ex of leftExits) {
         const dY = ex.y * TILE;
         if (dY - 24 > wallH) {
-          const s1 = this.add.rectangle(4, (wallH + dY - 24) / 2, 8, dY - 24 - wallH);
+          const s1 = this.add.rectangle(8, (wallH + dY - 24) / 2, 16, dY - 24 - wallH);
           this.obstacleColliders.add(s1);
         }
         if (dY + 24 < h) {
-          const s2 = this.add.rectangle(4, (dY + 24 + h) / 2, 8, h - (dY + 24));
+          const s2 = this.add.rectangle(8, (dY + 24 + h) / 2, 16, h - (dY + 24));
           this.obstacleColliders.add(s2);
         }
       }
     }
 
     // Right wall segments
-    const rightExits = (room.exits || []).filter((e: any) => e.direction === 'right' || e.x >= (w / TILE - 3));
+    const rightExits = (room.exits || []).filter((e: any) => e.direction !== 'hidden' && (e.direction === 'right' || e.x >= (w / TILE - 3)));
     if (rightExits.length === 0) {
-      const rightObstacle = this.add.rectangle(w - 4, (wallH + h) / 2, 8, h - wallH);
+      const rightObstacle = this.add.rectangle(w - 8, (wallH + h) / 2, 16, h - wallH);
       this.obstacleColliders.add(rightObstacle);
     } else {
       for (const ex of rightExits) {
         const dY = ex.y * TILE;
         if (dY - 24 > wallH) {
-          const s1 = this.add.rectangle(w - 4, (wallH + dY - 24) / 2, 8, dY - 24 - wallH);
+          const s1 = this.add.rectangle(w - 8, (wallH + dY - 24) / 2, 16, dY - 24 - wallH);
           this.obstacleColliders.add(s1);
         }
         if (dY + 24 < h) {
-          const s2 = this.add.rectangle(w - 4, (dY + 24 + h) / 2, 8, h - (dY + 24));
+          const s2 = this.add.rectangle(w - 8, (dY + 24 + h) / 2, 16, h - (dY + 24));
           this.obstacleColliders.add(s2);
         }
       }
     }
 
-    // Bottom wall segments
-    const bottomExits = (room.exits || []).filter((e: any) => e.direction === 'down' || e.y >= (h / TILE - 3));
+    // Bottom wall segments (hidden exits do not carve openings in solid walls)
+    const bottomExits = (room.exits || []).filter((e: any) => e.direction !== 'hidden' && (e.direction === 'down' || e.y >= (h / TILE - 3)));
     if (bottomExits.length === 0) {
-      const bottomObstacle = this.add.rectangle(w / 2, h - 4, w, 8);
+      const bottomObstacle = this.add.rectangle(w / 2, h - 8, w, 16);
       this.obstacleColliders.add(bottomObstacle);
     } else {
       for (const ex of bottomExits) {
         const dX = ex.x * TILE;
         if (dX - 24 > 0) {
-          const s1 = this.add.rectangle((dX - 24) / 2, h - 4, dX - 24, 8);
+          const s1 = this.add.rectangle((dX - 24) / 2, h - 8, dX - 24, 16);
           this.obstacleColliders.add(s1);
         }
         if (dX + 24 < w) {
-          const s2 = this.add.rectangle((dX + 24 + w) / 2, h - 4, w - (dX + 24), 8);
+          const s2 = this.add.rectangle((dX + 24 + w) / 2, h - 8, w - (dX + 24), 16);
           this.obstacleColliders.add(s2);
         }
       }
