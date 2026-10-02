@@ -71,11 +71,31 @@ export const dialogue: Record<string, DialogueTree> = {
         { text: 'Where were you during the blackout?', nextId: 'alibi' },
         { text: 'Why did you lock the door?', nextId: 'confront_prints', evidenceRequired: 'hugo_fingerprints' },
         { text: 'The Observation Deck was empty.', nextId: 'confront_sensors', evidenceRequired: 'rain_sensor_data' },
+        { text: '(Confront) You bolted the room from inside and escaped!', nextId: 'confront_hugo', evidenceRequired: 'connecting_door' },
         { text: 'Leave him alone.', nextId: 'leave' }
       ]},
       'alibi': { id: 'alibi', speaker: 'Hugo', text: 'I needed fresh air. I was on the Observation Deck. When the lights went out, the electronic doors jammed. I was stuck out there.', next: 'greet' },
       'confront_prints': { id: 'confront_prints', speaker: 'Hugo', text: 'My fingerprints? I... I touched the door earlier today! When I brought him his tea!', next: 'greet' },
       'confront_sensors': { id: 'confront_sensors', speaker: 'Hugo', text: 'The sensors are broken! Everything in this rusted place is broken! Look, I didn\'t kill him!', next: 'greet' },
+      'confront_hugo': {
+        id: 'confront_hugo',
+        speaker: 'Ren',
+        text: 'Hugo, you lied. You weren\'t on the Observation Deck—the weather sensors prove no one was there. And your fingerprints are on the deadbolt. You locked the Exhibition Chamber from the inside and escaped through the secret tunnel behind the clockwork gallery!',
+        next: 'hugo_breakdown'
+      },
+      'hugo_breakdown': {
+        id: 'hugo_breakdown',
+        speaker: 'Hugo',
+        text: '[Breaks down] Yes! Yes, I bolted the door! When the lights went out, I used the secret tunnel and found him dead. His tea was spilled. He was taking stimulants I gave him illegally. If they did an autopsy immediately, I\'d lose my medical license. I bolted the door from inside to buy time and ran! But I swear I didn\'t poison him!',
+        setFlag: 'hugo_confessed',
+        next: 'vale_realization'
+      },
+      'vale_realization': {
+        id: 'vale_realization',
+        speaker: 'Dr. Vale',
+        text: 'So the room was only locked AFTER Aldric died... The killer never needed a locked-room trick! The timeline we assumed is completely broken.',
+        triggerEvent: 'end_dialogue'
+      },
       'leave': { id: 'leave', speaker: 'Ren', text: 'Let\'s give him some space.', triggerEvent: 'end_dialogue' }
     }
   },
