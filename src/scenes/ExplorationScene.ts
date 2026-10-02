@@ -142,7 +142,7 @@ export class ExplorationScene extends Phaser.Scene {
       const doorBadge = this.add.text(ex, labelY, `🚪 TO ${targetName}`, {
         fontSize: '8px', color: '#ffea70', fontFamily: 'Courier New, monospace', fontStyle: 'bold',
         backgroundColor: '#0a0d1aec', padding: { x: 5, y: 2 }
-      }).setOrigin(0.5).setDepth(150).setInteractive({ useHandCursor: true });
+      }).setOrigin(0.5).setDepth(200).setInteractive({ useHandCursor: true });
 
       doorBadge.on('pointerdown', () => {
         if (!this.doorCooldown && !this.inDialogue) {
@@ -150,24 +150,28 @@ export class ExplorationScene extends Phaser.Scene {
         }
       });
 
-      // Generous doorway trigger zone extending into room threshold
+      // Tightened doorway trigger zone at doorway threshold
       let tzX = ex;
       let tzY = ey;
-      let tzW = TILE * 3;
-      let tzH = TILE * 3;
+      let tzW = 32;
+      let tzH = 16;
 
       if (exit.direction === 'up' || ey <= 2 * TILE) {
-        tzY = Math.max(ey, wallH) - 4;
-        tzH = TILE * 3.5;
+        tzY = wallH - 8;
+        tzH = 16;
+        tzW = 32;
       } else if (exit.direction === 'down' || ey >= rh - 3 * TILE) {
-        tzY = Math.min(ey, rh - 16);
-        tzH = TILE * 3.5;
+        tzY = rh - 8;
+        tzH = 16;
+        tzW = 32;
       } else if (exit.direction === 'left' || ex <= 2 * TILE) {
-        tzX = Math.max(ex, 16);
-        tzW = TILE * 3.5;
+        tzX = 8;
+        tzW = 16;
+        tzH = 32;
       } else if (exit.direction === 'right' || ex >= rw - 3 * TILE) {
-        tzX = Math.min(ex, rw - 16);
-        tzW = TILE * 3.5;
+        tzX = rw - 8;
+        tzW = 16;
+        tzH = 32;
       }
 
       const z = this.add.zone(tzX, tzY, tzW, tzH);
@@ -199,9 +203,10 @@ export class ExplorationScene extends Phaser.Scene {
       // Shadow under prop
       this.add.ellipse(ox, oy + oh/2 + 2, Math.max(ow * 0.85, 14), 6, 0x000000, 0.45).setDepth(oy - 1);
 
-      // Dedicated Pixel Art Prop Texture
+      // Dedicated Pixel Art Prop Texture (tabletop items layered above furniture base)
       const propKey = PixelRenderer.getPropKey(obj.id);
-      const propSprite = this.add.image(ox, oy, propKey).setDepth(oy);
+      const propDepth = ['thermos', 'spilled_ink'].includes(obj.id) ? oy + 2 : oy;
+      const propSprite = this.add.image(ox, oy, propKey).setDepth(propDepth);
 
       // Special animations for interactive props
       if (obj.id === 'main_gear') {
@@ -365,8 +370,13 @@ export class ExplorationScene extends Phaser.Scene {
       this.touchAction = true;
     });
 
+    EventBus.on('interaction-prompt-clicked', () => {
+      this.touchAction = true;
+    });
+
     this.events.once('shutdown', () => {
       if (this.lightningTimer) this.lightningTimer.destroy();
+      EventBus.emit('update-prompt', { text: '', visible: false });
     });
 
     this.save();
@@ -421,6 +431,7 @@ export class ExplorationScene extends Phaser.Scene {
     }
 
     this.playerShadow.setPosition(this.player.x, this.player.y + 15);
+    this.playerShadow.setDepth(this.player.y - 1);
     this.playerTag.setPosition(this.player.x, this.player.y - 24);
     this.player.setDepth(this.player.y);
 
@@ -442,13 +453,27 @@ export class ExplorationScene extends Phaser.Scene {
     // Update floating interaction prompt
     if (nearNpc) {
       const sus = nearNpc.data.suspectId ? suspects[nearNpc.data.suspectId] : null;
-      this.interactionPrompt.setText(`💬 [E] Talk to ${sus?.name || nearNpc.data.id}`);
+      const promptText = `💬 [E] Talk to ${sus?.name || nearNpc.data.id}`;
+      this.interactionPrompt.setText(promptText);
       this.interactionPrompt.setVisible(true);
+      EventBus.emit('update-prompt', { text: promptText, visible: true });
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('update-prompt', { detail: { text: promptText, visible: true } }));
+      }
     } else if (nearObj) {
-      this.interactionPrompt.setText(`🔍 [E] Examine ${nearObj.data.name}`);
+      const promptText = `🔍 [E] Examine ${nearObj.data.name}`;
+      this.interactionPrompt.setText(promptText);
       this.interactionPrompt.setVisible(true);
+      EventBus.emit('update-prompt', { text: promptText, visible: true });
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('update-prompt', { detail: { text: promptText, visible: true } }));
+      }
     } else {
       this.interactionPrompt.setVisible(false);
+      EventBus.emit('update-prompt', { text: '', visible: false });
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('update-prompt', { detail: { text: '', visible: false } }));
+      }
     }
 
     if (this.keys.E && Phaser.Input.Keyboard.JustDown(this.keys.E) || this.touchAction) {
@@ -456,6 +481,10 @@ export class ExplorationScene extends Phaser.Scene {
       if (nearNpc) {
         this.inDialogue = true;
         this.interactionPrompt.setVisible(false);
+        EventBus.emit('update-prompt', { text: '', visible: false });
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('update-prompt', { detail: { text: '', visible: false } }));
+        }
         const did = nearNpc.data.suspectId ? `${nearNpc.data.suspectId}_interview` : 'intro_arrival';
         this.scene.launch('DialogueScene', {dialogueId:did, suspectId:nearNpc.data.suspectId});
       } else if (nearObj) {
@@ -481,6 +510,12 @@ export class ExplorationScene extends Phaser.Scene {
     if (obj.evidenceId && !gameState.hasEvidence(obj.evidenceId)) {
       gameState.collectEvidence(obj.evidenceId);
       const ev = evidenceData[obj.evidenceId];
+      // Immediately dispose of clue sparkling markers upon evidence collection
+      const itemObj = this.interactableObjects.find(io => io.data.id === obj.id);
+      if (itemObj?.marker) {
+        itemObj.marker.destroy();
+        itemObj.marker = null;
+      }
       this.showDiscovery(ev?.name||obj.evidenceId, ev?.shortDesc||obj.description||'Evidence collected.');
       this.save(); return;
     }
@@ -531,6 +566,11 @@ export class ExplorationScene extends Phaser.Scene {
     btn.on('pointerdown', () => {
       if (!gameState.hasEvidence('thirteenth_chime_resonance')) {
         gameState.collectEvidence('thirteenth_chime_resonance');
+        const itemObj = this.interactableObjects.find(io => io.data.evidenceId === 'thirteenth_chime_resonance');
+        if (itemObj?.marker) {
+          itemObj.marker.destroy();
+          itemObj.marker = null;
+        }
         this.showDiscovery('Thirteenth Chime Resonance', 'The 13th chime matches the pendulum room — and Project Echo\'s calibration frequency.');
       }
       els.forEach(e => e.destroy()); this.inDialogue = false; this.activeGadget = null; this.gadgetOverlay?.destroy(); this.gadgetOverlay = null; EventBus.emit('gadget-changed', null); this.save();
@@ -568,6 +608,11 @@ export class ExplorationScene extends Phaser.Scene {
         onComplete: () => {
           if (!gameState.hasEvidence('connecting_door')) {
             gameState.collectEvidence('connecting_door');
+            const itemObj = this.interactableObjects.find(io => io.data.evidenceId === 'connecting_door');
+            if (itemObj?.marker) {
+              itemObj.marker.destroy();
+              itemObj.marker = null;
+            }
             this.showDiscovery('Hidden Connecting Door', 'A hidden door between the clockwork gallery and exhibition chamber!');
           }
           this.time.delayedCall(1200, () => {
@@ -599,6 +644,11 @@ export class ExplorationScene extends Phaser.Scene {
     btn.on('pointerdown', () => {
       if (!gameState.hasEvidence('spliced_recording')) {
         gameState.collectEvidence('spliced_recording');
+        const itemObj = this.interactableObjects.find(io => io.data.evidenceId === 'spliced_recording');
+        if (itemObj?.marker) {
+          itemObj.marker.destroy();
+          itemObj.marker = null;
+        }
         this.showDiscovery('Spliced Recording', 'The announcement was assembled from earlier recordings.');
       }
       if (!gameState.hasEvidence('petra_recorder') && gameState.hasEvidence('connecting_door')) {
@@ -692,19 +742,34 @@ export class ExplorationScene extends Phaser.Scene {
 
   private showMsg(text: string) {
     AudioManager.getInstance().playSFX('ui_click');
-    const m=this.add.text(320,300,text,{fontSize:'10px',color:'#e0e8f0',fontFamily:'Courier New',backgroundColor:'#0a0a12',padding:{x:8,y:4},wordWrap:{width:400}}).setOrigin(0.5).setDepth(300).setScrollFactor(0);
-    this.tweens.add({targets:m,alpha:0,delay:3000,duration:500,onComplete:()=>m.destroy()});
+    EventBus.emit('show-msg', { text });
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('show-msg', { detail: { text } }));
+    }
+    const m = this.add.text(320, 300, text, {
+      fontSize: '10px',
+      color: '#e0e8f0',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      backgroundColor: '#0a0a12f0',
+      padding: { x: 8, y: 4 },
+      wordWrap: { width: 400 }
+    }).setOrigin(0.5).setDepth(300).setScrollFactor(0);
+    this.tweens.add({ targets: m, alpha: 0, delay: 3000, duration: 500, onComplete: () => m.destroy() });
   }
 
   private showDiscovery(name: string, desc: string) {
     AudioManager.getInstance().playSFX('discoveryString');
-    const f=this.add.rectangle(320,180,640,360,0xc4a44a,0.15).setDepth(500).setScrollFactor(0);
-    this.tweens.add({targets:f,alpha:0,duration:500,onComplete:()=>f.destroy()});
-    const h=this.add.text(320,100,'📋 EVIDENCE FOUND',{fontSize:'12px',color:'#c4a44a',fontFamily:'Courier New'}).setOrigin(0.5).setDepth(501).setScrollFactor(0);
-    const n=this.add.text(320,125,name,{fontSize:'14px',color:'#ffffff',fontFamily:'Courier New',fontStyle:'bold'}).setOrigin(0.5).setDepth(501).setScrollFactor(0);
-    const d=this.add.text(320,155,desc,{fontSize:'9px',color:'#a0b0c0',fontFamily:'Courier New',wordWrap:{width:350},align:'center'}).setOrigin(0.5,0).setDepth(501).setScrollFactor(0);
-    this.tweens.add({targets:[h,n,d],alpha:0,delay:4000,duration:1000,onComplete:()=>{h.destroy();n.destroy();d.destroy();}});
+    const f = this.add.rectangle(320, 180, 640, 360, 0xc4a44a, 0.15).setDepth(500).setScrollFactor(0);
+    this.tweens.add({ targets: f, alpha: 0, duration: 500, onComplete: () => f.destroy() });
+
+    // Emit EventBus contracts for high-DPI HTML/CSS discovery modal
+    EventBus.emit('show-discovery', { name, description: desc, category: 'Physical Evidence' });
     EventBus.emit('evidence-found', name);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('show-discovery', {
+        detail: { name, description: desc, category: 'Physical Evidence' }
+      }));
+    }
   }
 
   private renderRoomArchitecture(room: any, w: number, h: number) {
@@ -793,7 +858,7 @@ export class ExplorationScene extends Phaser.Scene {
       // Grandfather clock in east alcove
       this.add.image(w - TILE * 5, wallH - 6, 'prop_grandfather_clock').setDepth(wallH);
       // Velvet armchairs
-      this.add.image(TILE * 8, wallH + 32, 'prop_armchair').setDepth(wallH + 32);
+      this.add.image(TILE * 5, wallH + 32, 'prop_armchair').setDepth(wallH + 32);
       this.add.image(w - TILE * 8, wallH + 32, 'prop_armchair').setDepth(wallH + 32);
       // Display pedestals
       this.add.image(w / 2 - TILE * 6, wallH + 24, 'prop_display_pedestal').setDepth(wallH + 24);
@@ -806,9 +871,9 @@ export class ExplorationScene extends Phaser.Scene {
       this.add.image(w - TILE * 8, wallH - 4, 'prop_grand_bookcase').setDepth(wallH);
       // Cozy library fireplace
       this.add.image(w / 2, wallH - 4, 'prop_fireplace').setDepth(wallH);
-      // Reading armchairs
-      this.add.image(w / 2 - 32, (wallH + h) / 2 + 10, 'prop_armchair').setDepth((wallH + h) / 2 + 10);
-      this.add.image(w / 2 + 32, (wallH + h) / 2 + 10, 'prop_armchair').setDepth((wallH + h) / 2 + 10);
+      // Reading armchairs moved south to open walkway around archive desk
+      this.add.image(w / 2 - 32, 272, 'prop_armchair').setDepth(272);
+      this.add.image(w / 2 + 32, 272, 'prop_armchair').setDepth(272);
     } else if (isClockwork) {
       // Brass steam pipes across top wall
       this.add.tileSprite(w / 2, wallH - 12, w - TILE * 4, 24, 'prop_brass_pipes').setDepth(3);
@@ -977,10 +1042,12 @@ export class ExplorationScene extends Phaser.Scene {
     // Furniture obstacle collisions
     if (room.interactables) {
       for (const obj of room.interactables) {
-        if (['desk', 'main_gear', 'archive_desk', 'shelf_3', 'old_files'].includes(obj.id)) {
+        if (['desk', 'main_gear', 'archive_desk', 'shelf_3', 'old_files', 'pendulum'].includes(obj.id)) {
           const ox = obj.x * TILE, oy = obj.y * TILE;
           const ow = (obj.width || 2) * TILE, oh = (obj.height || 1) * TILE;
-          const furn = this.add.rectangle(ox, oy, ow - 4, oh - 4);
+          const colW = obj.id === 'pendulum' ? 48 : ow - 4;
+          const colH = obj.id === 'pendulum' ? 48 : oh - 4;
+          const furn = this.add.rectangle(ox, oy, colW, colH);
           this.obstacleColliders.add(furn);
         }
       }

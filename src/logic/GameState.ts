@@ -216,21 +216,25 @@ class GameStateManager {
   // Investigation milestones
   solveLockedRoom(): void {
     this.state.lockedRoomSolved = true;
+    this.setDialogueFlag('locked_room_solved');
     this.emit('lockedRoomSolved', null);
   }
 
   breakTimeline(): void {
     this.state.timelineBroken = true;
+    this.setDialogueFlag('timeline_broken');
     this.emit('timelineBroken', null);
   }
 
   completeReconstruction(): void {
     this.state.reconstructionComplete = true;
+    this.setDialogueFlag('reconstruction_complete');
     this.emit('reconstructionComplete', null);
   }
 
   identifyKiller(): void {
     this.state.killerIdentified = true;
+    this.setDialogueFlag('killer_identified');
     this.emit('killerIdentified', null);
   }
 

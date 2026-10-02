@@ -92,6 +92,18 @@ export const evidence: Record<string, EvidenceData> = {
     isRequired: true,
     category: 'acoustic'
   },
+  petra_recorder: {
+    id: 'petra_recorder',
+    name: 'Petra\'s Hidden Recorder',
+    shortDesc: 'Audio capturing suspicious activity in the gallery.',
+    fullDesc: 'A small, voice-activated recorder hidden near the entrance of the Clockwork Gallery. It captured hurried footsteps during the blackout, the sound of liquid pouring, and a frantic whispered apology.',
+    discoveryLocation: 'Clockwork Gallery',
+    gadgetRequired: 'voice_prism',
+    discoveryDialogue: "Petra hid a mic here to eavesdrop on the Professor. But listen... during the blackout, it picked up heavy footsteps running past, then a whisper: 'I'm sorry, I'm so sorry.'",
+    relatedSuspect: 'petra',
+    isRequired: true,
+    category: 'acoustic'
+  },
   felix_ink_stain: {
     id: 'felix_ink_stain',
     name: 'Felix\'s Ink Stain',

@@ -31,7 +31,7 @@ export const rooms: Record<string, RoomData> = {
       { direction: 'up', targetRoom: 'exhibition_chamber', x: 8, y: 1 }
     ],
     interactables: [
-      { id: 'pa_speaker', name: 'PA Speaker', x: 16, y: 5, width: 2, height: 2, description: 'The main speaker system. It crackles with static.', evidenceId: 'spliced_recording', gadgetRequired: 'voice_prism', dialogueOnInteract: 'The announcement came from this speaker. If I use the Voice Prism, I might be able to analyze the audio playback.' }
+      { id: 'pa_speaker', name: 'PA Speaker', x: 20, y: 4, width: 2, height: 2, description: 'The main speaker system. It crackles with static.', evidenceId: 'spliced_recording', gadgetRequired: 'voice_prism', dialogueOnInteract: 'The announcement came from this speaker. If I use the Voice Prism, I might be able to analyze the audio playback.' }
     ],
     npcs: [
       { id: 'npc_nadia', suspectId: 'nadia', x: 10, y: 10 }
@@ -55,7 +55,7 @@ export const rooms: Record<string, RoomData> = {
     interactables: [
       { id: 'desk', name: 'Professor\'s Desk', x: 12, y: 10, width: 4, height: 3, description: 'Scattered papers and a thermos of tea.' },
       { id: 'thermos', name: 'Thermos', x: 13, y: 10, width: 1, height: 1, description: 'A half-empty thermos of tea.', evidenceId: 'poisoned_tea', gadgetRequired: 'trace_light', dialogueOnInteract: 'The Trace Light shows something glowing around the rim of this thermos.' },
-      { id: 'door_bolt', name: 'Heavy Bolt', x: 12, y: 1, width: 2, height: 1, description: 'The heavy deadbolt used to lock the door from the inside.', evidenceId: 'hugo_fingerprints', gadgetRequired: 'trace_light', dialogueOnInteract: 'There are smudged fingerprints on this bolt. The Trace Light makes them clear.' },
+      { id: 'door_bolt', name: 'Heavy Bolt', x: 9, y: 4, width: 2, height: 1, description: 'The heavy deadbolt used to lock the door from the inside.', evidenceId: 'hugo_fingerprints', gadgetRequired: 'trace_light', dialogueOnInteract: 'There are smudged fingerprints on this bolt. The Trace Light makes them clear.' },
       { id: 'plaque', name: 'Commemorative Plaque', x: 2, y: 5, width: 1, height: 2, description: 'A plaque listing the founders of the observatory.', evidenceId: 'mothers_photo', dialogueOnInteract: 'There\'s something slipped behind the edge of this plaque...' }
     ],
     npcs: [
@@ -79,7 +79,7 @@ export const rooms: Record<string, RoomData> = {
     ],
     interactables: [
       { id: 'main_gear', name: 'Main Gear Assembly', x: 14, y: 10, width: 6, height: 6, description: 'A massive, churning set of brass gears.' },
-      { id: 'dark_corner', name: 'Dark Corner', x: 3, y: 3, width: 2, height: 2, description: 'A shadowed alcove near the entrance.', evidenceId: 'petra_hidden_recorder', gadgetRequired: 'voice_prism', dialogueOnInteract: 'Wait, the Voice Prism is picking up a faint electronic hum from this dark corner.' },
+      { id: 'dark_corner', name: 'Dark Corner', x: 4, y: 5, width: 2, height: 2, description: 'A shadowed alcove near the entrance.', evidenceId: 'petra_hidden_recorder', gadgetRequired: 'voice_prism', dialogueOnInteract: 'Wait, the Voice Prism is picking up a faint electronic hum from this dark corner.' },
       { id: 'wall_gap', name: 'Gap behind Gears', x: 14, y: 19, width: 2, height: 1, description: 'A small gap between the wall and the machinery.', evidenceId: 'connecting_door', gadgetRequired: 'micro_rover', dialogueOnInteract: 'This gap is too small for me, but the Micro Rover can fit right in.' }
     ],
     npcs: [
@@ -105,10 +105,10 @@ export const rooms: Record<string, RoomData> = {
       { id: 'archive_desk', name: 'Archive Desk', x: 13, y: 13, width: 3, height: 2, description: 'Ledgers and inkwells.' },
       { id: 'spilled_ink', name: 'Spilled Ink', x: 14, y: 13, width: 1, height: 1, description: 'A fresh, violet ink stain on the ledger.', evidenceId: 'felix_ink_stain', gadgetRequired: 'trace_light', dialogueOnInteract: 'The Sniffer confirms this ink is a very specific, rare violet blend.' },
       { id: 'old_files', name: 'Filing Cabinet', x: 2, y: 20, width: 2, height: 2, description: 'Old project records.', evidenceId: 'project_echo_notes', dialogueOnInteract: 'These are the files for Project Echo. The calibration numbers look altered.' },
-      { id: 'potted_plant', name: 'Potted Plant', x: 20, y: 2, width: 2, height: 2, description: 'A large fern.', evidenceId: 'nadia_vial', gadgetRequired: 'trace_light', dialogueOnInteract: 'Something is glowing in the dirt of this plant under the Trace Light.' }
+      { id: 'potted_plant', name: 'Potted Plant', x: 21, y: 6, width: 2, height: 2, description: 'A large fern.', evidenceId: 'nadia_vial', gadgetRequired: 'trace_light', dialogueOnInteract: 'Something is glowing in the dirt of this plant under the Trace Light.' }
     ],
     npcs: [
-      { id: 'npc_felix', suspectId: 'felix', x: 10, y: 15 }
+      { id: 'npc_felix', suspectId: 'felix', x: 9, y: 15 }
     ],
     spawnPoint: { x: 23, y: 13 },
     ambience: 'muffled_wind',
@@ -128,7 +128,7 @@ export const rooms: Record<string, RoomData> = {
     interactables: [
       { id: 'pendulum', name: 'Great Pendulum', x: 15, y: 14, width: 4, height: 4, description: 'A heavy brass weight swinging eternally.' },
       { id: 'acoustics', name: 'Room Acoustics', x: 15, y: 5, width: 2, height: 2, description: 'The echo in here is very distinct.', evidenceId: 'thirteenth_chime_resonance', gadgetRequired: 'echo_lens', dialogueOnInteract: 'The Echo Lens maps the sound waves of this room perfectly to the 13th chime.' },
-      { id: 'floor_grates', name: 'Floor Grates', x: 10, y: 14, width: 2, height: 2, description: 'Ventilation grates with built-in weight sensors for maintenance logging.', evidenceId: 'pendulum_weight_sensor', gadgetRequired: 'echo_lens', dialogueOnInteract: 'The Data Slicer can pull the logs from these floor weight sensors.' }
+      { id: 'floor_grates', name: 'Floor Grates', x: 11, y: 16, width: 2, height: 2, description: 'Ventilation grates with built-in weight sensors for maintenance logging.', evidenceId: 'pendulum_weight_sensor', gadgetRequired: 'echo_lens', dialogueOnInteract: 'The Data Slicer can pull the logs from these floor weight sensors.' }
     ],
     npcs: [
       { id: 'npc_iris', suspectId: 'iris', x: 20, y: 20 }
@@ -150,7 +150,7 @@ export const rooms: Record<string, RoomData> = {
     ],
     interactables: [
       { id: 'telescope', name: 'Telescope', x: 10, y: 5, width: 2, height: 2, description: 'A large optical telescope, currently capped.' },
-      { id: 'deck_sensors', name: 'Weather Sensors', x: 2, y: 2, width: 2, height: 2, description: 'Environmental monitoring equipment.', evidenceId: 'rain_sensor_data', gadgetRequired: 'echo_lens', dialogueOnInteract: 'The Data Slicer can connect to the weather station logs to check foot traffic.' }
+      { id: 'deck_sensors', name: 'Weather Sensors', x: 4, y: 5, width: 2, height: 2, description: 'Environmental monitoring equipment.', evidenceId: 'rain_sensor_data', gadgetRequired: 'echo_lens', dialogueOnInteract: 'The Data Slicer can connect to the weather station logs to check foot traffic.' }
     ],
     npcs: [],
     spawnPoint: { x: 10, y: 13 },

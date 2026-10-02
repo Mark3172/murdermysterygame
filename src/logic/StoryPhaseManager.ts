@@ -184,6 +184,12 @@ export class StoryPhaseManager {
     EventBus.emit('phase-entered', config);
   }
 
+  canAdvancePhase(): boolean {
+    const current = this.currentConfig;
+    if (!current) return false;
+    return current.canExit();
+  }
+
   advancePhase(): boolean {
     const current = this.currentConfig;
     if (!current) return false;

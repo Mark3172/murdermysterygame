@@ -163,12 +163,119 @@ export class UIScene extends Phaser.Scene {
         }
     }
 
+    private hintTimeout: any = null;
+
     showHint() {
         AudioManager.getInstance().playSFX('bellChime');
         const hintObj = hintSystem.getHint();
-        const hintText = hintObj ? `[Hint L${hintObj.level}] ${hintObj.text}` : 'No hint available.';
-        // show toast
-        const toast = this.add.text(320, 50, hintText, { backgroundColor: '#050710f0', color: '#ffea70', fontFamily: 'Courier New', fontSize: '11px', padding: { x: 10, y: 6 }, wordWrap: { width: 480 } }).setOrigin(0.5);
+        if (!hintObj) return;
+
+        // Emit EventBus event 'show-hint' for decoupled UI overlays
+        EventBus.emit('show-hint', {
+            level: hintObj.level,
+            tier: hintObj.tier,
+            text: hintObj.text,
+            objectiveId: hintObj.objectiveId,
+            chamber: hintObj.chamber,
+            category: hintObj.chamber,
+            phase: hintObj.phase,
+            hasMore: hintObj.hasMore,
+        });
+
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('show-hint', {
+                detail: {
+                    level: hintObj.level,
+                    tier: hintObj.tier,
+                    text: hintObj.text,
+                    objectiveId: hintObj.objectiveId,
+                    chamber: hintObj.chamber,
+                    category: hintObj.chamber,
+                    phase: hintObj.phase,
+                    hasMore: hintObj.hasMore,
+                }
+            }));
+        }
+
+        // High-DPI HTML Overlay Toast (fallback only if #hint-overlay is not in DOM)
+        if (typeof document !== 'undefined' && !document.getElementById('hint-overlay')) {
+            let toastEl = document.getElementById('hint-toast-overlay');
+            if (!toastEl) {
+                toastEl = document.createElement('div');
+                toastEl.id = 'hint-toast-overlay';
+                toastEl.style.cssText = `
+                    position: fixed;
+                    top: 44px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    max-width: 560px;
+                    width: 90%;
+                    background: rgba(10, 14, 26, 0.96);
+                    border: 1px solid #d4af37;
+                    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8), 0 0 10px rgba(212, 175, 55, 0.2);
+                    border-radius: 4px;
+                    padding: 12px 16px;
+                    z-index: 2000;
+                    color: #e6ecf2;
+                    font-family: Georgia, serif;
+                    pointer-events: auto;
+                    transition: opacity 0.3s ease, transform 0.3s ease;
+                `;
+                document.body.appendChild(toastEl);
+            }
+
+            const tierColors: Record<number, string> = {
+                1: '#4a90e2', // Atmospheric Blue
+                2: '#e6c229', // Room Direction Amber
+                3: '#e74c3c', // Actionable Directive Red
+            };
+            const tierTitles: Record<number, string> = {
+                1: 'Tier 1 • Atmospheric Nudge',
+                2: 'Tier 2 • Room & Focus Direction',
+                3: 'Tier 3 • Actionable Detective Direction',
+            };
+
+            const pips = [1, 2, 3].map(t => 
+                `<span style="display:inline-block; width:8px; height:8px; border-radius:50%; margin:0 3px; background:${t <= hintObj.tier ? tierColors[hintObj.tier] : '#333a4d'};"></span>`
+            ).join('');
+
+            toastEl.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #232b3e; padding-bottom:6px; margin-bottom:8px;">
+                    <span style="font-size:12px; font-weight:bold; color:${tierColors[hintObj.tier]}; font-family:'Courier New', monospace; letter-spacing:1px;">
+                        💡 ${tierTitles[hintObj.tier].toUpperCase()}
+                    </span>
+                    <div style="display:flex; align-items:center;">
+                        <span style="font-size:11px; color:#88a0b8; margin-right:8px; font-family:'Courier New', monospace;">[${hintObj.chamber}]</span>
+                        ${pips}
+                    </div>
+                </div>
+                <div style="font-size:14px; line-height:1.5; color:#ffffff;">
+                    ${hintObj.text}
+                </div>
+                <div style="margin-top:8px; font-size:10px; color:#8899aa; font-family:'Courier New', monospace; text-align:right;">
+                    Press [H] again for next tier • Auto-closes in 6s
+                </div>
+            `;
+
+            toastEl.style.opacity = '1';
+            toastEl.style.display = 'block';
+
+            if (this.hintTimeout) clearTimeout(this.hintTimeout);
+            this.hintTimeout = setTimeout(() => {
+                if (toastEl) toastEl.style.opacity = '0';
+            }, 6000);
+        }
+
+        // Canvas fallback for environments where DOM overlay is hidden
+        const hintText = `[Hint L${hintObj.level} • ${hintObj.chamber}] ${hintObj.text}`;
+        const toast = this.add.text(320, 50, hintText, {
+            backgroundColor: '#050710f0',
+            color: '#ffea70',
+            fontFamily: 'Courier New',
+            fontSize: '11px',
+            padding: { x: 10, y: 6 },
+            wordWrap: { width: 480 }
+        }).setOrigin(0.5);
         this.tweens.add({
             targets: toast,
             alpha: 0,
