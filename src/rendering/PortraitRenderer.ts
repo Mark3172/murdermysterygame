@@ -32,11 +32,11 @@ export class PortraitRenderer {
 
     switch (characterId) {
       case 'ren':
-        skin = '#fcd5b4'; skinShadow = '#e0b08a';
-        hair = '#141824'; hairHighlight = '#2a3a56';
-        outfit = '#1a2d54'; outfitShadow = '#111d36';
-        collar = '#ffffff'; tie = '#d32f2f';
-        eyeColor = '#2b425b'; accessory = 'cowlick';
+        skin = '#fcd5b4'; skinShadow = '#df9f7a';
+        hair = '#6b3410'; hairHighlight = '#a85820';
+        outfit = '#1e78d6'; outfitShadow = '#134e94';
+        collar = '#2e8b57'; tie = '#00000000';
+        eyeColor = '#5a3318'; accessory = 'cowlick';
         break;
       case 'nadia':
         skin = '#fae2d0'; skinShadow = '#dfc2b0';

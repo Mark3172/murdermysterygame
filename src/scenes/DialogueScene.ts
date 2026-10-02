@@ -149,7 +149,7 @@ export class DialogueScene extends Scene {
     }
     
     const colorMap: Record<string, string> = {
-      'Ren': '#3366aa',
+      'Ren': '#1e78d6',
       'Dr. Vale': '#44aa88',
       'Nadia': '#aa4466',
       'Hugo': '#aa8844',

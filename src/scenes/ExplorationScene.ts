@@ -31,6 +31,7 @@ export class ExplorationScene extends Phaser.Scene {
   private lightningTimer?: Phaser.Time.TimerEvent;
   private interactionPrompt!: Phaser.GameObjects.Text;
   private doorCooldown = true;
+  private obstacleColliders!: Phaser.Physics.Arcade.StaticGroup;
 
   constructor() { super('ExplorationScene'); }
 
@@ -49,30 +50,33 @@ export class ExplorationScene extends Phaser.Scene {
     const rw = (room.width || 40) * TILE;
     const rh = (room.height || 22) * TILE;
 
+    // Ensure all architectural tiles, props and character sprites are generated
+    PixelRenderer.generateTileTextures(this);
+    PixelRenderer.generateAllProps(this);
+    PixelRenderer.generateCharacterSprite(this, 'ren');
+
     // 1. Draw Architectural Room Architecture (Walls, Floors, Carpets)
     this.renderRoomArchitecture(room, rw, rh);
 
     // 2. Room features (props, machinery, windows)
     this.drawFeatures(room, rw, rh);
 
-    // 3. Player with authentic animated detective pixel art sprite
+    // 3. Player with authentic 16-bit RPG animated detective pixel art sprite
     const sx = this.registry.get('spawnX') as number || (room.spawnPoint?.x || rw/2/TILE) * TILE;
     const sy = this.registry.get('spawnY') as number || (room.spawnPoint?.y || rh/2/TILE) * TILE;
     this.registry.remove('spawnX'); this.registry.remove('spawnY');
 
-    PixelRenderer.generateCharacterSprite(this, 'ren');
-
     // Shadow
-    this.playerShadow = this.add.ellipse(sx, sy + 11, 16, 6, 0x000000, 0.45).setDepth(sy - 1);
+    this.playerShadow = this.add.ellipse(sx, sy + 15, 18, 7, 0x000000, 0.45).setDepth(sy - 1);
 
     // Player sprite
     this.player = this.physics.add.sprite(sx, sy, 'char_ren', 'down_0').setDepth(sy);
-    (this.player.body as Phaser.Physics.Arcade.Body).setSize(14, 12).setOffset(2, 14);
+    (this.player.body as Phaser.Physics.Arcade.Body).setSize(14, 12).setOffset(5, 22);
     (this.player.body as Phaser.Physics.Arcade.Body).setCollideWorldBounds(true);
     this.playerFacing = 'down';
 
     // Player tag
-    this.playerTag = this.add.text(sx, sy - 20, '🕵️ Ren', {
+    this.playerTag = this.add.text(sx, sy - 24, '🕵️ Ren', {
       fontSize: '8px', color: '#7ab4f8', fontFamily: 'Courier New', backgroundColor: '#060a16d0', padding: { x: 4, y: 1 }
     }).setOrigin(0.5).setDepth(300);
 
@@ -80,6 +84,9 @@ export class ExplorationScene extends Phaser.Scene {
     this.cameras.main.setBounds(0, 0, rw, rh);
     this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
     this.cameras.main.fadeIn(300);
+
+    // Setup physical obstacle colliders so player doesn't clip through walls or furniture
+    this.setupObstacleColliders(room, rw, rh);
 
     // Guard to prevent accidental immediate bounce loop on room entry
     this.doorCooldown = true;
@@ -352,8 +359,8 @@ export class ExplorationScene extends Phaser.Scene {
     }
     (this.player.body as Phaser.Physics.Arcade.Body).setVelocity(dx, dy);
 
-    this.playerShadow.setPosition(this.player.x, this.player.y + 11);
-    this.playerTag.setPosition(this.player.x, this.player.y - 20);
+    this.playerShadow.setPosition(this.player.x, this.player.y + 15);
+    this.playerTag.setPosition(this.player.x, this.player.y - 24);
     this.player.setDepth(this.player.y);
 
     // Proximity
@@ -561,178 +568,286 @@ export class ExplorationScene extends Phaser.Scene {
   }
 
   private renderRoomArchitecture(room: any, w: number, h: number) {
-    const bg = this.add.graphics();
-    const wallH = TILE * 2.5;
-
-    // 1. Base floor color
+    const wallH = TILE * 3; // 48px Victorian architectural wall
     const isLibrary = room.id === 'library';
     const isClockwork = room.id === 'clockwork_gallery';
     const isMainHall = room.id === 'main_hall';
+    const isObservation = room.id === 'observation_deck';
+    const isPendulum = room.id === 'pendulum_room';
 
+    // 1. Base Flooring (Repeating high-detail 16-bit RPG Tile Textures)
     if (isMainHall) {
-      // Polished Victorian black and ivory checkerboard tiles
-      for (let x = 0; x < w; x += TILE * 1.5) {
-        for (let y = wallH; y < h; y += TILE * 1.5) {
-          const isCheck = ((Math.floor(x / (TILE * 1.5)) + Math.floor(y / (TILE * 1.5))) % 2 === 0);
-          bg.fillStyle(isCheck ? 0x161824 : 0x222838, 1);
-          bg.fillRect(x, y, TILE * 1.5, TILE * 1.5);
-          bg.lineStyle(1, 0x10131e, 0.4);
-          bg.strokeRect(x, y, TILE * 1.5, TILE * 1.5);
-        }
-      }
-      // Grand royal crimson runner carpet with gold embroidery down the center
-      const carpetW = TILE * 5;
-      const carpetX = w / 2 - carpetW / 2;
-      bg.fillStyle(0x701420, 0.95);
-      bg.fillRect(carpetX, wallH, carpetW, h - wallH);
-      bg.lineStyle(2, 0xd4af37, 0.9);
-      bg.strokeRect(carpetX + 2, wallH, carpetW - 4, h - wallH);
-      // Gold fringe pattern
-      for (let y = wallH + 10; y < h; y += 24) {
-        bg.fillStyle(0xd4af37, 0.4);
-        bg.fillCircle(carpetX + 6, y, 2);
-        bg.fillCircle(carpetX + carpetW - 6, y, 2);
-      }
+      // Polished Victorian black and ivory checkerboard tiles with gloss
+      this.add.tileSprite(w / 2, (wallH + h) / 2, w, h - wallH, 'tile_marble_checker').setDepth(0);
+      // Grand royal crimson runner carpet with gold filigree down the center
+      const carpetW = TILE * 6;
+      this.add.tileSprite(w / 2, (wallH + h) / 2, carpetW, h - wallH, 'carpet_crimson_runner').setDepth(1);
     } else if (isLibrary) {
       // Warm dark oak parquet wood floor
-      for (let x = 0; x < w; x += TILE * 2) {
-        for (let y = wallH; y < h; y += TILE) {
-          const alt = (Math.floor(x / (TILE * 2)) + Math.floor(y / TILE)) % 2 === 0;
-          bg.fillStyle(alt ? 0x2e1b10 : 0x24150c, 1);
-          bg.fillRect(x, y, TILE * 2, TILE);
-          bg.lineStyle(1, 0x180d07, 0.5);
-          bg.strokeRect(x, y, TILE * 2, TILE);
-        }
-      }
+      this.add.tileSprite(w / 2, (wallH + h) / 2, w, h - wallH, 'tile_parquet_wood').setDepth(0);
       // Large emerald oriental rug in reading area
-      bg.fillStyle(0x133827, 0.9);
-      bg.fillRect(TILE * 6, wallH + TILE * 2, w - TILE * 12, h - wallH - TILE * 4);
-      bg.lineStyle(2, 0xc49a45, 0.85);
-      bg.strokeRect(TILE * 6 + 2, wallH + TILE * 2 + 2, w - TILE * 12 - 4, h - wallH - TILE * 4 - 4);
+      this.add.image(w / 2, (wallH + h) / 2 + 10, 'carpet_emerald_rug').setDepth(1);
     } else if (isClockwork) {
-      // Industrial steel grating with bronze sub-glow
-      bg.fillStyle(0x18202c, 1);
-      bg.fillRect(0, wallH, w, h - wallH);
-      bg.lineStyle(1, 0x263445, 0.6);
-      for (let x = 0; x < w; x += TILE) {
-        bg.moveTo(x, wallH); bg.lineTo(x, h);
-      }
-      for (let y = wallH; y < h; y += TILE) {
-        bg.moveTo(0, y); bg.lineTo(w, y);
-      }
-      bg.strokePath();
-      // Glowing clockwork gears underneath floor grates
-      for (let i = 0; i < 4; i++) {
-        bg.lineStyle(2, 0xc49a45, 0.4);
-        bg.strokeCircle(TILE * 5 + i * TILE * 7, wallH + TILE * 4, 20);
-      }
+      // Industrial steel grating with bronze sub-glow and turning cogs
+      this.add.tileSprite(w / 2, (wallH + h) / 2, w, h - wallH, 'tile_industrial_grate').setDepth(0);
+    } else if (isObservation) {
+      // Cold wet slate pavers with rain puddle reflections
+      this.add.tileSprite(w / 2, (wallH + h) / 2, w, h - wallH, 'tile_wet_stone').setDepth(0);
+    } else if (isPendulum) {
+      // Gothic carved granite masonry
+      this.add.tileSprite(w / 2, (wallH + h) / 2, w, h - wallH, 'tile_granite_masonry').setDepth(0);
     } else {
-      // Deep polished slate / granite
-      bg.fillStyle(0x141824, 1);
-      bg.fillRect(0, wallH, w, h - wallH);
-      bg.lineStyle(1, 0x242a3a, 0.4);
-      for (let x = 0; x < w; x += TILE * 2) {
-        for (let y = wallH; y < h; y += TILE * 2) {
-          bg.strokeRect(x, y, TILE * 2, TILE * 2);
-        }
-      }
+      // Exhibition Chamber & others: Mahogany parquet
+      this.add.tileSprite(w / 2, (wallH + h) / 2, w, h - wallH, 'tile_parquet_wood').setDepth(0);
+      this.add.tileSprite(w / 2, (wallH + h) / 2, TILE * 6, h - wallH - TILE * 2, 'carpet_crimson_runner').setDepth(1);
     }
 
-    // 2. High Architectural Wall Header
-    bg.fillStyle(0x10131d, 1);
-    bg.fillRect(0, 0, w, wallH);
-    // Stone crown molding
-    bg.fillStyle(0x282f42, 1);
-    bg.fillRect(0, 0, w, 8);
-    // Wooden wainscot band
-    bg.fillStyle(0x1a1518, 1);
-    bg.fillRect(0, wallH - 10, w, 10);
-    bg.lineStyle(2, 0xd4af37, 0.7);
-    bg.moveTo(0, wallH); bg.lineTo(w, wallH);
-    bg.strokePath();
+    // 2. High Victorian Architectural Wall Header
+    this.add.tileSprite(w / 2, wallH / 2, w, wallH, 'wall_victorian').setDepth(2);
 
-    // Wall panels and brass sconces
-    for (let x = TILE * 3; x < w - TILE * 2; x += TILE * 5) {
-      // Wood panel framing
-      bg.lineStyle(1, 0x3a2c22, 0.8);
-      bg.strokeRect(x - 14, 12, 28, wallH - 24);
-      // Wall lantern
-      bg.fillStyle(0xd4af37, 1);
-      bg.fillRect(x - 2, 16, 4, 6);
-      bg.fillStyle(0xfff0aa, 0.9);
-      bg.fillCircle(x, 20, 3);
+    // Wall Lantern Sconces & Floor Warm Lighting Cones
+    for (let x = TILE * 4; x < w - TILE * 3; x += TILE * 6) {
+      this.add.image(x, wallH - 14, 'prop_sconce_lantern').setDepth(3);
 
-      // Ambient warm light cone on floor
-      bg.fillStyle(0xffe899, 0.08);
-      bg.beginPath();
-      bg.moveTo(x, 22);
-      bg.lineTo(x - 34, wallH + 42);
-      bg.lineTo(x + 34, wallH + 42);
-      bg.closePath();
-      bg.fillPath();
-
-      // Soft radial glow on floor
-      bg.fillStyle(0xffd700, 0.04);
-      bg.fillCircle(x, wallH + 24, 28);
+      // Warm radial light aura on floor beneath sconce
+      const lightHalo = this.add.circle(x, wallH + 18, 30, 0xffd700, 0.08).setDepth(1);
+      this.tweens.add({
+        targets: lightHalo,
+        alpha: 0.13,
+        scale: 1.08,
+        yoyo: true,
+        repeat: -1,
+        duration: 1800 + Math.random() * 600,
+        ease: 'Sine.easeInOut'
+      });
     }
 
-    // Room name engraved in wall center
-    this.add.text(w / 2, 18, `★ ${room.name.toUpperCase()} ★`, {
+    // Gothic Arched Windows
+    if (isMainHall || isLibrary) {
+      this.add.image(TILE * 2 + 10, wallH - 8, 'window_gothic_storm').setDepth(3);
+      this.add.image(w - TILE * 2 - 10, wallH - 8, 'window_gothic_storm').setDepth(3);
+    }
+
+    // Room Name Plaque Banner
+    this.add.text(w / 2, 14, `★ ${room.name.toUpperCase()} ★`, {
       fontFamily: 'serif',
       fontSize: '11px',
       color: '#d4af37',
-      fontStyle: 'bold'
-    }).setOrigin(0.5).setDepth(4);
-
-    bg.setDepth(1);
+      fontStyle: 'bold',
+      backgroundColor: '#0c0f1aee',
+      padding: { x: 8, y: 3 }
+    }).setOrigin(0.5).setDepth(5);
   }
 
   private drawFeatures(room: any, w: number, h: number) {
+    const wallH = TILE * 3;
+    const isMainHall = room.id === 'main_hall';
+    const isLibrary = room.id === 'library';
+    const isClockwork = room.id === 'clockwork_gallery';
+    const isExhibition = room.id === 'exhibition_chamber';
+
+    // Room-specific architectural furniture
+    if (isMainHall) {
+      // Fireplace in west wing
+      this.add.image(TILE * 6, wallH - 4, 'prop_fireplace').setDepth(wallH);
+      // Grandfather clock in east alcove
+      this.add.image(w - TILE * 5, wallH - 6, 'prop_grandfather_clock').setDepth(wallH);
+      // Velvet armchairs
+      this.add.image(TILE * 8, wallH + 32, 'prop_armchair').setDepth(wallH + 32);
+      this.add.image(w - TILE * 8, wallH + 32, 'prop_armchair').setDepth(wallH + 32);
+      // Display pedestals
+      this.add.image(w / 2 - TILE * 6, wallH + 24, 'prop_display_pedestal').setDepth(wallH + 24);
+      this.add.image(w / 2 + TILE * 6, wallH + 24, 'prop_display_pedestal').setDepth(wallH + 24);
+    } else if (isLibrary) {
+      // Grand double-tier bookcases lining back wall
+      this.add.image(TILE * 4, wallH - 4, 'prop_grand_bookcase').setDepth(wallH);
+      this.add.image(TILE * 8, wallH - 4, 'prop_grand_bookcase').setDepth(wallH);
+      this.add.image(w - TILE * 4, wallH - 4, 'prop_grand_bookcase').setDepth(wallH);
+      this.add.image(w - TILE * 8, wallH - 4, 'prop_grand_bookcase').setDepth(wallH);
+      // Cozy library fireplace
+      this.add.image(w / 2, wallH - 4, 'prop_fireplace').setDepth(wallH);
+      // Reading armchairs
+      this.add.image(w / 2 - 32, (wallH + h) / 2 + 10, 'prop_armchair').setDepth((wallH + h) / 2 + 10);
+      this.add.image(w / 2 + 32, (wallH + h) / 2 + 10, 'prop_armchair').setDepth((wallH + h) / 2 + 10);
+    } else if (isClockwork) {
+      // Brass steam pipes across top wall
+      this.add.tileSprite(w / 2, wallH - 12, w - TILE * 4, 24, 'prop_brass_pipes').setDepth(3);
+    } else if (isExhibition) {
+      // Additional display pedestals
+      this.add.image(TILE * 4, (wallH + h) / 2 - 20, 'prop_display_pedestal').setDepth((wallH + h) / 2 - 20);
+      this.add.image(w - TILE * 4, (wallH + h) / 2 - 20, 'prop_display_pedestal').setDepth((wallH + h) / 2 - 20);
+    }
+
     if (!room.features) return;
     for (const f of room.features) {
       if (f==='rain_window' || f==='rain_effect') {
         this.add.rectangle(w-TILE*3,h/2,TILE*2,TILE*4,0x1a2a4a,0.5).setDepth(2);
         this.add.rectangle(w-TILE*3,h/2,TILE*2,TILE*4).setStrokeStyle(2,0x3a4a5a).setDepth(3);
-        for(let i=0;i<8;i++){const s=this.add.rectangle(w-TILE*4+Math.random()*TILE*3,h/2-TILE*2+Math.random()*TILE*4,1,6+Math.random()*6,0x5a7a9a,0.4).setDepth(4);this.tweens.add({targets:s,y:s.y+TILE*4,x:s.x-TILE,duration:800+Math.random()*400,repeat:-1,onRepeat:()=>{s.setPosition(w-TILE*4+Math.random()*TILE*3,h/2-TILE*2);}});}
+        for(let i=0;i<12;i++){
+          const s=this.add.rectangle(w-TILE*4+Math.random()*TILE*3,h/2-TILE*2+Math.random()*TILE*4,1,6+Math.random()*6,0x7aa4cc,0.5).setDepth(4);
+          this.tweens.add({targets:s,y:s.y+TILE*4,x:s.x-TILE,duration:700+Math.random()*300,repeat:-1,onRepeat:()=>{s.setPosition(w-TILE*4+Math.random()*TILE*3,h/2-TILE*2);}});
+        }
       } else if (f==='clockwork_gears' || f==='giant_gears') {
-        for(let i=0;i<3;i++){const g=this.add.graphics();g.lineStyle(2,0xc4a44a,0.5);g.strokeCircle(0,0,12+i*4);for(let a=0;a<8;a++){const an=(a/8)*Math.PI*2;g.moveTo(Math.cos(an)*8,Math.sin(an)*8);g.lineTo(Math.cos(an)*(16+i*4),Math.sin(an)*(16+i*4));}g.setPosition(TILE*3+i*TILE*6,TILE*3).setDepth(3);this.tweens.add({targets:g,angle:360,duration:8000+i*3000,repeat:-1});}
+        for(let i=0;i<3;i++){
+          const g=this.add.graphics();
+          g.lineStyle(2,0xc4a44a,0.6);
+          g.strokeCircle(0,0,14+i*5);
+          for(let a=0;a<8;a++){
+            const an=(a/8)*Math.PI*2;
+            g.moveTo(Math.cos(an)*8,Math.sin(an)*8);
+            g.lineTo(Math.cos(an)*(18+i*5),Math.sin(an)*(18+i*5));
+          }
+          g.setPosition(TILE*3+i*TILE*6,TILE*3).setDepth(3);
+          this.tweens.add({targets:g,angle:360,duration:8000+i*3000,repeat:-1});
+        }
       } else if (f==='pendulum' || f==='swinging_pendulum') {
-        const p=this.add.graphics();p.lineStyle(2,0x8a7a5a,0.8);p.moveTo(0,0);p.lineTo(0,60);p.fillStyle(0xc4a44a);p.fillCircle(0,60,6);p.setPosition(w/2,TILE*2).setDepth(3);this.tweens.add({targets:p,angle:-15,yoyo:true,repeat:-1,duration:1500,ease:'Sine.easeInOut'});
-      } else if (f==='bookshelves' || f==='dust_motes') {
-        for(let i=0;i<4;i++){for(let b=0;b<6;b++){this.add.rectangle(TILE*2+b*6,TILE*2+i*TILE*3,5,TILE-2,[0x8a2a2a,0x2a5a5a,0x5a4a2a,0x3a3a6a,0x6a5a2a,0x4a2a4a][b%6]).setDepth(3);}this.add.rectangle(TILE*2+18,TILE*2+i*TILE*3+8,42,2,0x3a2a1a).setDepth(2);}
-      } else if (f==='telescope' || f==='telescopes') {
-        this.add.triangle(w/2,TILE*4,0,20,-4,0,4,0,0x4a4a5a).setDepth(3);this.add.circle(w/2,TILE*4-4,6,0x3a3a4a).setDepth(3);
-      } else if (f==='display_cases' || f==='prototype_display') {
-        for(let i=0;i<3;i++){const cx=TILE*6+i*TILE*8;this.add.rectangle(cx,h/2,TILE*3,TILE*2,0x2a3a4a,0.3).setDepth(3);this.add.rectangle(cx,h/2,TILE*3,TILE*2).setStrokeStyle(1,0x4a6a7a,0.5).setDepth(4);}
-      } else if (f==='brass_railings' || f==='marble_floor') {
-        // Draw decorative floor/railing accents
-        const g=this.add.graphics();g.lineStyle(1,0xc4a44a,0.25);
-        for(let i=1;i<5;i++){g.moveTo(TILE*2,TILE*2+i*(h-TILE*4)/5);g.lineTo(w-TILE*2,TILE*2+i*(h-TILE*4)/5);}
-        g.setDepth(1);
+        const p=this.add.graphics();
+        p.lineStyle(3,0x8a7a5a,0.9);
+        p.moveTo(0,0);
+        p.lineTo(0,70);
+        p.fillStyle(0xd4af37);
+        p.fillCircle(0,70,8);
+        p.setPosition(w/2,TILE*2).setDepth(3);
+        this.tweens.add({targets:p,angle:-15,yoyo:true,repeat:-1,duration:1500,ease:'Sine.easeInOut'});
       } else if (f==='steam_vents') {
         for(let i=0;i<4;i++){
           const vx=TILE*4+i*(w-TILE*8)/3, vy=h-TILE*2;
-          const vent=this.add.rectangle(vx,vy,TILE,4,0x4a4a5a).setDepth(3);
-          // Steam particles
-          for(let j=0;j<3;j++){
-            const steam=this.add.circle(vx+Math.random()*8-4,vy-4,2+Math.random()*2,0xcccccc,0.15).setDepth(4);
-            this.tweens.add({targets:steam,y:vy-30-Math.random()*20,alpha:0,duration:2000+Math.random()*1000,repeat:-1,yoyo:false,
-              onRepeat:()=>{steam.setPosition(vx+Math.random()*8-4,vy-4);steam.setAlpha(0.15);}});
+          this.add.rectangle(vx,vy,TILE,4,0x4a4a5a).setDepth(3);
+          for(let j=0;j<4;j++){
+            const steam=this.add.circle(vx+Math.random()*8-4,vy-4,2+Math.random()*3,0xddeeff,0.2).setDepth(4);
+            this.tweens.add({
+              targets:steam,
+              y:vy-35-Math.random()*25,
+              alpha:0,
+              scale:1.6,
+              duration:1800+Math.random()*800,
+              repeat:-1,
+              onRepeat:()=>{
+                steam.setPosition(vx+Math.random()*8-4,vy-4);
+                steam.setAlpha(0.2);
+                steam.setScale(1);
+              }
+            });
           }
         }
       } else if (f==='locked_door') {
-        // Draw a heavy door indicator
-        const g=this.add.graphics();g.fillStyle(0x4a3a2a,0.8);g.fillRect(w/2-TILE,TILE,TILE*2,TILE*2);
-        g.lineStyle(2,0x8b4513);g.strokeRect(w/2-TILE,TILE,TILE*2,TILE*2);
-        g.fillStyle(0xd4af37);g.fillCircle(w/2+TILE-4,TILE+TILE,3); // doorknob
+        const g=this.add.graphics();
+        g.fillStyle(0x3a1f10,0.9);
+        g.fillRect(w/2-TILE,TILE,TILE*2,TILE*2);
+        g.lineStyle(2,0xd4af37);
+        g.strokeRect(w/2-TILE,TILE,TILE*2,TILE*2);
+        g.fillStyle(0xd4af37);
+        g.fillCircle(w/2+TILE-4,TILE+TILE,3);
         g.setDepth(3);
       } else if (f==='echoing_walls') {
-        // Draw subtle concentric arcs to suggest acoustics
-        const g=this.add.graphics();g.lineStyle(1,0x8e44ad,0.1);
-        for(let r=30;r<120;r+=20){g.strokeCircle(w/2,h/2,r);}
+        const g=this.add.graphics();
+        g.lineStyle(1,0x8e44ad,0.12);
+        for(let r=30;r<140;r+=20){g.strokeCircle(w/2,h/2,r);}
         g.setDepth(1);
       }
     }
+  }
+
+  private setupObstacleColliders(room: any, w: number, h: number) {
+    this.obstacleColliders = this.physics.add.staticGroup();
+    const wallH = TILE * 3;
+
+    // Top wall segments (leaving gaps for doors)
+    const topExits = (room.exits || []).filter((e: any) => e.direction === 'up' || e.y <= 2);
+    if (topExits.length === 0) {
+      const topObstacle = this.add.rectangle(w / 2, wallH / 2, w, wallH);
+      this.obstacleColliders.add(topObstacle);
+    } else {
+      let curX = 0;
+      const sorted = [...topExits].sort((a: any, b: any) => a.x - b.x);
+      for (const ex of sorted) {
+        const dl = ex.x * TILE - 20;
+        const dr = ex.x * TILE + 20;
+        if (dl > curX) {
+          const segW = dl - curX;
+          const seg = this.add.rectangle(curX + segW / 2, wallH / 2, segW, wallH);
+          this.obstacleColliders.add(seg);
+        }
+        curX = Math.max(curX, dr);
+      }
+      if (curX < w) {
+        const segW = w - curX;
+        const seg = this.add.rectangle(curX + segW / 2, wallH / 2, segW, wallH);
+        this.obstacleColliders.add(seg);
+      }
+    }
+
+    // Left wall segments
+    const leftExits = (room.exits || []).filter((e: any) => e.direction === 'left' || e.x <= 2);
+    if (leftExits.length === 0) {
+      const leftObstacle = this.add.rectangle(4, (wallH + h) / 2, 8, h - wallH);
+      this.obstacleColliders.add(leftObstacle);
+    } else {
+      for (const ex of leftExits) {
+        const dY = ex.y * TILE;
+        if (dY - 24 > wallH) {
+          const s1 = this.add.rectangle(4, (wallH + dY - 24) / 2, 8, dY - 24 - wallH);
+          this.obstacleColliders.add(s1);
+        }
+        if (dY + 24 < h) {
+          const s2 = this.add.rectangle(4, (dY + 24 + h) / 2, 8, h - (dY + 24));
+          this.obstacleColliders.add(s2);
+        }
+      }
+    }
+
+    // Right wall segments
+    const rightExits = (room.exits || []).filter((e: any) => e.direction === 'right' || e.x >= (w / TILE - 3));
+    if (rightExits.length === 0) {
+      const rightObstacle = this.add.rectangle(w - 4, (wallH + h) / 2, 8, h - wallH);
+      this.obstacleColliders.add(rightObstacle);
+    } else {
+      for (const ex of rightExits) {
+        const dY = ex.y * TILE;
+        if (dY - 24 > wallH) {
+          const s1 = this.add.rectangle(w - 4, (wallH + dY - 24) / 2, 8, dY - 24 - wallH);
+          this.obstacleColliders.add(s1);
+        }
+        if (dY + 24 < h) {
+          const s2 = this.add.rectangle(w - 4, (dY + 24 + h) / 2, 8, h - (dY + 24));
+          this.obstacleColliders.add(s2);
+        }
+      }
+    }
+
+    // Bottom wall segments
+    const bottomExits = (room.exits || []).filter((e: any) => e.direction === 'down' || e.y >= (h / TILE - 3));
+    if (bottomExits.length === 0) {
+      const bottomObstacle = this.add.rectangle(w / 2, h - 4, w, 8);
+      this.obstacleColliders.add(bottomObstacle);
+    } else {
+      for (const ex of bottomExits) {
+        const dX = ex.x * TILE;
+        if (dX - 24 > 0) {
+          const s1 = this.add.rectangle((dX - 24) / 2, h - 4, dX - 24, 8);
+          this.obstacleColliders.add(s1);
+        }
+        if (dX + 24 < w) {
+          const s2 = this.add.rectangle((dX + 24 + w) / 2, h - 4, w - (dX + 24), 8);
+          this.obstacleColliders.add(s2);
+        }
+      }
+    }
+
+    // Furniture obstacle collisions
+    if (room.interactables) {
+      for (const obj of room.interactables) {
+        if (['desk', 'main_gear', 'archive_desk', 'shelf_3', 'old_files'].includes(obj.id)) {
+          const ox = obj.x * TILE, oy = obj.y * TILE;
+          const ow = (obj.width || 2) * TILE, oh = (obj.height || 1) * TILE;
+          const furn = this.add.rectangle(ox, oy, ow - 4, oh - 4);
+          this.obstacleColliders.add(furn);
+        }
+      }
+    }
+
+    // Add collider between player and solid obstacles
+    this.physics.add.collider(this.player, this.obstacleColliders);
   }
 
   private checkAdvance() {
