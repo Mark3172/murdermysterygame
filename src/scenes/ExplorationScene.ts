@@ -126,15 +126,40 @@ export class ExplorationScene extends Phaser.Scene {
       const l2 = this.add.circle(ex + 18, ey, 3, 0xffea70, 0.8).setDepth(12);
       this.tweens.add({ targets: [l1, l2], alpha: 0.5, yoyo: true, repeat: -1, duration: 1200 });
 
-      // High-contrast Door Banner
+      // High-contrast Door Banner (clickable with mouse)
       const labelY = exit.direction === 'down' ? ey - 18 : ey + 18;
       const doorBadge = this.add.text(ex, labelY, `🚪 TO ${targetName}`, {
         fontSize: '8px', color: '#ffea70', fontFamily: 'Courier New, monospace', fontStyle: 'bold',
         backgroundColor: '#0a0d1aec', padding: { x: 5, y: 2 }
-      }).setOrigin(0.5).setDepth(150);
+      }).setOrigin(0.5).setDepth(150).setInteractive({ useHandCursor: true });
 
-      // Zone trigger with cooldown guard
-      const z = this.add.zone(ex, ey, TILE * 2, TILE * 2);
+      doorBadge.on('pointerdown', () => {
+        if (!this.doorCooldown && !this.inDialogue) {
+          this.goToRoom(exit.targetRoom, exit.direction);
+        }
+      });
+
+      // Generous doorway trigger zone extending into room threshold
+      let tzX = ex;
+      let tzY = ey;
+      let tzW = TILE * 3;
+      let tzH = TILE * 3;
+
+      if (exit.direction === 'up' || ey <= 2 * TILE) {
+        tzY = Math.max(ey, wallH) - 4;
+        tzH = TILE * 3.5;
+      } else if (exit.direction === 'down' || ey >= rh - 3 * TILE) {
+        tzY = Math.min(ey, rh - 16);
+        tzH = TILE * 3.5;
+      } else if (exit.direction === 'left' || ex <= 2 * TILE) {
+        tzX = Math.max(ex, 16);
+        tzW = TILE * 3.5;
+      } else if (exit.direction === 'right' || ex >= rw - 3 * TILE) {
+        tzX = Math.min(ex, rw - 16);
+        tzW = TILE * 3.5;
+      }
+
+      const z = this.add.zone(tzX, tzY, tzW, tzH);
       this.physics.add.existing(z, true);
       this.physics.add.overlap(this.player, z, () => {
         if (!this.doorCooldown && !this.inDialogue) {
@@ -370,14 +395,13 @@ export class ExplorationScene extends Phaser.Scene {
     }
     (this.player.body as Phaser.Physics.Arcade.Body).setVelocity(dx, dy);
 
-    // Continuous floor position clamping to guarantee Ren is never wedged in walls or world bounds
+    // Room bounds clamp (leaving doorways accessible)
     const curRoom = rooms[this.roomId];
     if (curRoom) {
-      const wallH = TILE * 3;
       const rw = (curRoom.width || 40) * TILE;
       const rh = (curRoom.height || 22) * TILE;
-      this.player.x = Phaser.Math.Clamp(this.player.x, 16, rw - 16);
-      this.player.y = Phaser.Math.Clamp(this.player.y, wallH + 16, rh - 24);
+      this.player.x = Phaser.Math.Clamp(this.player.x, 8, rw - 8);
+      this.player.y = Phaser.Math.Clamp(this.player.y, 8, rh - 8);
     }
 
     this.playerShadow.setPosition(this.player.x, this.player.y + 15);
