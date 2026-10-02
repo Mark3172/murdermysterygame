@@ -32,11 +32,11 @@ export class PortraitRenderer {
 
     switch (characterId) {
       case 'ren':
-        skin = '#fcd5b4'; skinShadow = '#df9f7a';
-        hair = '#6b3410'; hairHighlight = '#a85820';
-        outfit = '#1e78d6'; outfitShadow = '#134e94';
-        collar = '#2e8b57'; tie = '#00000000';
-        eyeColor = '#5a3318'; accessory = 'cowlick';
+        skin = '#fae0cc'; skinShadow = '#dfa68c';
+        hair = '#1b202c'; hairHighlight = '#323c52';
+        outfit = '#182438'; outfitShadow = '#0e1624';
+        collar = '#121620'; tie = '#b82032'; // crimson silk ascot
+        eyeColor = '#d48a24'; accessory = 'bandolier_streak';
         break;
       case 'nadia':
         skin = '#fae2d0'; skinShadow = '#dfc2b0';
@@ -122,7 +122,17 @@ export class PortraitRenderer {
     }
 
     // Accessories
-    if (accessory === 'camera_strap') {
+    if (accessory === 'bandolier_streak') {
+      // Leather gadget bandolier strap across chest
+      ctx.strokeStyle = '#422818';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(18, 44); ctx.lineTo(46, 60);
+      ctx.stroke();
+      // Brass buckle
+      ctx.fillStyle = '#d4af37';
+      ctx.fillRect(30, 50, 4, 3);
+    } else if (accessory === 'camera_strap') {
       ctx.strokeStyle = '#2b1d0c';
       ctx.lineWidth = 3;
       ctx.beginPath();
@@ -269,8 +279,30 @@ export class PortraitRenderer {
     ctx.fillStyle = hairHighlight;
     ctx.fillRect(24, 10, 16, 3);
 
-    // Distinct character hairstyles
-    if (accessory === 'cowlick') {
+    if (accessory === 'bandolier_streak') {
+      // Ren's sleek detective swept bangs with silver rogue streak
+      ctx.fillStyle = hair;
+      ctx.beginPath();
+      ctx.moveTo(26, 8);
+      ctx.lineTo(22, 14);
+      ctx.lineTo(28, 14);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillRect(22, 12, 6, 7);
+      ctx.fillRect(33, 13, 6, 6);
+
+      // Signature Silver-Blue Rogue Streak
+      ctx.fillStyle = '#c0d0e2';
+      ctx.beginPath();
+      ctx.moveTo(26, 8);
+      ctx.lineTo(23, 17);
+      ctx.lineTo(26, 17);
+      ctx.lineTo(28, 9);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#8294aa';
+      ctx.fillRect(23, 17, 3, 2);
+    } else if (accessory === 'cowlick') {
       // Ren's detective fringe and cowlick
       ctx.fillStyle = hair;
       ctx.beginPath();

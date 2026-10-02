@@ -507,11 +507,21 @@ export class ExplorationScene extends Phaser.Scene {
     if (!room?.interactables) return;
     for (const obj of room.interactables) {
       if (obj.gadgetRequired==='trace_light' && obj.evidenceId && !gameState.hasEvidence(obj.evidenceId)) {
-        const z=this.add.zone(obj.x,obj.y,obj.width||TILE*2,obj.height||TILE); this.physics.add.existing(z,true);
-        const mk=this.add.graphics();mk.fillStyle(0x9a4aaa,0.9);mk.fillRect(-3,-3,6,6);mk.setPosition(obj.x,obj.y-16).setDepth(150);
-        this.tweens.add({targets:mk,y:obj.y-20,yoyo:true,repeat:-1,duration:600});
-        const lb=this.add.text(obj.x,obj.y+12,obj.name,{fontSize:'7px',color:'#aa7acc',fontFamily:'Courier New'}).setOrigin(0.5).setDepth(150).setVisible(false);
-        this.interactableObjects.push({zone:z,data:obj,marker:mk,label:lb});
+        const ox = obj.x * TILE;
+        const oy = obj.y * TILE;
+        const ow = (obj.width || 2) * TILE;
+        const oh = (obj.height || 1) * TILE;
+        const z = this.add.zone(ox, oy, ow + 8, oh + 8);
+        this.physics.add.existing(z, true);
+        const mk = this.add.graphics();
+        mk.fillStyle(0x9a4aaa, 0.9);
+        mk.fillRect(-3, -3, 6, 6);
+        mk.setPosition(ox, oy - 16).setDepth(150);
+        this.tweens.add({targets: mk, y: oy - 20, yoyo: true, repeat: -1, duration: 600});
+        const lb = this.add.text(ox, oy + 12, obj.name, {
+          fontSize: '8px', color: '#aa7acc', fontFamily: 'Courier New', backgroundColor: '#090d18ee', padding: { x: 5, y: 2 }
+        }).setOrigin(0.5).setDepth(150).setVisible(false);
+        this.interactableObjects.push({zone: z, data: obj, marker: mk, label: lb});
       }
     }
     this.showMsg('🔦 Trace Light: hidden traces revealed.');
@@ -524,22 +534,29 @@ export class ExplorationScene extends Phaser.Scene {
     AudioManager.getInstance().playSFX('doorOpen');
     const td = rooms[target]; if (!td) return;
 
-    // Calculate safe spawn positions away from doors (5 tiles away from the wall)
+    // Intelligently find the matching entrance door in the target room connecting back to this room
     let sx = (td.width || 40) * TILE / 2;
     let sy = (td.height || 22) * TILE / 2;
+    const wallH = TILE * 3;
 
-    if (fromDir === 'up') {
-      // Player went up through top door, enters near bottom of next room facing up
-      sy = (td.height || 22) * TILE - TILE * 5;
-    } else if (fromDir === 'down') {
-      // Player went down through bottom door, enters near top of next room facing down
-      sy = TILE * 5;
-    } else if (fromDir === 'left') {
-      // Player went left through left door, enters near right of next room facing left
-      sx = (td.width || 40) * TILE - TILE * 5;
-    } else if (fromDir === 'right') {
-      // Player went right through right door, enters near left of next room facing right
-      sx = TILE * 5;
+    const returnExit = (td.exits || []).find((e: any) => e.targetRoom === this.roomId && e.direction !== 'hidden');
+    if (returnExit) {
+      if (returnExit.y <= 2 || returnExit.direction === 'up') {
+        sx = returnExit.x * TILE;
+        sy = Math.max(returnExit.y * TILE + 4 * TILE, wallH + 16);
+      } else if (returnExit.y >= (td.height || 22) - 3 || returnExit.direction === 'down') {
+        sx = returnExit.x * TILE;
+        sy = returnExit.y * TILE - 4 * TILE;
+      } else if (returnExit.x <= 2 || returnExit.direction === 'left') {
+        sx = returnExit.x * TILE + 4 * TILE;
+        sy = returnExit.y * TILE;
+      } else if (returnExit.x >= (td.width || 40) - 3 || returnExit.direction === 'right') {
+        sx = returnExit.x * TILE - 4 * TILE;
+        sy = returnExit.y * TILE;
+      }
+    } else if (td.spawnPoint) {
+      sx = td.spawnPoint.x * TILE;
+      sy = Math.max(td.spawnPoint.y * TILE, wallH + 16);
     }
 
     this.cameras.main.fadeOut(250);
