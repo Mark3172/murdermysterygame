@@ -36,19 +36,18 @@ const PHASE_CONFIGS: PhaseConfig[] = [
   {
     id: 'arrival',
     name: 'Arrival',
-    objective: 'Explore the observatory and speak with Professor Aldric.',
+    objective: 'Investigate the observatory and gather clues.',
     musicTrack: 'exploration',
-    availableRooms: ['main_hall'],
-    gadgetsToUnlock: ['tranquility_focus'],
-    canExit: () => gameState.hasDialogueFlag('aldric_greeted'),
+    availableRooms: ['main_hall', 'exhibition_chamber', 'clockwork_gallery', 'library_archive', 'pendulum_room', 'observation_deck'],
+    gadgetsToUnlock: ['tranquility_focus', 'echo_lens', 'trace_light', 'micro_rover', 'voice_prism'],
+    canExit: () => true,
   },
   {
     id: 'announcement',
     name: 'The Announcement',
-    objective: 'Listen to Professor Aldric\'s announcement.',
+    objective: 'Investigate the locked exhibition chamber.',
     musicTrack: 'suspense',
-    availableRooms: ['main_hall'],
-    cutsceneOnEnter: 'announcement_scene',
+    availableRooms: ['main_hall', 'exhibition_chamber'],
     canExit: () => true,
   },
   {
@@ -57,7 +56,6 @@ const PHASE_CONFIGS: PhaseConfig[] = [
     objective: '',
     musicTrack: 'suspense',
     availableRooms: [],
-    cutsceneOnEnter: 'blackout_scene',
     canExit: () => true,
   },
   {
@@ -67,7 +65,8 @@ const PHASE_CONFIGS: PhaseConfig[] = [
     musicTrack: 'suspense',
     availableRooms: ['main_hall', 'exhibition_chamber'],
     cutsceneOnEnter: 'discovery_scene',
-    canExit: () => gameState.hasCutsceneSeen('discovery_scene'),
+    gadgetsToUnlock: ['tranquility_focus', 'echo_lens', 'trace_light', 'micro_rover', 'voice_prism'],
+    canExit: () => true,
   },
   {
     id: 'investigation_1',
@@ -75,8 +74,8 @@ const PHASE_CONFIGS: PhaseConfig[] = [
     objective: 'Examine the crime scene and question the suspects. How was the room locked?',
     musicTrack: 'exploration',
     availableRooms: ['main_hall', 'exhibition_chamber', 'clockwork_gallery', 'library_archive', 'pendulum_room', 'observation_deck'],
-    gadgetsToUnlock: ['echo_lens', 'trace_light', 'micro_rover', 'voice_prism'],
-    canExit: () => gameState.hasEvidence('connecting_door') && gameState.hasEvidence('hugo_fingerprints') && gameState.hasEvidence('rain_sensor_data'),
+    gadgetsToUnlock: ['tranquility_focus', 'echo_lens', 'trace_light', 'micro_rover', 'voice_prism'],
+    canExit: () => gameState.hasDialogueFlag('hugo_confessed') || (gameState.hasEvidence('connecting_door') && gameState.hasEvidence('hugo_fingerprints') && gameState.hasEvidence('rain_sensor_data')),
   },
   {
     id: 'midpoint_reversal',
@@ -94,7 +93,7 @@ const PHASE_CONFIGS: PhaseConfig[] = [
     objective: 'The timeline was wrong. Find the real killer. Who had access during the announcement?',
     musicTrack: 'deduction',
     availableRooms: ['main_hall', 'exhibition_chamber', 'clockwork_gallery', 'library_archive', 'pendulum_room', 'observation_deck'],
-    canExit: () => gameState.getEvidenceCount() >= 10,
+    canExit: () => gameState.getEvidenceCount() >= 6,
   },
   {
     id: 'reconstruction',

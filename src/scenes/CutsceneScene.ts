@@ -341,7 +341,7 @@ export class CutsceneScene extends Scene {
     gameState.markCutsceneSeen(this.cutsceneId);
 
     // Advance story phase
-    if (['cold_open', 'discovery_scene', 'midpoint_reversal', 'final_reveal'].includes(this.cutsceneId)) {
+    if (['cold_open', 'opening_title', 'discovery_scene', 'midpoint_reversal', 'final_reveal'].includes(this.cutsceneId)) {
         storyManager.advancePhase();
     }
 
@@ -352,11 +352,11 @@ export class CutsceneScene extends Scene {
                 this.scene.start('CutsceneScene', { cutsceneId: 'opening_title' });
                 break;
             case 'opening_title':
-                this.scene.start('ExplorationScene', { roomId: 'main_hall' });
+                this.scene.start('CutsceneScene', { cutsceneId: 'discovery_scene' });
                 break;
             case 'discovery_scene':
             case 'midpoint_reversal':
-                this.scene.start('ExplorationScene');
+                this.scene.start('ExplorationScene', { roomId: 'main_hall' });
                 break;
             case 'final_reveal':
                 this.scene.start('CutsceneScene', { cutsceneId: 'ending' });

@@ -56,7 +56,7 @@ class GameStateManager {
       dialogueFlags: new Set(),
       cutscenesSeen: new Set(),
       suspectInterviewed: new Set(),
-      gadgetsUnlocked: new Set(['tranquility_focus']),
+      gadgetsUnlocked: new Set(['tranquility_focus', 'echo_lens', 'trace_light', 'micro_rover', 'voice_prism']),
       hintsUsed: 0,
       currentHintLevel: 0,
       notebookEntries: [],
@@ -259,8 +259,13 @@ class GameStateManager {
   }
 
   deserialize(data: any): void {
+    const savedPhase = data.phase || 'investigation_1';
+    const effectivePhase = ['cold_open', 'opening_title', 'arrival', 'announcement', 'blackout', 'discovery'].includes(savedPhase) ? 'investigation_1' : savedPhase;
+    const existingGadgets = Array.isArray(data.gadgetsUnlocked) ? data.gadgetsUnlocked : [];
+    const allGadgets = Array.from(new Set([...existingGadgets, 'tranquility_focus', 'echo_lens', 'trace_light', 'micro_rover', 'voice_prism']));
+
     this.state = {
-      phase: data.phase || 'cold_open',
+      phase: effectivePhase,
       currentRoom: data.currentRoom || 'main_hall',
       playerX: data.playerX || 320,
       playerY: data.playerY || 200,
@@ -268,7 +273,7 @@ class GameStateManager {
       dialogueFlags: new Set(data.dialogueFlags || []),
       cutscenesSeen: new Set(data.cutscenesSeen || []),
       suspectInterviewed: new Set(data.suspectInterviewed || []),
-      gadgetsUnlocked: new Set(data.gadgetsUnlocked || ['tranquility_focus']),
+      gadgetsUnlocked: new Set(allGadgets),
       hintsUsed: data.hintsUsed || 0,
       currentHintLevel: data.currentHintLevel || 0,
       notebookEntries: data.notebookEntries || [],

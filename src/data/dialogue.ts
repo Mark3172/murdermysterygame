@@ -54,12 +54,44 @@ export const dialogue: Record<string, DialogueTree> = {
         { text: 'Did you hear anything strange?', nextId: 'heard' },
         { text: '(Present Missing Lantern)', nextId: 'confront_lantern', evidenceRequired: 'missing_lantern' },
         { text: '(Present Poisoned Tea)', nextId: 'confront_poison', evidenceRequired: 'poisoned_tea' },
+        { text: '(Accuse) It was you, Nadia! You poisoned Professor Sable!', nextId: 'accuse_nadia', evidenceRequired: 'spliced_recording' },
         { text: 'Never mind.', nextId: 'leave' }
       ]},
       'alibi': { id: 'alibi', speaker: 'Nadia', text: 'I was in the Library. When the lights went out, I tried to find an emergency lantern.', next: 'greet' },
       'heard': { id: 'heard', speaker: 'Nadia', text: 'Just the storm outside. And people shouting in the hall when the power cut.', next: 'greet' },
       'confront_lantern': { id: 'confront_lantern', speaker: 'Nadia', text: 'You found a dust outline? So what? Someone else must have taken it. I was fumbling in the dark.', next: 'greet' },
       'confront_poison': { id: 'confront_poison', speaker: 'Nadia', text: 'Solvent in his tea? How dreadful. The Professor was always careless with chemicals.', next: 'greet' },
+      'accuse_nadia': {
+        id: 'accuse_nadia',
+        speaker: 'Ren',
+        text: 'It was you, Nadia. You poisoned Professor Sable and forged the time of death.',
+        next: 'accuse_nadia_2'
+      },
+      'accuse_nadia_2': {
+        id: 'accuse_nadia_2',
+        speaker: 'Nadia',
+        text: 'Preposterous. I have an alibi. I was in the library when the announcement happened, and then the lights went out.',
+        next: 'accuse_nadia_3'
+      },
+      'accuse_nadia_3': {
+        id: 'accuse_nadia_3',
+        speaker: 'Ren',
+        text: 'The announcement was spliced from old tapes! The Voice Prism proved it. You played it over the PA to establish a fake time of death when he was already dead.',
+        next: 'accuse_nadia_4'
+      },
+      'accuse_nadia_4': {
+        id: 'accuse_nadia_4',
+        speaker: 'Dr. Vale',
+        text: 'And we found the original Project Echo logs. You altered the calibration data 12 years ago. Sable found out and was going to expose you, didn\'t he?',
+        next: 'accuse_nadia_5'
+      },
+      'accuse_nadia_5': {
+        id: 'accuse_nadia_5',
+        speaker: 'Nadia',
+        text: 'He was going to ruin my life! After everything I gave to this project! Yes... I did it! I poisoned the tea, took the lantern, and triggered the blackout! And I would do it again!',
+        setFlag: 'killer_identified',
+        triggerEvent: 'trigger_ending'
+      },
       'leave': { id: 'leave', speaker: 'Ren', text: 'I\'ll talk to you later.', triggerEvent: 'end_dialogue' }
     }
   },

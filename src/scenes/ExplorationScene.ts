@@ -48,6 +48,17 @@ export class ExplorationScene extends Phaser.Scene {
     if (!room) { this.scene.start('TitleScene'); return; }
     gameState.setCurrentRoom(this.roomId);
 
+    // Ensure all 5 detective gadgets are unlocked so the player can immediately investigate
+    const detectiveGadgets = ['tranquility_focus', 'echo_lens', 'trace_light', 'micro_rover', 'voice_prism'];
+    detectiveGadgets.forEach(g => gameState.unlockGadget(g));
+    EventBus.emit('gadget-unlocked', null);
+
+    // Ensure phase is at least investigation_1 so clues and objectives match
+    const curP = gameState.getPhase();
+    if (!curP || ['cold_open', 'opening_title', 'arrival', 'announcement', 'blackout', 'discovery'].includes(curP)) {
+      gameState.setPhase('investigation_1');
+    }
+
     const rw = (room.width || 40) * TILE;
     const rh = (room.height || 22) * TILE;
 
@@ -280,6 +291,11 @@ export class ExplorationScene extends Phaser.Scene {
       this.input.keyboard.on('keydown-THREE', () => this.useGadget('trace_light'));
       this.input.keyboard.on('keydown-FOUR', () => this.useGadget('micro_rover'));
       this.input.keyboard.on('keydown-FIVE', () => this.useGadget('voice_prism'));
+      this.input.keyboard.on('keydown-NUMPAD_ONE', () => this.useGadget('tranquility_focus'));
+      this.input.keyboard.on('keydown-NUMPAD_TWO', () => this.useGadget('echo_lens'));
+      this.input.keyboard.on('keydown-NUMPAD_THREE', () => this.useGadget('trace_light'));
+      this.input.keyboard.on('keydown-NUMPAD_FOUR', () => this.useGadget('micro_rover'));
+      this.input.keyboard.on('keydown-NUMPAD_FIVE', () => this.useGadget('voice_prism'));
     }
 
     // Touch
@@ -452,7 +468,15 @@ export class ExplorationScene extends Phaser.Scene {
 
   private interact(obj: any) {
     if (obj.gadgetRequired && obj.gadgetRequired !== 'none' && this.activeGadget !== obj.gadgetRequired) {
-      this.showMsg(`Requires: ${obj.gadgetRequired.replace('_',' ')}`); return;
+      const gMap: Record<string, string> = {
+        tranquility_focus: 'Tranquility Focus [1]',
+        echo_lens: 'Echo Lens [2]',
+        trace_light: 'Trace Light [3]',
+        micro_rover: 'Micro Rover [4]',
+        voice_prism: 'Voice Prism [5]'
+      };
+      this.showMsg(`Requires: ${gMap[obj.gadgetRequired] || obj.gadgetRequired.replace('_', ' ')}`);
+      return;
     }
     if (obj.evidenceId && !gameState.hasEvidence(obj.evidenceId)) {
       gameState.collectEvidence(obj.evidenceId);
@@ -503,31 +527,52 @@ export class ExplorationScene extends Phaser.Scene {
     w2.lineStyle(2,0xc4a44a);
     for(let x=0;x<200;x++){const y=Math.sin(x*0.12+Math.sin(x*0.03)*2)*15*Math.exp(-x*0.008);if(x===0)w2.moveTo(120+x,200+y);else w2.lineTo(120+x,200+y);}
     els.push(this.add.text(320,240,'The 13th chime has a different resonance.\nIt matches the pendulum room mechanism.',{fontSize:'8px',color:'#a0b0c0',fontFamily:'Courier New',align:'center',wordWrap:{width:400}}).setOrigin(0.5).setDepth(601).setScrollFactor(0));
-    const btn = this.add.text(320,290,'[ RECORD FINDING ]',{fontSize:'10px',color:'#4ac47a',fontFamily:'Courier New',backgroundColor:'#1a2a1a',padding:{x:10,y:4}}).setOrigin(0.5).setDepth(601).setScrollFactor(0).setInteractive(); els.push(btn);
+    const btn = this.add.text(260, 290, '[ RECORD FINDING ]', { fontSize: '10px', color: '#4ac47a', fontFamily: 'Courier New', backgroundColor: '#1a2a1a', padding: { x: 10, y: 4 } }).setOrigin(0.5).setDepth(601).setScrollFactor(0).setInteractive({ useHandCursor: true }); els.push(btn);
     btn.on('pointerdown', () => {
-      if(!gameState.hasEvidence('thirteenth_chime_resonance')) { gameState.collectEvidence('thirteenth_chime_resonance'); this.showDiscovery('Thirteenth Chime Resonance','The 13th chime matches the pendulum room — and Project Echo\'s calibration frequency.'); }
-      els.forEach(e=>e.destroy()); this.inDialogue=false; this.activeGadget=null; this.gadgetOverlay?.destroy(); this.gadgetOverlay=null; this.save();
+      if (!gameState.hasEvidence('thirteenth_chime_resonance')) {
+        gameState.collectEvidence('thirteenth_chime_resonance');
+        this.showDiscovery('Thirteenth Chime Resonance', 'The 13th chime matches the pendulum room — and Project Echo\'s calibration frequency.');
+      }
+      els.forEach(e => e.destroy()); this.inDialogue = false; this.activeGadget = null; this.gadgetOverlay?.destroy(); this.gadgetOverlay = null; EventBus.emit('gadget-changed', null); this.save();
+    });
+
+    const closeBtn = this.add.text(380, 290, '[ CLOSE ]', { fontSize: '10px', color: '#8899aa', fontFamily: 'Courier New', backgroundColor: '#181b28', padding: { x: 10, y: 4 } }).setOrigin(0.5).setDepth(601).setScrollFactor(0).setInteractive({ useHandCursor: true }); els.push(closeBtn);
+    closeBtn.on('pointerdown', () => {
+      els.forEach(e => e.destroy()); this.inDialogue = false; this.activeGadget = null; this.gadgetOverlay?.destroy(); this.gadgetOverlay = null; EventBus.emit('gadget-changed', null);
     });
   }
 
   private microRoverMini() {
     this.inDialogue = true;
     const els: Phaser.GameObjects.GameObject[] = [];
-    els.push(this.add.rectangle(320,180,400,250,0x0a0a12,0.95).setDepth(600).setScrollFactor(0));
-    els.push(this.add.text(320,75,'🤖 MICRO ROVER',{fontSize:'10px',color:'#c4a44a',fontFamily:'Courier New'}).setOrigin(0.5).setDepth(601).setScrollFactor(0));
-    const maze=this.add.graphics().setDepth(601).setScrollFactor(0); els.push(maze);
-    maze.fillStyle(0x2a2a3a); maze.fillRect(160,100,320,140);
-    maze.lineStyle(2,0x4a4a5a); maze.strokeRect(160,100,320,140);
-    maze.moveTo(220,100);maze.lineTo(220,180); maze.moveTo(280,160);maze.lineTo(280,240); maze.moveTo(340,100);maze.lineTo(340,200); maze.stroke();
-    const rover=this.add.rectangle(180,120,8,8,0x4ac47a).setDepth(602).setScrollFactor(0); els.push(rover);
-    const goal=this.add.rectangle(460,220,12,12,0xc4a44a,0.7).setDepth(601).setScrollFactor(0).setInteractive(); els.push(goal);
-    this.tweens.add({targets:goal,alpha:0.3,yoyo:true,repeat:-1,duration:500});
-    els.push(this.add.text(320,250,'Click the door!',{fontSize:'8px',color:'#8a9aaa',fontFamily:'Courier New'}).setOrigin(0.5).setDepth(601).setScrollFactor(0));
+    els.push(this.add.rectangle(320, 180, 400, 250, 0x0a0a12, 0.95).setDepth(600).setScrollFactor(0));
+    els.push(this.add.text(320, 75, '🤖 MICRO ROVER', { fontSize: '10px', color: '#c4a44a', fontFamily: 'Courier New' }).setOrigin(0.5).setDepth(601).setScrollFactor(0));
+    const maze = this.add.graphics().setDepth(601).setScrollFactor(0); els.push(maze);
+    maze.fillStyle(0x2a2a3a); maze.fillRect(160, 100, 320, 140);
+    maze.lineStyle(2, 0x4a4a5a); maze.strokeRect(160, 100, 320, 140);
+    maze.moveTo(220, 100); maze.lineTo(220, 180); maze.moveTo(280, 160); maze.lineTo(280, 240); maze.moveTo(340, 100); maze.lineTo(340, 200); maze.stroke();
+    const rover = this.add.rectangle(180, 120, 8, 8, 0x4ac47a).setDepth(602).setScrollFactor(0); els.push(rover);
+    const goal = this.add.rectangle(460, 220, 12, 12, 0xc4a44a, 0.7).setDepth(601).setScrollFactor(0).setInteractive({ useHandCursor: true }); els.push(goal);
+    this.tweens.add({ targets: goal, alpha: 0.3, yoyo: true, repeat: -1, duration: 500 });
+    els.push(this.add.text(320, 250, 'Click the secret door on the right to navigate the drone!', { fontSize: '8px', color: '#8a9aaa', fontFamily: 'Courier New' }).setOrigin(0.5).setDepth(601).setScrollFactor(0));
+
+    const closeBtn = this.add.text(320, 280, '[ CLOSE ]', { fontSize: '9px', color: '#8899aa', fontFamily: 'Courier New', backgroundColor: '#181b28', padding: { x: 8, y: 3 } }).setOrigin(0.5).setDepth(601).setScrollFactor(0).setInteractive({ useHandCursor: true }); els.push(closeBtn);
+    closeBtn.on('pointerdown', () => {
+      els.forEach(e => e.destroy()); this.inDialogue = false; this.activeGadget = null; this.gadgetOverlay?.destroy(); this.gadgetOverlay = null; EventBus.emit('gadget-changed', null);
+    });
+
     goal.on('pointerdown', () => {
-      this.tweens.chain({targets:rover, tweens:[{x:230,duration:400},{y:190,duration:300},{x:350,y:210,duration:400},{x:460,y:220,duration:500}],
-        onComplete:()=>{
-          if(!gameState.hasEvidence('connecting_door')){gameState.collectEvidence('connecting_door');this.showDiscovery('Hidden Connecting Door','A hidden door between the clockwork gallery and exhibition chamber!');}
-          this.time.delayedCall(1500,()=>{els.forEach(e=>e.destroy());this.inDialogue=false;this.activeGadget=null;this.gadgetOverlay?.destroy();this.gadgetOverlay=null;this.save();});
+      this.tweens.chain({
+        targets: rover,
+        tweens: [{ x: 230, duration: 400 }, { y: 190, duration: 300 }, { x: 350, y: 210, duration: 400 }, { x: 460, y: 220, duration: 500 }],
+        onComplete: () => {
+          if (!gameState.hasEvidence('connecting_door')) {
+            gameState.collectEvidence('connecting_door');
+            this.showDiscovery('Hidden Connecting Door', 'A hidden door between the clockwork gallery and exhibition chamber!');
+          }
+          this.time.delayedCall(1200, () => {
+            els.forEach(e => e.destroy()); this.inDialogue = false; this.activeGadget = null; this.gadgetOverlay?.destroy(); this.gadgetOverlay = null; EventBus.emit('gadget-changed', null); this.save();
+          });
         }
       });
     });
@@ -536,19 +581,36 @@ export class ExplorationScene extends Phaser.Scene {
   private voicePrismMini() {
     this.inDialogue = true;
     const els: Phaser.GameObjects.GameObject[] = [];
-    els.push(this.add.rectangle(320,180,500,280,0x0a0a12,0.95).setDepth(600).setScrollFactor(0));
-    els.push(this.add.text(320,55,'🔊 VOICE PRISM',{fontSize:'10px',color:'#c4a44a',fontFamily:'Courier New'}).setOrigin(0.5).setDepth(601).setScrollFactor(0));
-    const b1=this.add.graphics().setDepth(601).setScrollFactor(0); els.push(b1);
-    els.push(this.add.text(120,75,'Announcement Recording:',{fontSize:'8px',color:'#4a8a9a',fontFamily:'Courier New'}).setDepth(601).setScrollFactor(0));
-    for(let i=0;i<40;i++){const h=Math.abs(Math.sin(i*0.3))*20+3;b1.fillStyle(0x4a8a9a);b1.fillRect(120+i*8,110-h,6,h*2);}
-    b1.fillStyle(0xc44a4a,0.8);b1.fillRect(120+22*8,85,2,50);
-    els.push(this.add.text(120+22*8,82,'← SPLICE',{fontSize:'7px',color:'#c44a4a',fontFamily:'Courier New'}).setDepth(601).setScrollFactor(0));
-    els.push(this.add.text(320,210,'Whispered "I\'m sorry" matches Nadia Thorn\nwith 94% confidence.',{fontSize:'8px',color:'#e0e8f0',fontFamily:'Courier New',align:'center',wordWrap:{width:400}}).setOrigin(0.5).setDepth(601).setScrollFactor(0));
-    const btn=this.add.text(320,280,'[ RECORD FINDINGS ]',{fontSize:'10px',color:'#c4a44a',fontFamily:'Courier New',backgroundColor:'#2a2a1a',padding:{x:10,y:4}}).setOrigin(0.5).setDepth(601).setScrollFactor(0).setInteractive(); els.push(btn);
-    btn.on('pointerdown',()=>{
-      if(!gameState.hasEvidence('spliced_recording')){gameState.collectEvidence('spliced_recording');this.showDiscovery('Spliced Recording','The announcement was assembled from earlier recordings.');}
-      if(!gameState.hasEvidence('petra_recorder')&&gameState.hasEvidence('connecting_door')){gameState.collectEvidence('petra_recorder');this.showDiscovery('Voice Match','Whispered voice matches Nadia Thorn.');}
-      els.forEach(e=>e.destroy());this.inDialogue=false;this.activeGadget=null;this.gadgetOverlay?.destroy();this.gadgetOverlay=null;this.save();
+    els.push(this.add.rectangle(320, 180, 500, 280, 0x0a0a12, 0.95).setDepth(600).setScrollFactor(0));
+    els.push(this.add.text(320, 55, '🔊 VOICE PRISM', { fontSize: '10px', color: '#c4a44a', fontFamily: 'Courier New' }).setOrigin(0.5).setDepth(601).setScrollFactor(0));
+    const b1 = this.add.graphics().setDepth(601).setScrollFactor(0); els.push(b1);
+    els.push(this.add.text(120, 75, 'Announcement Recording:', { fontSize: '8px', color: '#4a8a9a', fontFamily: 'Courier New' }).setDepth(601).setScrollFactor(0));
+    for (let i = 0; i < 40; i++) {
+      const h = Math.abs(Math.sin(i * 0.3)) * 20 + 3;
+      b1.fillStyle(0x4a8a9a);
+      b1.fillRect(120 + i * 8, 110 - h, 6, h * 2);
+    }
+    b1.fillStyle(0xc44a4a, 0.8);
+    b1.fillRect(120 + 22 * 8, 85, 2, 50);
+    els.push(this.add.text(120 + 22 * 8, 82, '← SPLICE', { fontSize: '7px', color: '#c44a4a', fontFamily: 'Courier New' }).setDepth(601).setScrollFactor(0));
+    els.push(this.add.text(320, 210, 'Whispered "I\'m sorry" matches Nadia Thorn\nwith 94% confidence.', { fontSize: '8px', color: '#e0e8f0', fontFamily: 'Courier New', align: 'center', wordWrap: { width: 400 } }).setOrigin(0.5).setDepth(601).setScrollFactor(0));
+
+    const btn = this.add.text(260, 280, '[ RECORD FINDINGS ]', { fontSize: '10px', color: '#c4a44a', fontFamily: 'Courier New', backgroundColor: '#2a2a1a', padding: { x: 10, y: 4 } }).setOrigin(0.5).setDepth(601).setScrollFactor(0).setInteractive({ useHandCursor: true }); els.push(btn);
+    btn.on('pointerdown', () => {
+      if (!gameState.hasEvidence('spliced_recording')) {
+        gameState.collectEvidence('spliced_recording');
+        this.showDiscovery('Spliced Recording', 'The announcement was assembled from earlier recordings.');
+      }
+      if (!gameState.hasEvidence('petra_recorder') && gameState.hasEvidence('connecting_door')) {
+        gameState.collectEvidence('petra_recorder');
+        this.showDiscovery('Voice Match', 'Whispered voice matches Nadia Thorn.');
+      }
+      els.forEach(e => e.destroy()); this.inDialogue = false; this.activeGadget = null; this.gadgetOverlay?.destroy(); this.gadgetOverlay = null; EventBus.emit('gadget-changed', null); this.save();
+    });
+
+    const closeBtn = this.add.text(380, 280, '[ CLOSE ]', { fontSize: '10px', color: '#8899aa', fontFamily: 'Courier New', backgroundColor: '#181b28', padding: { x: 10, y: 4 } }).setOrigin(0.5).setDepth(601).setScrollFactor(0).setInteractive({ useHandCursor: true }); els.push(closeBtn);
+    closeBtn.on('pointerdown', () => {
+      els.forEach(e => e.destroy()); this.inDialogue = false; this.activeGadget = null; this.gadgetOverlay?.destroy(); this.gadgetOverlay = null; EventBus.emit('gadget-changed', null);
     });
   }
 
@@ -556,25 +618,31 @@ export class ExplorationScene extends Phaser.Scene {
     const room = rooms[this.roomId];
     if (!room?.interactables) return;
     for (const obj of room.interactables) {
-      if (obj.gadgetRequired==='trace_light' && obj.evidenceId && !gameState.hasEvidence(obj.evidenceId)) {
-        const ox = obj.x * TILE;
-        const oy = obj.y * TILE;
-        const ow = (obj.width || 2) * TILE;
-        const oh = (obj.height || 1) * TILE;
-        const z = this.add.zone(ox, oy, ow + 8, oh + 8);
-        this.physics.add.existing(z, true);
-        const mk = this.add.graphics();
-        mk.fillStyle(0x9a4aaa, 0.9);
-        mk.fillRect(-3, -3, 6, 6);
-        mk.setPosition(ox, oy - 16).setDepth(150);
-        this.tweens.add({targets: mk, y: oy - 20, yoyo: true, repeat: -1, duration: 600});
-        const lb = this.add.text(ox, oy + 12, obj.name, {
-          fontSize: '8px', color: '#aa7acc', fontFamily: 'Courier New', backgroundColor: '#090d18ee', padding: { x: 5, y: 2 }
-        }).setOrigin(0.5).setDepth(150).setVisible(false);
-        this.interactableObjects.push({zone: z, data: obj, marker: mk, label: lb});
+      if (obj.gadgetRequired === 'trace_light' && obj.evidenceId && !gameState.hasEvidence(obj.evidenceId)) {
+        const existing = this.interactableObjects.find(io => io.data.id === obj.id);
+        if (existing) {
+          existing.label.setColor('#d896ff');
+          existing.label.setText(`🔦 ${obj.name}`);
+        } else {
+          const ox = obj.x * TILE;
+          const oy = obj.y * TILE;
+          const ow = (obj.width || 2) * TILE;
+          const oh = (obj.height || 1) * TILE;
+          const z = this.add.zone(ox, oy, ow + 8, oh + 8);
+          this.physics.add.existing(z, true);
+          const mk = this.add.graphics();
+          mk.fillStyle(0x9a4aaa, 0.9);
+          mk.fillRect(-3, -3, 6, 6);
+          mk.setPosition(ox, oy - 16).setDepth(150);
+          this.tweens.add({ targets: mk, y: oy - 20, yoyo: true, repeat: -1, duration: 600 });
+          const lb = this.add.text(ox, oy + 12, `🔦 ${obj.name}`, {
+            fontSize: '8px', color: '#d896ff', fontFamily: 'Courier New', backgroundColor: '#090d18ee', padding: { x: 5, y: 2 }
+          }).setOrigin(0.5).setDepth(150).setVisible(false);
+          this.interactableObjects.push({ zone: z, data: obj, marker: mk, label: lb });
+        }
       }
     }
-    this.showMsg('🔦 Trace Light: hidden traces revealed.');
+    this.showMsg('🔦 Trace Light: chemical residues & latent marks revealed.');
   }
 
   private goToRoom(target: string, fromDir: string) {

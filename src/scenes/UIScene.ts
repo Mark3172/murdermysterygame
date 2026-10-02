@@ -47,8 +47,22 @@ export class UIScene extends Phaser.Scene {
         this.input.keyboard?.on('keydown-H', () => this.showHint());
         this.input.keyboard?.on('keydown-ESC', () => this.togglePause());
 
+        // Quick gadget keys 1-5
+        const gadgetSlots: Record<string, string> = {
+            'ONE': 'tranquility_focus', 'NUMPAD_ONE': 'tranquility_focus',
+            'TWO': 'echo_lens', 'NUMPAD_TWO': 'echo_lens',
+            'THREE': 'trace_light', 'NUMPAD_THREE': 'trace_light',
+            'FOUR': 'micro_rover', 'NUMPAD_FOUR': 'micro_rover',
+            'FIVE': 'voice_prism', 'NUMPAD_FIVE': 'voice_prism'
+        };
+        Object.entries(gadgetSlots).forEach(([k, gId]) => {
+            this.input.keyboard?.on(`keydown-${k}`, () => {
+                EventBus.emit('gadget-selected', gId);
+            });
+        });
+
         // Gadget Text badge
-        this.gadgetText = this.add.text(16, 346, '🔧 Gadget: None [Press 1-5]', { 
+        this.gadgetText = this.add.text(16, 346, '🔧 Gadgets [1-5]: Click or press 1-5', { 
             fontSize: '10px', 
             color: '#8899aa', 
             backgroundColor: '#0a0e1cee',
@@ -115,6 +129,8 @@ export class UIScene extends Phaser.Scene {
     private currentGadget: string | null = null;
 
     cycleGadgets() {
+        const defaultGadgets = ['tranquility_focus', 'echo_lens', 'trace_light', 'micro_rover', 'voice_prism'];
+        defaultGadgets.forEach(g => gameState.unlockGadget(g));
         const unlocked = gameState.getUnlockedGadgets();
         if (unlocked.length === 0) return;
         
@@ -129,13 +145,21 @@ export class UIScene extends Phaser.Scene {
 
     updateGadgetText() {
         const gadgetId = this.currentGadget;
+        const btnGadgets = document.getElementById('btn-gadgets');
+        const gadgetSlotNums: Record<string, number> = {
+            tranquility_focus: 1, echo_lens: 2, trace_light: 3, micro_rover: 4, voice_prism: 5
+        };
         if (gadgetId) {
             const gadget = (gadgets as any)[gadgetId];
-            this.gadgetText.setText(`🔧 Active: ${gadget ? gadget.name : gadgetId} [Press 1-5 to switch]`);
+            const name = gadget ? gadget.name : gadgetId.replace(/_/g, ' ');
+            const slot = gadgetSlotNums[gadgetId] || 1;
+            this.gadgetText.setText(`🔧 Active: [${slot}] ${name} [Click / 1-5 to switch]`);
             this.gadgetText.setColor('#4ac47a');
+            if (btnGadgets) btnGadgets.innerText = `🔧 [${slot}] ${name}`;
         } else {
-            this.gadgetText.setText('🔧 Gadget: None [Press 1-5 to equip]');
-            this.gadgetText.setColor('#8899aa');
+            this.gadgetText.setText('🔧 Gadgets: None equipped [Click / 1-5 to equip]');
+            this.gadgetText.setColor('#ffea70');
+            if (btnGadgets) btnGadgets.innerText = 'Gadgets [1-5]';
         }
     }
 

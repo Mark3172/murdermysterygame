@@ -411,9 +411,10 @@ export class DialogueScene extends Scene {
         this.scene.start('CutsceneScene', { cutsceneId: 'ending' });
         return;
       } else if (event === 'start_investigation') {
-        const allGadgets = ['uv_light', 'emf_meter', 'camera', 'recorder'];
+        const allGadgets = ['tranquility_focus', 'echo_lens', 'trace_light', 'micro_rover', 'voice_prism'];
         allGadgets.forEach(g => gameState.unlockGadget(g));
         gameState.setPhase('investigation_1');
+        EventBus.emit('gadget-unlocked', null);
       }
     }
 

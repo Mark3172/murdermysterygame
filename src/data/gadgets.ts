@@ -10,6 +10,20 @@ export interface GadgetData {
 }
 
 export const gadgets: Record<string, GadgetData> = {
+  tranquility_focus: {
+    id: 'tranquility_focus',
+    name: 'Tranquility Focus',
+    icon: '🧠',
+    description: 'Enters a state of deep detective concentration to survey the area, highlight interactive points, and organize thoughts.',
+    tutorialDialogue: [
+      "Take a deep breath and focus, Ren.",
+      "In this state of tranquility, subtle environmental clues become clear.",
+      "Use this to review your case progress and steady your mind."
+    ],
+    usableIn: ['main_hall', 'exhibition_chamber', 'clockwork_gallery', 'library', 'pendulum_room', 'observation_deck'],
+    revealedEvidence: [],
+    limitations: 'Highlights general points of interest rather than hidden microscopic traces.'
+  },
   voice_prism: {
     id: 'voice_prism',
     name: 'Voice Prism',
