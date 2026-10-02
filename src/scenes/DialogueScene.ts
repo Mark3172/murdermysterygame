@@ -39,6 +39,19 @@ export class DialogueScene extends Scene {
 
     this.setupDOM();
 
+    this.events.once('shutdown', () => {
+      if (this.container) {
+        this.container.onclick = null;
+      }
+      if (this.continueEl) {
+        this.continueEl.onclick = null;
+      }
+      if (this.typewriterTimer !== null) {
+        window.clearInterval(this.typewriterTimer);
+        this.typewriterTimer = null;
+      }
+    });
+
     this.input.keyboard?.on('keydown-SPACE', this.handleAdvance, this);
     this.input.keyboard?.on('keydown-E', this.handleAdvance, this);
     this.input.on('pointerdown', this.handleAdvance, this);
@@ -125,6 +138,22 @@ export class DialogueScene extends Scene {
       this.continueEl.style.color = '#aaa';
       this.container.appendChild(this.continueEl);
     }
+
+    // Enable mouse click to advance dialogue or complete typewriter text immediately
+    this.container.onclick = (e: MouseEvent) => {
+      if ((e.target as HTMLElement)?.closest('.dialogue-choice')) {
+        return;
+      }
+      this.handleAdvance();
+    };
+
+    if (this.continueEl) {
+      this.continueEl.onclick = (e: MouseEvent) => {
+        e.stopPropagation();
+        this.handleAdvance();
+      };
+      this.continueEl.style.cursor = 'pointer';
+    }
   }
 
   private showFallbackMessage() {
@@ -135,7 +164,7 @@ export class DialogueScene extends Scene {
     this.startTypewriter("I don't have anything to say right now.");
     this.choicesEl.innerHTML = '';
     this.continueEl.style.display = 'block';
-    this.continueEl.textContent = 'Click to continue';
+    this.continueEl.textContent = '▼ Click to continue (or press [E] / [Space])';
   }
 
   private displayNode(node: DialogueNode) {
@@ -280,7 +309,8 @@ export class DialogueScene extends Scene {
 
     if (!hasChoices) {
       this.continueEl.style.display = 'block';
-      this.continueEl.textContent = 'Click to continue';
+      this.continueEl.textContent = '▼ Click to continue (or press [E] / [Space])';
+      this.continueEl.style.cursor = 'pointer';
     }
   }
 
@@ -290,31 +320,51 @@ export class DialogueScene extends Scene {
       const btn = document.createElement('div');
       btn.className = `dialogue-choice ${index === this.selectedChoiceIndex ? 'selected' : ''}`;
       btn.textContent = `[${index + 1}] ${choice.text}`;
+      btn.style.cursor = 'pointer';
+      btn.setAttribute('role', 'button');
+      btn.setAttribute('tabindex', '0');
       
       btn.onmouseenter = () => {
         this.selectedChoiceIndex = index;
-        this.renderChoices();
+        this.updateChoiceSelection();
       };
       
-      btn.onclick = () => {
+      btn.onclick = (e: MouseEvent) => {
+        e.stopPropagation();
+        e.preventDefault();
         this.makeChoice(index);
+      };
+
+      btn.onpointerdown = (e: PointerEvent) => {
+        e.stopPropagation();
       };
       
       this.choicesEl.appendChild(btn);
     });
   }
 
+  private updateChoiceSelection() {
+    const choiceEls = this.choicesEl.querySelectorAll('.dialogue-choice');
+    choiceEls.forEach((el, idx) => {
+      if (idx === this.selectedChoiceIndex) {
+        el.classList.add('selected');
+      } else {
+        el.classList.remove('selected');
+      }
+    });
+  }
+
   private handleChoiceUp() {
     if (!this.isTyping && this.currentChoices.length > 0) {
       this.selectedChoiceIndex = (this.selectedChoiceIndex - 1 + this.currentChoices.length) % this.currentChoices.length;
-      this.renderChoices();
+      this.updateChoiceSelection();
     }
   }
 
   private handleChoiceDown() {
     if (!this.isTyping && this.currentChoices.length > 0) {
       this.selectedChoiceIndex = (this.selectedChoiceIndex + 1) % this.currentChoices.length;
-      this.renderChoices();
+      this.updateChoiceSelection();
     }
   }
 

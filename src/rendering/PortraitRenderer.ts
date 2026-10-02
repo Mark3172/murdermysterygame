@@ -132,6 +132,11 @@ export class PortraitRenderer {
       // Brass buckle
       ctx.fillStyle = '#d4af37';
       ctx.fillRect(30, 50, 4, 3);
+      // Double-breasted brass buttons
+      ctx.fillRect(20, 50, 2, 2);
+      ctx.fillRect(20, 55, 2, 2);
+      ctx.fillRect(40, 50, 2, 2);
+      ctx.fillRect(40, 55, 2, 2);
     } else if (accessory === 'camera_strap') {
       ctx.strokeStyle = '#2b1d0c';
       ctx.lineWidth = 3;
@@ -280,28 +285,92 @@ export class PortraitRenderer {
     ctx.fillRect(24, 10, 16, 3);
 
     if (accessory === 'bandolier_streak') {
-      // Ren's sleek detective swept bangs with silver rogue streak
+      // Side hair tufts
       ctx.fillStyle = hair;
-      ctx.beginPath();
-      ctx.moveTo(26, 8);
-      ctx.lineTo(22, 14);
-      ctx.lineTo(28, 14);
-      ctx.closePath();
-      ctx.fill();
-      ctx.fillRect(22, 12, 6, 7);
-      ctx.fillRect(33, 13, 6, 6);
+      ctx.fillRect(18, 20, 4, 10);
+      ctx.fillRect(42, 20, 4, 10);
 
-      // Signature Silver-Blue Rogue Streak
-      ctx.fillStyle = '#c0d0e2';
+      // Signature Silver-Blue Rogue Streak peeking from under hat brim over left eye
+      ctx.fillStyle = '#c4d8ec';
       ctx.beginPath();
-      ctx.moveTo(26, 8);
-      ctx.lineTo(23, 17);
-      ctx.lineTo(26, 17);
-      ctx.lineTo(28, 9);
+      ctx.moveTo(27, 18);
+      ctx.lineTo(23, 27);
+      ctx.lineTo(26, 27);
+      ctx.lineTo(29, 19);
       ctx.closePath();
       ctx.fill();
-      ctx.fillStyle = '#8294aa';
-      ctx.fillRect(23, 17, 3, 2);
+      ctx.fillStyle = '#8498b2';
+      ctx.fillRect(23, 26, 3, 2);
+
+      // ─── CLASSIC NOIR DETECTIVE FEDORA HAT ───
+      // Crown with pinched top crease
+      ctx.fillStyle = '#182236';
+      ctx.beginPath();
+      ctx.moveTo(20, 18);
+      ctx.lineTo(22, 6);
+      ctx.quadraticCurveTo(27, 4, 30, 7); // left crown pinch
+      ctx.quadraticCurveTo(32, 9, 34, 7); // center indent
+      ctx.quadraticCurveTo(37, 4, 42, 6); // right crown pinch
+      ctx.lineTo(44, 18);
+      ctx.closePath();
+      ctx.fill();
+
+      // Crown crease shading
+      ctx.fillStyle = '#0c121e';
+      ctx.beginPath();
+      ctx.moveTo(31, 7);
+      ctx.lineTo(33, 7);
+      ctx.lineTo(33, 15);
+      ctx.lineTo(31, 15);
+      ctx.closePath();
+      ctx.fill();
+
+      // Crown highlight
+      ctx.strokeStyle = '#2c3c5c';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(23, 7);
+      ctx.lineTo(28, 5);
+      ctx.stroke();
+
+      // Crimson Silk Hatband
+      ctx.fillStyle = '#8e1a28';
+      ctx.fillRect(21, 14, 22, 4);
+
+      // Golden Clasp / Buckle on Hatband
+      ctx.fillStyle = '#d4af37';
+      ctx.fillRect(25, 14, 4, 4);
+      ctx.fillStyle = '#ffe066';
+      ctx.fillRect(26, 15, 2, 2);
+
+      // Wide Fedora Brim (angled with slight noir tilt)
+      ctx.fillStyle = '#182236';
+      ctx.beginPath();
+      ctx.moveTo(10, 19);
+      ctx.quadraticCurveTo(32, 16, 54, 18);
+      ctx.quadraticCurveTo(56, 21, 52, 22);
+      ctx.quadraticCurveTo(32, 20, 12, 23);
+      ctx.quadraticCurveTo(8, 21, 10, 19);
+      ctx.closePath();
+      ctx.fill();
+
+      // Brim edge highlight
+      ctx.strokeStyle = '#2c3c5c';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(10, 19);
+      ctx.quadraticCurveTo(32, 16, 54, 18);
+      ctx.stroke();
+
+      // Under-brim atmospheric shadow over eyes
+      ctx.fillStyle = 'rgba(12, 18, 30, 0.45)';
+      ctx.beginPath();
+      ctx.moveTo(12, 23);
+      ctx.quadraticCurveTo(32, 20, 52, 22);
+      ctx.lineTo(52, 25);
+      ctx.quadraticCurveTo(32, 23, 12, 26);
+      ctx.closePath();
+      ctx.fill();
     } else if (accessory === 'cowlick') {
       // Ren's detective fringe and cowlick
       ctx.fillStyle = hair;

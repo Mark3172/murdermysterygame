@@ -113,29 +113,48 @@
       color: #c8deec;
       padding: 8px 12px;
       cursor: pointer;
+      pointer-events: auto;
+      user-select: none;
       font-family: 'Courier New', monospace;
       font-size: 13px;
       border-radius: 4px;
-      transition: all 0.15s;
+      transition: all 0.15s ease;
     }
     .dialogue-choice:hover, .dialogue-choice.selected {
       background: rgba(74, 138, 154, 0.45);
       border-color: #d4af37;
       color: #fff;
       transform: translateX(4px);
+      box-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
+    }
+    .dialogue-choice:active {
+      background: rgba(212, 175, 55, 0.35);
+      border-color: #ffe066;
+      transform: translateX(2px) scale(0.99);
     }
     #dialogue-continue {
       display: none;
       margin-top: 8px;
       text-align: right;
       color: #7ac4d4;
-      font-size: 11px;
+      font-size: 12px;
+      font-weight: bold;
       cursor: pointer;
+      pointer-events: auto;
+      user-select: none;
       animation: blink 1.2s infinite;
+      transition: color 0.15s, text-shadow 0.15s;
+    }
+    #dialogue-continue:hover {
+      color: #ffd700;
+      text-decoration: underline;
+      text-shadow: 0 0 8px rgba(255, 215, 0, 0.8);
+      animation: none;
+      opacity: 1;
     }
     @keyframes blink {
       0%, 100% { opacity: 1; }
-      50% { opacity: 0.3; }
+      50% { opacity: 0.35; }
     }
     /* Notebook overlay */
     #notebook-overlay {
