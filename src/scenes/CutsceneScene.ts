@@ -17,6 +17,8 @@ export class CutsceneScene extends Scene {
   private uiContainer!: Phaser.GameObjects.Container;
   private panelCounterText!: Phaser.GameObjects.Text;
   private returnTo: string | null = null;
+  private currentTypewriterTextObj: Phaser.GameObjects.Text | null = null;
+  private currentFullText: string = '';
   
   constructor() {
     super('CutsceneScene');
@@ -62,12 +64,14 @@ export class CutsceneScene extends Scene {
     
     this.uiContainer.add(skipButton);
 
-    // Panel counter
-    this.panelCounterText = this.add.text(width - 15, height - 12, '', {
+    // Panel counter positioned neatly in the top right beside the Skip button
+    this.panelCounterText = this.add.text(width - 115, 15, '', {
         fontFamily: 'Courier New, monospace',
-        fontSize: '10px',
-        color: '#667788'
-    }).setOrigin(1, 1);
+        fontSize: '11px',
+        color: '#7f93aa',
+        backgroundColor: '#0c101c',
+        padding: { x: 6, y: 3 }
+    }).setOrigin(1, 0);
     this.uiContainer.add(this.panelCounterText);
 
     // Inputs
@@ -89,7 +93,7 @@ export class CutsceneScene extends Scene {
     this.isTransitioning = true;
     const panel = this.cutsceneData.panels[this.currentPanelIndex];
     
-    this.panelCounterText.setText(`${this.currentPanelIndex + 1}/${this.cutsceneData.panels.length}`);
+    this.panelCounterText.setText(`[ ${this.currentPanelIndex + 1} / ${this.cutsceneData.panels.length} ]`);
     
     // Clear previous panel
     this.panelContainer.removeAll(true);
@@ -98,6 +102,8 @@ export class CutsceneScene extends Scene {
         this.typeWriterTimer.destroy();
         this.typeWriterTimer = undefined;
     }
+    this.currentTypewriterTextObj = null;
+    this.currentFullText = '';
     if (this.autoAdvanceTimer) {
         this.autoAdvanceTimer.destroy();
         this.autoAdvanceTimer = undefined;
@@ -216,12 +222,12 @@ export class CutsceneScene extends Scene {
         this.panelContainer.add(speakerTxt);
 
         // Dialogue text
-        const dialogTxt = this.add.text(98, boxY + 34, '', {
+        const dialogTxt = this.add.text(98, boxY + 32, '', {
             fontFamily: 'Georgia, serif',
-            fontSize: '13px',
+            fontSize: '12px',
             color: panel.textColor || '#edf2f8',
-            lineSpacing: 5,
-            wordWrap: { width: width - 145 }
+            lineSpacing: 4,
+            wordWrap: { width: width - 155 }
         }).setOrigin(0, 0);
         this.panelContainer.add(dialogTxt);
         this.typewriterEffect(dialogTxt, panel.dialogue || '');
@@ -231,7 +237,9 @@ export class CutsceneScene extends Scene {
             fontFamily: 'Courier New, monospace',
             fontSize: '9px',
             color: '#7ac4d4',
-            fontStyle: 'bold'
+            fontStyle: 'bold',
+            backgroundColor: '#0d1424',
+            padding: { x: 5, y: 2 }
         }).setOrigin(1, 0.5);
         this.panelContainer.add(prompt);
     } else if (panel.type === 'transition') {
@@ -312,9 +320,11 @@ export class CutsceneScene extends Scene {
   }
   
   private typewriterEffect(textObj: Phaser.GameObjects.Text, fullText: string) {
+    this.currentTypewriterTextObj = textObj;
+    this.currentFullText = fullText;
     let charIndex = 0;
     this.typeWriterTimer = this.time.addEvent({
-        delay: 30,
+        delay: 25,
         callback: () => {
             charIndex++;
             textObj.setText(fullText.substring(0, charIndex));
@@ -323,6 +333,7 @@ export class CutsceneScene extends Scene {
                     this.typeWriterTimer.destroy();
                     this.typeWriterTimer = undefined;
                 }
+                this.currentTypewriterTextObj = null;
             }
         },
         repeat: fullText.length - 1
@@ -336,14 +347,9 @@ export class CutsceneScene extends Scene {
     }
     
     if (this.typeWriterTimer) {
-        const panel = this.cutsceneData?.panels[this.currentPanelIndex];
-        if (panel) {
-            this.panelContainer.list.forEach((child: any) => {
-                if (child.type === 'Text' && child.text !== panel.speaker) {
-                    if (panel.type === 'text') child.setText(panel.text || '');
-                    if (panel.type === 'dialogue') child.setText(panel.dialogue || '');
-                }
-            });
+        if (this.currentTypewriterTextObj) {
+            this.currentTypewriterTextObj.setText(this.currentFullText);
+            this.currentTypewriterTextObj = null;
         }
         this.typeWriterTimer.destroy();
         this.typeWriterTimer = undefined;
