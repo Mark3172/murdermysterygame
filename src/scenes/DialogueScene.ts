@@ -2,6 +2,7 @@ import { Scene } from 'phaser';
 import { dialogue, DialogueTree, DialogueNode } from '../data/dialogue';
 import { gameState } from '../logic/GameState';
 import { EventBus } from '../engine/EventBus';
+import { PortraitRenderer } from '../rendering/PortraitRenderer';
 
 export class DialogueScene extends Scene {
   private dialogueId!: string;
@@ -220,11 +221,30 @@ export class DialogueScene extends Scene {
       'Iris': 'iris',
       'Iris Blackwell': 'iris',
       'Aldric': 'aldric',
-      'Professor Sable': 'aldric'
+      'Professor Sable': 'aldric',
+      'Prof. Sable': 'aldric'
     };
 
     const charId = speakerMap[this.speakerEl.textContent || ''] || this.suspectId || 'ren';
-    const portraitKey = `portrait_${charId}_neutral`;
+    
+    // Determine expression dynamically based on node config or narrative tone
+    let expression = 'neutral';
+    if (this.currentNode?.portrait) {
+      expression = this.currentNode.portrait;
+    } else if (this.currentNode?.text) {
+      const txt = this.currentNode.text;
+      if (txt.includes('?!') || txt.includes('What?!') || txt.includes('Dead?!') || txt.includes('Murdered')) {
+        expression = 'surprised';
+      } else if (txt.includes('Hmm') || txt.includes('Let\'s see') || txt.includes('Perhaps') || txt.includes('Curious')) {
+        expression = 'thinking';
+      } else if (txt.includes('Nonsense!') || txt.includes('How dare you') || txt.includes('Ridiculous!')) {
+        expression = 'angry';
+      } else if (txt.includes('I... I') || txt.includes('nervous') || txt.includes('Please, Detective')) {
+        expression = 'nervous';
+      }
+    }
+
+    const portraitKey = PortraitRenderer.generatePortrait(this, charId, expression);
 
     if (this.textures.exists(portraitKey)) {
       try {

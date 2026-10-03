@@ -92,9 +92,14 @@ export class AudioManager {
     }
 
     public setVolume(channel: 'music' | 'ambience' | 'sfx', value: number) {
+        this.ensureContext();
         if (!this.audioContext) return;
+        const normalized = Math.max(0, Math.min(1, value > 1 ? value / 100 : value));
         const destGain = channel === 'music' ? this.musicGain : (channel === 'ambience' ? this.ambienceGain : this.sfxGain);
-        if (destGain) destGain.gain.setValueAtTime(value, this.audioContext.currentTime);
+        if (destGain) destGain.gain.setValueAtTime(normalized, this.audioContext.currentTime);
+        try {
+            localStorage.setItem(`vol_${channel}`, String(normalized));
+        } catch(e) {}
     }
 
     public toggleMute(channel: 'music' | 'ambience' | 'sfx') {

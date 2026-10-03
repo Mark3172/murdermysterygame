@@ -3,6 +3,7 @@ import { cutscenes, CutsceneData, CutscenePanel } from '../data/cutscenes';
 import { gameState } from '../logic/GameState';
 import { AudioManager } from '../engine/AudioManager';
 import { storyManager } from '../logic/StoryPhaseManager';
+import { PortraitRenderer } from '../rendering/PortraitRenderer';
 
 export class CutsceneScene extends Scene {
   private cutsceneId: string = '';
@@ -159,60 +160,73 @@ export class CutsceneScene extends Scene {
     } else if (panel.type === 'dialogue') {
         const bg = this.add.rectangle(0, 0, width, height, panelBgColor).setOrigin(0, 0);
         this.panelContainer.add(bg);
-        
-        // Letterbox dialogue panel at bottom
-        const boxH = 95;
-        const boxY = height - boxH - 15;
-        const boxBg = this.add.rectangle(20, boxY, width - 40, boxH, 0x090c18, 0.92).setOrigin(0, 0);
+
+        // Letterbox dialogue panel at bottom with cinematic Victorian gold border
+        const boxH = 96;
+        const boxY = height - boxH - 12;
+        const boxBg = this.add.rectangle(18, boxY, width - 36, boxH, 0x090c18, 0.96).setOrigin(0, 0);
         const boxBorder = this.add.graphics();
-        boxBorder.lineStyle(1.5, 0x4a8a9a, 0.8);
-        boxBorder.strokeRect(20, boxY, width - 40, boxH);
+        boxBorder.lineStyle(2, 0xd4af37, 0.85);
+        boxBorder.strokeRect(18, boxY, width - 36, boxH);
+        // Corner decorative accents
+        boxBorder.fillStyle(0xd4af37, 1);
+        boxBorder.fillRect(18, boxY, 6, 2); boxBorder.fillRect(18, boxY, 2, 6);
+        boxBorder.fillRect(width - 24, boxY, 6, 2); boxBorder.fillRect(width - 20, boxY, 2, 6);
+        boxBorder.fillRect(18, boxY + boxH - 2, 6, 2); boxBorder.fillRect(18, boxY + boxH - 6, 2, 6);
+        boxBorder.fillRect(width - 24, boxY + boxH - 2, 6, 2); boxBorder.fillRect(width - 20, boxY + boxH - 6, 2, 6);
         this.panelContainer.add([boxBg, boxBorder]);
 
-        // Portrait frame
-        const charColorMap: Record<string, number> = {
-            'Ren': 0x3366aa,
-            'Dr. Vale': 0x44aa88,
-            'Nadia': 0xaa4466,
-            'Hugo': 0xaa8844,
-            'Petra': 0x66aa44,
-            'Felix': 0x8844aa,
-            'Iris': 0x4466aa,
-            'Prof. Sable': 0x8b4513
+        // Real 64x64 Pixel Art Bust Portrait from PortraitRenderer
+        const speakerIdMap: Record<string, string> = {
+            'Ren': 'ren',
+            'Dr. Vale': 'vale',
+            'Nadia': 'nadia',
+            'Nadia Thorn': 'nadia',
+            'Hugo': 'hugo',
+            'Dr. Hugo': 'hugo',
+            'Petra': 'petra',
+            'Petra Solano': 'petra',
+            'Felix': 'felix',
+            'Felix Ashworth': 'felix',
+            'Iris': 'iris',
+            'Iris Blackwell': 'iris',
+            'Prof. Sable': 'aldric',
+            'Professor Sable': 'aldric',
+            'Aldric': 'aldric'
         };
-        const charColor = charColorMap[panel.speaker || ''] || 0x5a6a7a;
-        const portraitBox = this.add.rectangle(55, boxY + boxH/2, 50, 65, charColor).setOrigin(0.5);
-        const portraitHead = this.add.circle(55, boxY + boxH/2 - 12, 12, 0xe8c8a8);
-        const portraitBorder = this.add.graphics();
-        portraitBorder.lineStyle(1, 0xd4af37, 0.7);
-        portraitBorder.strokeRect(30, boxY + boxH/2 - 32.5, 50, 65);
-        this.panelContainer.add([portraitBox, portraitHead, portraitBorder]);
-        
-        // Speaker name
-        const speakerTxt = this.add.text(92, boxY + 10, panel.speaker || '???', {
+        const charId = speakerIdMap[panel.speaker || ''] || 'ren';
+        const portraitKey = PortraitRenderer.generatePortrait(this, charId, 'neutral');
+        const portraitSprite = this.add.image(58, boxY + boxH/2, portraitKey).setDisplaySize(58, 58);
+        this.panelContainer.add(portraitSprite);
+
+        // Speaker name with gold badge
+        const speakerTxt = this.add.text(98, boxY + 10, (panel.speaker || '???').toUpperCase(), {
             fontFamily: 'Courier New, monospace',
-            fontSize: '13px',
-            color: '#d4af37',
-            fontStyle: 'bold'
+            fontSize: '11px',
+            color: '#ffd700',
+            fontStyle: 'bold',
+            backgroundColor: '#162238',
+            padding: { x: 8, y: 3 }
         }).setOrigin(0, 0);
         this.panelContainer.add(speakerTxt);
-        
+
         // Dialogue text
-        const dialogTxt = this.add.text(92, boxY + 30, '', {
+        const dialogTxt = this.add.text(98, boxY + 34, '', {
             fontFamily: 'Georgia, serif',
-            fontSize: '12px',
-            color: panel.textColor || '#e6ecf2',
-            lineSpacing: 4,
-            wordWrap: { width: width - 150 }
+            fontSize: '13px',
+            color: panel.textColor || '#edf2f8',
+            lineSpacing: 5,
+            wordWrap: { width: width - 145 }
         }).setOrigin(0, 0);
         this.panelContainer.add(dialogTxt);
         this.typewriterEffect(dialogTxt, panel.dialogue || '');
 
         // Prompt
-        const prompt = this.add.text(width - 35, boxY + boxH - 14, '▼ [SPACE]', {
-            fontFamily: 'Courier New',
+        const prompt = this.add.text(width - 32, boxY + boxH - 14, '▼ [SPACE] / Click', {
+            fontFamily: 'Courier New, monospace',
             fontSize: '9px',
-            color: '#5a9aaa'
+            color: '#7ac4d4',
+            fontStyle: 'bold'
         }).setOrigin(1, 0.5);
         this.panelContainer.add(prompt);
     } else if (panel.type === 'transition') {

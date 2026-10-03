@@ -3,6 +3,7 @@ import { gameState } from '../logic/GameState';
 import { storyManager } from '../logic/StoryPhaseManager';
 import { evidence as evidenceData } from '../data/evidence';
 import { suspects } from '../data/suspects';
+import { PortraitRenderer } from '../rendering/PortraitRenderer';
 
 export class NotebookScene extends Phaser.Scene {
     private overlay!: HTMLElement;
@@ -111,20 +112,49 @@ export class NotebookScene extends Phaser.Scene {
             }
             html += '</ul>';
         } else if (tabName === 'suspects') {
-            html = '<h3 style="color:#d4af37; font-size:14px; text-transform:uppercase; letter-spacing:1px; margin-bottom:12px;">Persons of Interest</h3><ul style="list-style:none; padding:0;">';
+            html = '<h3 style="color:#d4af37; font-size:14px; text-transform:uppercase; letter-spacing:1px; margin-bottom:12px;">Persons of Interest & Dossiers</h3><ul style="list-style:none; padding:0;">';
             Object.values(suspects).forEach((s: any) => {
                 const interviewed = gameState.isSuspectInterviewed(s.id);
                 const statusBadge = interviewed 
-                    ? '<span style="color:#4ac47a; font-size:10px; border:1px solid #4ac47a; padding:1px 5px; border-radius:3px;">INTERVIEWED</span>'
-                    : '<span style="color:#e0a040; font-size:10px; border:1px solid #e0a040; padding:1px 5px; border-radius:3px;">NOT INTERVIEWED</span>';
+                    ? '<span style="color:#4ac47a; font-size:10px; border:1px solid #4ac47a; padding:1px 6px; border-radius:3px; font-weight:600;">INTERVIEWED</span>'
+                    : '<span style="color:#e0a040; font-size:10px; border:1px solid #e0a040; padding:1px 6px; border-radius:3px; font-weight:600;">NOT INTERVIEWED</span>';
                 const outfitColor = s.portraitColors?.outfit || '#d4af37';
-                html += `<li class="evidence-item" style="border-left: 3px solid ${outfitColor};">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <strong class="evidence-name">${s.name}</strong>
-                        ${statusBadge}
+
+                // Retrieve pixel art portrait data URL from PortraitRenderer
+                let portraitImgHtml = '';
+                try {
+                    const portraitKey = PortraitRenderer.generatePortrait(this, s.id, 'neutral');
+                    const tex = this.textures.get(portraitKey);
+                    if (tex) {
+                        const canvasSource = tex.getSourceImage() as HTMLCanvasElement;
+                        if (canvasSource && canvasSource.toDataURL) {
+                            portraitImgHtml = `<img src="${canvasSource.toDataURL()}" style="width:48px; height:48px; border:1px solid #d4af37; border-radius:4px; margin-right:12px; flex-shrink:0; image-rendering:pixelated;" alt="${s.name}" />`;
+                        }
+                    }
+                } catch(e) {}
+
+                const statement = interviewed 
+                    ? (s.alibiClaim || 'Statement recorded.') 
+                    : '<em style="color:#8a98a8;">No formal statement recorded yet. Speak with this suspect in the observatory chambers.</em>';
+
+                let contradictionNote = '';
+                if (interviewed && s.id === 'nadia' && gameState.hasEvidence('missing_lantern')) {
+                    contradictionNote = '<div style="margin-top:6px; padding:4px 8px; background:rgba(255,80,60,0.15); border-left:2px solid #ff4444; color:#ff9988; font-size:11px;">⚠ <strong>CONTRADICTION:</strong> Missing lantern proves the darkened hallway was intentionally staged!</div>';
+                } else if (interviewed && s.id === 'hugo' && gameState.hasEvidence('secret_passage')) {
+                    contradictionNote = '<div style="margin-top:6px; padding:4px 8px; background:rgba(255,80,60,0.15); border-left:2px solid #ff4444; color:#ff9988; font-size:11px;">⚠ <strong>CONTRADICTION:</strong> Hidden acoustic flue passage directly connects the crime scene to Hugo\'s quarters!</div>';
+                }
+
+                html += `<li class="evidence-item" style="border-left: 3px solid ${outfitColor}; display:flex; align-items:flex-start; margin-bottom:10px; padding:10px 14px;">
+                    ${portraitImgHtml}
+                    <div style="flex:1; min-width:0;">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <strong class="evidence-name">${s.name}</strong>
+                            ${statusBadge}
+                        </div>
+                        <div style="color:#7a90a4; font-size:11px; margin-top:2px;">${s.title} • Room: <span style="color:#9ad4ea;">${s.location || 'Observatory'}</span></div>
+                        <div class="evidence-desc" style="margin-top:6px;"><strong>Statement / Alibi:</strong> ${statement}</div>
+                        ${contradictionNote}
                     </div>
-                    <div style="color:#7a90a4; font-size:11px; margin-top:2px;">${s.title}</div>
-                    <div class="evidence-desc" style="margin-top:6px;"><strong>Statement / Alibi:</strong> ${s.alibi || 'No statement recorded yet.'}</div>
                 </li>`;
             });
             html += '</ul>';
@@ -138,14 +168,25 @@ export class NotebookScene extends Phaser.Scene {
                 <div><strong style="color:#d4af37;">Available Gadgets:</strong> <span style="color:#9ad4ea;">${gameState.getUnlockedGadgets().map(g => g.replace(/_/g, ' ')).join(', ') || 'Tranquility Focus'}</span></div>
             </div>`;
         } else if (tabName === 'history') {
-            html = '<h3 style="color:#d4af37; font-size:14px; text-transform:uppercase; letter-spacing:1px; margin-bottom:12px;">Case Timeline Notes</h3>';
-            html += `<div class="evidence-item" style="border-left:3px solid #7ac4d4;">
-                <p style="color:#b8c8d8; font-size:12px; line-height:1.5;">
-                    • 7:45 PM: Professor Aldric Sable's demonstration announcement over the PA.<br>
-                    • 8:00 PM: The 13th chime rings across the observatory. Instant total blackout.<br>
-                    • 8:05 PM: Power restored. Professor Sable found dead inside the sealed Exhibition Chamber bolted from the inside.
+            html = '<h3 style="color:#d4af37; font-size:14px; text-transform:uppercase; letter-spacing:1px; margin-bottom:12px;">Case Timeline Dossier</h3>';
+            html += `<div class="evidence-item" style="border-left:3px solid #7ac4d4; margin-bottom:10px;">
+                <h4 style="color:#7ac4d4; font-size:12px; margin-bottom:6px;">PROLOGUE EVENTS</h4>
+                <p style="color:#b8c8d8; font-size:12px; line-height:1.6;">
+                    • <strong>7:45 PM:</strong> Professor Aldric Sable's demonstration announcement over the PA.<br>
+                    • <strong>8:00 PM:</strong> The 13th chime rings across the observatory. Instant total blackout.<br>
+                    • <strong>8:05 PM:</strong> Emergency power restored. Professor Sable found dead inside the sealed Exhibition Chamber bolted from the inside.
                 </p>
             </div>`;
+            if (gameState.hasEvidence('secret_passage') || gameState.hasEvidence('recording_equipment')) {
+                html += `<div class="evidence-item" style="border-left:3px solid #d4af37; margin-bottom:10px;">
+                    <h4 style="color:#ffd700; font-size:12px; margin-bottom:6px;">BREAKTHROUGH DISCOVERIES</h4>
+                    <p style="color:#d0dce5; font-size:12px; line-height:1.6;">
+                        ${gameState.hasEvidence('recording_equipment') ? '• <strong>Acoustic Deception:</strong> The 7:45 PM PA announcement was pre-recorded on magnetic wire, creating a false window of life.<br>' : ''}
+                        ${gameState.hasEvidence('poisoned_tea') ? '• <strong>Cause of Death:</strong> Toxic aconitine residue in the tea cup indicates Professor Sable died <em>prior</em> to the 13th chime.<br>' : ''}
+                        ${gameState.hasEvidence('secret_passage') ? '• <strong>Locked Room Bypass:</strong> Hidden acoustic flue allows entry and exit without touching the heavy brass deadbolt.' : ''}
+                    </p>
+                </div>`;
+            }
         }
 
         content.innerHTML = html;

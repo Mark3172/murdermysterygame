@@ -118,19 +118,16 @@ export class ExplorationScene extends Phaser.Scene {
       const tgt = rooms[exit.targetRoom];
       const targetName = tgt ? tgt.name.toUpperCase() : exit.targetRoom.toUpperCase();
 
-      // Doorway architecture
-      const doorBg = this.add.rectangle(ex, ey, 28, 28, 0x2a1a10).setDepth(10);
-      const doorFrame = this.add.graphics();
-      doorFrame.lineStyle(2, 0xd4af37, 0.85);
-      doorFrame.strokeRect(ex - 14, ey - 14, 28, 28);
-      // Door planks
-      doorFrame.lineStyle(1, 0x5a3a20, 0.7);
-      doorFrame.moveTo(ex, ey - 14); doorFrame.lineTo(ex, ey + 14);
-      doorFrame.strokePath();
-      doorFrame.fillStyle(0xd4af37, 1);
-      doorFrame.fillCircle(ex - 3, ey, 2);
-      doorFrame.fillCircle(ex + 3, ey, 2);
-      doorFrame.setDepth(11);
+      // Doorway architecture (authentic Victorian arched double doors)
+      if (this.textures.exists('door_victorian_ornate')) {
+        this.add.image(ex, ey, 'door_victorian_ornate').setDepth(11);
+      } else {
+        const doorBg = this.add.rectangle(ex, ey, 28, 28, 0x2a1a10).setDepth(10);
+        const doorFrame = this.add.graphics();
+        doorFrame.lineStyle(2, 0xd4af37, 0.85);
+        doorFrame.strokeRect(ex - 14, ey - 14, 28, 28);
+        doorFrame.setDepth(11);
+      }
 
       // Entrance lanterns
       const l1 = this.add.circle(ex - 18, ey, 3, 0xffea70, 0.8).setDepth(12);

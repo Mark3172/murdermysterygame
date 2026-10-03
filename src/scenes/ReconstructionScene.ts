@@ -3,19 +3,25 @@ import { gameState } from '../logic/GameState';
 import { AudioManager } from '../engine/AudioManager';
 import { SceneTransition } from '../engine/SceneTransition';
 import { timeline, TimelineEvent } from '../data/timeline';
+import { PixelRenderer } from '../rendering/PixelRenderer';
 
 export class ReconstructionScene extends Phaser.Scene {
   private slots: Phaser.GameObjects.Rectangle[] = [];
   private slotContents: (TimelineEvent | null)[] = [null, null, null, null, null];
   private currentHypothesis: 'A' | 'B' = 'A';
   private cards: Phaser.GameObjects.Container[] = [];
-  private ghostVisuals: Phaser.GameObjects.Rectangle[] = [];
+  private ghostVisuals: Phaser.GameObjects.GameObject[] = [];
   
   constructor() {
     super('ReconstructionScene');
   }
 
   create() {
+    // Generate character sprites for reconstruction spectral visualization
+    PixelRenderer.generateCharacterSprite(this, 'aldric');
+    PixelRenderer.generateCharacterSprite(this, 'hugo');
+    PixelRenderer.generateCharacterSprite(this, 'nadia');
+
     // 1. Dark blueprint-style background with grid
     this.add.rectangle(0, 0, 640, 360, 0x001133).setOrigin(0);
     this.drawGrid();
@@ -373,27 +379,59 @@ export class ReconstructionScene extends Phaser.Scene {
     const diagX = 320;
     const diagY = 80;
 
-    // Based on events in slots, show where suspects are
-    this.slotContents.forEach((ev, i) => {
+    // Based on events in slots, show spectral silhouettes of suspects in the chamber
+    this.slotContents.forEach((ev) => {
       if (!ev) return;
       
-      // Simple ghost representation logic
       if (ev.id.includes('poison') || ev.id.includes('death')) {
-        // Show Sable at desk
-        const ghost = this.add.rectangle(diagX, diagY, 10, 10, 0xaaaaaa, 0.6);
-        this.ghostVisuals.push(ghost);
+        // Professor Sable at desk (Spectral Cyan)
+        const container = this.add.container(diagX, diagY);
+        const wave = this.add.circle(0, 0, 14, 0x7ac4d4, 0.3);
+        this.tweens.add({ targets: wave, scale: 1.5, alpha: 0, duration: 1400, repeat: -1 });
+        const sprite = this.add.sprite(0, 0, 'char_aldric', 'down_0').setTint(0x7ac4d4).setAlpha(0.85);
+        const label = this.add.text(0, 16, 'Prof. Sable', {
+          fontFamily: 'Courier New, monospace',
+          fontSize: '8px',
+          color: '#7ac4d4',
+          backgroundColor: '#060c1aec',
+          padding: { x: 3, y: 1 }
+        }).setOrigin(0.5);
+        container.add([wave, sprite, label]);
+        this.ghostVisuals.push(container);
       }
       
       if (ev.id.includes('hugo') || ev.id.includes('locked_room')) {
-        // Show Hugo near hidden passage
-        const ghost = this.add.rectangle(diagX + 70, diagY - 40, 10, 10, 0x00ff00, 0.6);
-        this.ghostVisuals.push(ghost);
+        // Dr. Hugo near hidden passage (Spectral Emerald)
+        const container = this.add.container(diagX + 70, diagY - 40);
+        const wave = this.add.circle(0, 0, 14, 0x4ac47a, 0.3);
+        this.tweens.add({ targets: wave, scale: 1.5, alpha: 0, duration: 1400, repeat: -1 });
+        const sprite = this.add.sprite(0, 0, 'char_hugo', 'down_0').setTint(0x4ac47a).setAlpha(0.85);
+        const label = this.add.text(0, 16, 'Dr. Hugo', {
+          fontFamily: 'Courier New, monospace',
+          fontSize: '8px',
+          color: '#4ac47a',
+          backgroundColor: '#060c1aec',
+          padding: { x: 3, y: 1 }
+        }).setOrigin(0.5);
+        container.add([wave, sprite, label]);
+        this.ghostVisuals.push(container);
       }
       
       if (ev.id.includes('lantern') || ev.id.includes('recording')) {
-        // Show Nadia (maybe near door or outside)
-        const ghost = this.add.rectangle(diagX - 80, diagY + 20, 10, 10, 0xff00ff, 0.6);
-        this.ghostVisuals.push(ghost);
+        // Nadia near main entrance door (Spectral Violet)
+        const container = this.add.container(diagX - 80, diagY + 20);
+        const wave = this.add.circle(0, 0, 14, 0xda70d6, 0.3);
+        this.tweens.add({ targets: wave, scale: 1.5, alpha: 0, duration: 1400, repeat: -1 });
+        const sprite = this.add.sprite(0, 0, 'char_nadia', 'down_0').setTint(0xda70d6).setAlpha(0.85);
+        const label = this.add.text(0, 16, 'Nadia', {
+          fontFamily: 'Courier New, monospace',
+          fontSize: '8px',
+          color: '#da70d6',
+          backgroundColor: '#060c1aec',
+          padding: { x: 3, y: 1 }
+        }).setOrigin(0.5);
+        container.add([wave, sprite, label]);
+        this.ghostVisuals.push(container);
       }
     });
   }

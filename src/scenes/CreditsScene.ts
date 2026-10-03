@@ -121,25 +121,68 @@ THE SILENT FREQUENCY
             });
         }
 
-        // Vignette 2: Ren holding the mysterious photograph of his mother
+        // Vignette 2: Ren holding the mysterious photograph of his mother and Professor Sable
         const vignette2 = this.add.container(0, 0);
         vignette2.setAlpha(0);
         const deskBg = this.add.graphics();
-        deskBg.fillStyle(0x16101c, 1).fillRect(0, 0, 640, 360);
-        deskBg.fillStyle(0x2a1a14, 1).fillRect(100, 180, 440, 180);
-        // Photo frame
-        deskBg.fillStyle(0xd4af37, 0.9).fillRect(260, 120, 120, 140);
-        deskBg.fillStyle(0x3a4a5a, 1).fillRect(268, 128, 104, 124);
-        // Figures in photo
-        deskBg.fillStyle(0xe8c8a8, 1).fillCircle(300, 170, 12); // Ren's mother
-        deskBg.fillStyle(0x2a2a3a, 1).fillCircle(340, 165, 14); // Prof. Sable
-        vignette2.add(deskBg);
-        const caption = this.add.text(320, 280, 'Project Echo • Twelve Years Ago', {
-            fontFamily: 'serif',
-            fontSize: '12px',
-            color: '#b0a080',
+        // Moody dark oak desk surface
+        deskBg.fillStyle(0x0c0910, 1).fillRect(0, 0, 640, 360);
+        deskBg.fillStyle(0x1a1216, 1).fillRect(80, 160, 480, 200);
+
+        // Weathered vintage photograph backing & gold frame
+        const px = 250;
+        const py = 100;
+        const pw = 140;
+        const ph = 170;
+
+        deskBg.fillStyle(0xd4af37, 0.95).fillRect(px - 4, py - 4, pw + 8, ph + 8); // Gold trim
+        deskBg.fillStyle(0x2e2016, 1).fillRect(px, py, pw, ph); // Sepia photographic paper
+        deskBg.fillStyle(0x423020, 1).fillRect(px + 6, py + 6, pw - 12, ph - 38); // Photo print area
+
+        // Studio backdrop inside photograph (sepia arch)
+        deskBg.fillStyle(0x56402c, 0.8).fillRect(px + 10, py + 10, pw - 20, ph - 46);
+
+        // Figure 1: Young Professor Sable (right)
+        // Tweed jacket
+        deskBg.fillStyle(0x322216, 1).fillRect(px + 78, py + 52, 38, 48);
+        // Head & neck
+        deskBg.fillStyle(0xd2b49c, 1).fillRect(px + 88, py + 28, 18, 22);
+        // Young dark hair & sideburns
+        deskBg.fillStyle(0x1a120c, 1).fillRect(px + 86, py + 22, 22, 10);
+        deskBg.fillRect(px + 85, py + 26, 4, 12);
+        // Round spectacles
+        deskBg.lineStyle(1, 0xdfb038, 1);
+        deskBg.strokeRect(px + 90, py + 32, 6, 6);
+        deskBg.strokeRect(px + 98, py + 32, 6, 6);
+
+        // Figure 2: Elena (Ren's Mother, left)
+        // Victorian burgundy/sepia lace dress
+        deskBg.fillStyle(0x3c2024, 1).fillRect(px + 24, py + 56, 36, 44);
+        // Head & neck
+        deskBg.fillStyle(0xdec0a8, 1).fillRect(px + 32, py + 32, 18, 20);
+        // Elegant wavy dark hair with silver rogue streak
+        deskBg.fillStyle(0x1a161c, 1).fillRect(px + 28, py + 24, 26, 14);
+        deskBg.fillRect(px + 26, py + 32, 6, 24); // hair falling past shoulder
+        deskBg.fillStyle(0xa0b0c8, 1).fillRect(px + 34, py + 26, 4, 8); // rogue silver streak
+        // Silver pendant necklace
+        deskBg.fillStyle(0xc0c8d8, 1).fillCircle(px + 41, py + 56, 3);
+
+        // Handwritten vintage fountain pen inscription at bottom of photo
+        const caption = this.add.text(px + pw / 2, py + ph - 20, 'Elena & Aldric • 1916', {
+            fontFamily: 'Georgia, serif',
+            fontSize: '11px',
+            color: '#bfa882',
             fontStyle: 'italic'
         }).setOrigin(0.5);
+
+        // Ren's detective leather-gloved hand holding the photograph corner
+        deskBg.fillStyle(0x281a14, 1); // Dark leather glove
+        deskBg.fillRect(px - 14, py + ph - 50, 24, 34); // Wrist
+        deskBg.fillCircle(px + 8, py + ph - 26, 10); // Thumb resting on frame
+        deskBg.lineStyle(1.5, 0x140c08, 0.9);
+        deskBg.strokeCircle(px + 8, py + ph - 26, 10);
+
+        vignette2.add(deskBg);
         vignette2.add(caption);
 
         this.scenesGroup.add(vignette1);

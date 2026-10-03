@@ -54,12 +54,12 @@
       position: absolute;
       bottom: 20px;
       left: 24px; right: 24px;
-      background: rgba(10, 14, 26, 0.96);
-      border: 2px solid #4a8a9a;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 16px rgba(74, 138, 154, 0.25);
+      background: rgba(8, 12, 22, 0.97);
+      border: 2px solid #d4af37;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.9), 0 0 20px rgba(212, 175, 55, 0.25);
       border-radius: 6px;
       padding: 14px 18px;
-      color: #e0e8f0;
+      color: #edf2f7;
       font-size: 14px;
       line-height: 1.5;
       pointer-events: auto;
@@ -69,11 +69,11 @@
       gap: 16px;
     }
     #dialogue-avatar {
-      width: 58px; height: 58px;
+      width: 64px; height: 64px;
       border: 2px solid #d4af37;
       border-radius: 4px;
       flex-shrink: 0;
-      background: #2a3a4a;
+      background: #182236;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -82,6 +82,8 @@
       font-size: 22px;
       font-family: serif;
       box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+      overflow: hidden;
+      image-rendering: pixelated;
     }
     #dialogue-body {
       flex: 1;
@@ -252,34 +254,37 @@
       position: absolute;
       top: 10%; bottom: 10%;
       left: 15%; right: 15%;
-      background: rgba(10, 10, 20, 0.96);
-      border: 2px solid #4a6a7a;
-      border-radius: 4px;
+      background: rgba(10, 12, 22, 0.98);
+      border: 2px solid #d4af37;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.9), 0 0 24px rgba(212, 175, 55, 0.2);
+      border-radius: 6px;
       padding: 24px;
-      color: #c0d0e0;
+      color: #edf2f7;
       font-family: var(--font-sans);
       pointer-events: auto;
-      z-index: 25;
+      z-index: 75;
     }
     .settings-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin: 12px 0;
+      margin: 14px 0;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(212, 175, 55, 0.15);
     }
-    .settings-label { font-size: 14px; font-family: var(--font-sans); }
+    .settings-label { font-size: 13px; font-family: var(--font-sans); color: #d0dce8; font-weight: 500; }
     .settings-slider {
       width: 150px;
-      accent-color: #4a8a9a;
+      accent-color: #d4af37;
     }
     /* HUD */
     #hud-bar {
       position: absolute;
       top: 0; left: 0; right: 0;
       height: 36px;
-      background: linear-gradient(180deg, rgba(8, 12, 22, 0.96) 0%, rgba(12, 16, 28, 0.88) 100%);
-      border-bottom: 2px solid #3a4b66;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.7);
+      background: linear-gradient(180deg, rgba(8, 12, 22, 0.98) 0%, rgba(12, 16, 28, 0.92) 100%);
+      border-bottom: 2px solid #d4af37;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.8);
       display: flex;
       align-items: center;
       padding: 0 16px;
@@ -287,8 +292,8 @@
       z-index: 40;
     }
     .hud-btn {
-      background: rgba(26, 36, 56, 0.85);
-      border: 1px solid #4a6a8a;
+      background: rgba(22, 30, 48, 0.88);
+      border: 1px solid rgba(212, 175, 55, 0.4);
       color: #e0ecf8;
       padding: 5px 12px;
       margin: 0 4px;
@@ -800,10 +805,12 @@
   <script type="module" src="/src/main.ts"></script>
   <script type="module">
     import { EventBus } from '/src/engine/EventBus';
+    import { AudioManager } from '/src/engine/AudioManager';
 
     // Expose globally for convenience
     if (typeof window !== 'undefined') {
       (window).EventBus = EventBus;
+      (window).AudioManager = AudioManager;
     }
 
     // --- Discovery Modal Controller ---
@@ -944,6 +951,54 @@
     window.addEventListener('show-hint', (e) => showHint(e.detail));
     window.addEventListener('update-prompt', (e) => updatePrompt(e.detail));
 
+    // --- Settings Overlay & Controls Controller ---
+    const settingsOverlay = document.getElementById('settings-overlay');
+    const settingsCloseBtn = document.getElementById('settings-close');
+    const btnSettings = document.getElementById('btn-settings');
+    const btnPause = document.getElementById('btn-pause');
+    const volMusic = document.getElementById('vol-music');
+    const volAmbience = document.getElementById('vol-ambience');
+    const volSfx = document.getElementById('vol-sfx');
+
+    function toggleSettings() {
+      if (!settingsOverlay) return;
+      const isOpen = settingsOverlay.style.display === 'block';
+      settingsOverlay.style.display = isOpen ? 'none' : 'block';
+    }
+
+    if (settingsCloseBtn) settingsCloseBtn.addEventListener('click', () => { if (settingsOverlay) settingsOverlay.style.display = 'none'; });
+    if (btnSettings) btnSettings.addEventListener('click', toggleSettings);
+    if (btnPause) btnPause.addEventListener('click', () => {
+      EventBus.emit('pause-game');
+      toggleSettings();
+    });
+
+    // Wire volume sliders to AudioManager
+    const audio = AudioManager.getInstance();
+    audio.init();
+
+    if (volMusic) {
+      const saved = localStorage.getItem('vol_music');
+      if (saved) volMusic.value = String(Math.round(parseFloat(saved) * 100));
+      volMusic.addEventListener('input', (e) => {
+        audio.setVolume('music', parseFloat(e.target.value));
+      });
+    }
+    if (volAmbience) {
+      const saved = localStorage.getItem('vol_ambience');
+      if (saved) volAmbience.value = String(Math.round(parseFloat(saved) * 100));
+      volAmbience.addEventListener('input', (e) => {
+        audio.setVolume('ambience', parseFloat(e.target.value));
+      });
+    }
+    if (volSfx) {
+      const saved = localStorage.getItem('vol_sfx');
+      if (saved) volSfx.value = String(Math.round(parseFloat(saved) * 100));
+      volSfx.addEventListener('input', (e) => {
+        audio.setVolume('sfx', parseFloat(e.target.value));
+      });
+    }
+
     // --- Global Keyboard Dismiss Shortcuts ---
     window.addEventListener('keydown', (e) => {
       if (discoveryModal && discoveryModal.style.display === 'flex') {
@@ -954,6 +1009,11 @@
       if (hintOverlay && hintOverlay.style.display === 'block') {
         if (e.key === 'Escape') {
           hideHint();
+        }
+      }
+      if (settingsOverlay && settingsOverlay.style.display === 'block') {
+        if (e.key === 'Escape') {
+          settingsOverlay.style.display = 'none';
         }
       }
     });

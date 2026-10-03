@@ -267,22 +267,25 @@ export class UIScene extends Phaser.Scene {
         }
 
         // Canvas fallback for environments where DOM overlay is hidden
-        const hintText = `[Hint L${hintObj.level} • ${hintObj.chamber}] ${hintObj.text}`;
-        const toast = this.add.text(320, 50, hintText, {
-            backgroundColor: '#050710f0',
-            color: '#ffea70',
-            fontFamily: 'Courier New',
-            fontSize: '11px',
-            padding: { x: 10, y: 6 },
-            wordWrap: { width: 480 }
-        }).setOrigin(0.5);
-        this.tweens.add({
-            targets: toast,
-            alpha: 0,
-            delay: 4500,
-            duration: 1000,
-            onComplete: () => toast.destroy()
-        });
+        // On-canvas fallback only if HTML hint overlay is not present
+        if (typeof document === 'undefined' || !document.getElementById('hint-overlay')) {
+            const hintText = `[Hint L${hintObj.level} • ${hintObj.chamber}] ${hintObj.text}`;
+            const toast = this.add.text(320, 50, hintText, {
+                backgroundColor: '#050710f0',
+                color: '#ffea70',
+                fontFamily: 'Courier New',
+                fontSize: '11px',
+                padding: { x: 10, y: 6 },
+                wordWrap: { width: 480 }
+            }).setOrigin(0.5);
+            this.tweens.add({
+                targets: toast,
+                alpha: 0,
+                delay: 4500,
+                duration: 1000,
+                onComplete: () => toast.destroy()
+            });
+        }
     }
 
     toggleSettings() {

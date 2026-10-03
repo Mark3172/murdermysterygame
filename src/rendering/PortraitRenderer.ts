@@ -73,6 +73,13 @@ export class PortraitRenderer {
         collar = '#e8ecf4'; tie = '#d0d4e0';
         eyeColor = '#3498db'; accessory = 'chignon_brooch';
         break;
+      case 'aldric':
+        skin = '#ebd8c8'; skinShadow = '#cfb4a0';
+        hair = '#dce0e8'; hairHighlight = '#ffffff';
+        outfit = '#48301c'; outfitShadow = '#281a0e';
+        collar = '#d8cca8'; tie = '#8a5020';
+        eyeColor = '#3a2818'; accessory = 'beard_spectacles';
+        break;
       case 'vale':
       default:
         skin = '#fadcc8'; skinShadow = '#d8bca8';
@@ -221,8 +228,8 @@ export class PortraitRenderer {
     ctx.stroke();
 
     // Glasses
-    if (accessory.includes('glasses')) {
-      ctx.strokeStyle = '#a6b8cc';
+    if (accessory.includes('glasses') || accessory === 'beard_spectacles') {
+      ctx.strokeStyle = accessory === 'beard_spectacles' ? '#dfb038' : '#a6b8cc';
       ctx.lineWidth = 1.5;
       ctx.strokeRect(21, eyeY - 2, 9, 8);
       ctx.strokeRect(34, eyeY - 2, 9, 8);
@@ -230,7 +237,7 @@ export class PortraitRenderer {
       ctx.moveTo(30, eyeY + 2); ctx.lineTo(34, eyeY + 2);
       ctx.stroke();
       // Glass sheen
-      ctx.fillStyle = 'rgba(200, 240, 255, 0.4)';
+      ctx.fillStyle = accessory === 'beard_spectacles' ? 'rgba(255, 245, 210, 0.4)' : 'rgba(200, 240, 255, 0.4)';
       ctx.fillRect(22, eyeY - 1, 2, 6);
       ctx.fillRect(35, eyeY - 1, 2, 6);
     }
@@ -245,7 +252,7 @@ export class PortraitRenderer {
       ctx.stroke();
     }
 
-    // Mustache for Felix
+    // Mustache / Beard
     if (accessory === 'mustache_chain') {
       ctx.fillStyle = '#c4ccd8';
       ctx.beginPath();
@@ -253,6 +260,26 @@ export class PortraitRenderer {
       ctx.quadraticCurveTo(32, 31, 38, 34);
       ctx.quadraticCurveTo(32, 36, 26, 34);
       ctx.fill();
+    } else if (accessory === 'beard_spectacles') {
+      // Professor Sable's full silver beard & mustache
+      ctx.fillStyle = hair;
+      ctx.beginPath();
+      ctx.moveTo(24, 32);
+      ctx.lineTo(20, 36);
+      ctx.lineTo(28, 44);
+      ctx.lineTo(32, 45);
+      ctx.lineTo(36, 44);
+      ctx.lineTo(44, 36);
+      ctx.lineTo(40, 32);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#b8c4d4';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(26, 34); ctx.lineTo(30, 42);
+      ctx.moveTo(32, 34); ctx.lineTo(32, 44);
+      ctx.moveTo(38, 34); ctx.lineTo(34, 42);
+      ctx.stroke();
     } else {
       // Mouth
       ctx.fillStyle = '#8a2a2a';
@@ -406,6 +433,14 @@ export class PortraitRenderer {
       ctx.fill();
       ctx.fillStyle = '#dce2ee';
       ctx.fillRect(30, 7, 4, 2); // silver comb
+    } else if (accessory === 'beard_spectacles') {
+      // Professor Sable's silver side hair and receding hairline
+      ctx.fillStyle = hair;
+      ctx.fillRect(16, 18, 5, 14);
+      ctx.fillRect(43, 18, 5, 14);
+      ctx.fillStyle = hairHighlight;
+      ctx.fillRect(17, 20, 2, 8);
+      ctx.fillRect(45, 20, 2, 8);
     }
 
     // ─── 5. ORNATE GOLD FRAME BORDER ──────────────────────────────

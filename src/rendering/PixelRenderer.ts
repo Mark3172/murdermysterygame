@@ -46,6 +46,73 @@ export class PixelRenderer {
     this.drawDisplayPedestalTexture(scene);
     this.drawSconceLanternTexture(scene);
     this.drawBrassPipesTexture(scene);
+    this.drawVictorianDoorTexture(scene);
+  }
+
+  private static drawVictorianDoorTexture(scene: Phaser.Scene) {
+    const key = 'door_victorian_ornate';
+    if (scene.textures.exists(key)) return;
+    const canvas = scene.textures.createCanvas(key, 32, 40);
+    if (!canvas) return;
+    const ctx = canvas.getContext();
+    if (!ctx) return;
+
+    // 1. Heavy Arched Stone Architrave
+    ctx.fillStyle = '#1c2230';
+    ctx.fillRect(0, 0, 32, 40);
+
+    // Arch bevel & brass rim
+    ctx.strokeStyle = '#d4af37';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(1, 1, 30, 38);
+
+    // 2. Dark Mahogany Double Door Panels
+    ctx.fillStyle = '#2e190e';
+    ctx.fillRect(4, 8, 11, 30); // Left door
+    ctx.fillRect(17, 8, 11, 30); // Right door
+
+    // Recessed panel details
+    ctx.fillStyle = '#1e0e06';
+    ctx.fillRect(6, 12, 7, 10);
+    ctx.fillRect(6, 25, 7, 10);
+    ctx.fillRect(19, 12, 7, 10);
+    ctx.fillRect(19, 25, 7, 10);
+
+    // Panel gold bead borders
+    ctx.strokeStyle = '#8a6418';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(6, 12, 7, 10);
+    ctx.strokeRect(6, 25, 7, 10);
+    ctx.strokeRect(19, 12, 7, 10);
+    ctx.strokeRect(19, 25, 7, 10);
+
+    // 3. Ornate Brass Hinges & Hardware
+    ctx.fillStyle = '#ffd700';
+    ctx.fillRect(2, 12, 3, 2);
+    ctx.fillRect(2, 32, 3, 2);
+    ctx.fillRect(27, 12, 3, 2);
+    ctx.fillRect(27, 32, 3, 2);
+
+    // Brass door handles / ring knockers
+    ctx.fillRect(13, 22, 2, 4);
+    ctx.fillRect(17, 22, 2, 4);
+    ctx.fillStyle = '#fff0aa';
+    ctx.fillRect(13, 22, 1, 2);
+    ctx.fillRect(18, 22, 1, 2);
+
+    // Center divider strip
+    ctx.fillStyle = '#140c06';
+    ctx.fillRect(15, 6, 2, 34);
+
+    // 4. Stained Glass Transom Fanlight (Amber & Gold)
+    ctx.fillStyle = '#2c1e10';
+    ctx.fillRect(4, 3, 24, 4);
+    ctx.fillStyle = '#e6b820';
+    for (let x = 6; x < 26; x += 4) {
+      ctx.fillRect(x, 4, 2, 2);
+    }
+
+    canvas.refresh();
   }
 
   private static drawCheckerboardMarbleTile(scene: Phaser.Scene) {
@@ -977,6 +1044,22 @@ export class PixelRenderer {
           shoes: '#101420',
           accessory: 'chignon_glove',
         };
+      case 'aldric': // Professor Aldric Sable
+        return {
+          id: 'aldric',
+          hair: '#dce0e8',
+          hairHighlight: '#ffffff',
+          skin: '#ebd8c8',
+          skinShadow: '#cfb4a0',
+          coat: '#48301c',
+          coatHighlight: '#5e4028',
+          coatShadow: '#281a0e',
+          collar: '#d8cca8',
+          tie: '#8a5020',
+          pants: '#2c1e14',
+          shoes: '#18100a',
+          accessory: 'beard_spectacles',
+        };
       case 'vale': // Forensic Mentor
       default:
         return {
@@ -1148,10 +1231,11 @@ export class PixelRenderer {
       rect(10, hy + 3, 2, 1, cfg.hair);
 
       // Glasses
-      if (cfg.accessory === 'glasses_hairpin' || cfg.accessory === 'glasses_stethoscope') {
-        rect(5, hy + 4, 3, 1, '#a6b8cc');
-        rect(10, hy + 4, 3, 1, '#a6b8cc');
-        p(8, hy + 4, '#a6b8cc');
+      if (cfg.accessory === 'glasses_hairpin' || cfg.accessory === 'glasses_stethoscope' || cfg.accessory === 'beard_spectacles') {
+        const glassColor = cfg.accessory === 'beard_spectacles' ? '#dfb038' : '#a6b8cc';
+        rect(5, hy + 4, 3, 1, glassColor);
+        rect(10, hy + 4, 3, 1, glassColor);
+        p(8, hy + 4, glassColor);
         p(6, hy + 4, '#d0f0ff'); // glint
       }
 
@@ -1161,11 +1245,14 @@ export class PixelRenderer {
         rect(10, hy + 5, 2, 1, '#7d6878');
       }
 
-      // Mustache for Felix
+      // Mustache / Beard
       if (cfg.accessory === 'watchchain_mustache') {
         rect(7, hy + 6, 4, 1, '#b0b8c4');
         p(6, hy + 6, '#b0b8c4');
         p(11, hy + 6, '#b0b8c4');
+      } else if (cfg.accessory === 'beard_spectacles') {
+        rect(6, hy + 6, 6, 2, cfg.hair);
+        rect(7, hy + 8, 4, 1, cfg.hairHighlight);
       }
     } else if (dir === 2) {
       // Left eye profile
@@ -1224,6 +1311,12 @@ export class PixelRenderer {
       } else if (cfg.id === 'iris') {
         // Silver-streaked chignon comb
         p(12, hy + 1, '#dce2ee');
+      } else if (cfg.accessory === 'beard_spectacles') {
+        // Professor Sable's silver side temples
+        rect(4, hy + 2, 2, 5, cfg.hair);
+        rect(12, hy + 2, 2, 5, cfg.hair);
+        p(5, hy + 1, cfg.hairHighlight);
+        p(12, hy + 1, cfg.hairHighlight);
       }
     }
   }
