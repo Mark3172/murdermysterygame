@@ -201,7 +201,7 @@ export class ExplorationScene extends Phaser.Scene {
       this.add.ellipse(ox, oy + oh/2 + 2, Math.max(ow * 0.85, 14), 6, 0x000000, 0.45).setDepth(oy - 1);
 
       // Dedicated Pixel Art Prop Texture (tabletop items layered above furniture base)
-      const propKey = PixelRenderer.getPropKey(obj.id);
+      const propKey = PixelRenderer.getPropKey(obj.id, this.roomId);
       const propDepth = ['thermos', 'spilled_ink'].includes(obj.id) ? oy + 2 : oy;
       const propSprite = this.add.image(ox, oy, propKey).setDepth(propDepth);
 
@@ -548,18 +548,93 @@ export class ExplorationScene extends Phaser.Scene {
   private echoLensMini() {
     this.inDialogue = true;
     const els: Phaser.GameObjects.GameObject[] = [];
-    const bkg = this.add.rectangle(320,180,500,260,0x0a0a12,0.95).setDepth(600).setScrollFactor(0); els.push(bkg);
-    els.push(this.add.text(320,70,'🎧 ECHO LENS — Sound Analysis',{fontSize:'11px',color:'#4ac47a',fontFamily:'Courier New'}).setOrigin(0.5).setDepth(601).setScrollFactor(0));
-    const w1 = this.add.graphics().setDepth(601).setScrollFactor(0); els.push(w1);
-    els.push(this.add.text(120,95,'Standard Bell (12th chime)',{fontSize:'8px',color:'#4a8a9a',fontFamily:'Courier New'}).setDepth(601).setScrollFactor(0));
-    w1.lineStyle(2,0x4a8a9a);
-    for(let x=0;x<200;x++){const y=Math.sin(x*0.1)*15*Math.exp(-x*0.01);if(x===0)w1.moveTo(120+x,130+y);else w1.lineTo(120+x,130+y);}
-    const w2 = this.add.graphics().setDepth(601).setScrollFactor(0); els.push(w2);
-    els.push(this.add.text(120,165,'13th Chime (anomalous)',{fontSize:'8px',color:'#c4a44a',fontFamily:'Courier New'}).setDepth(601).setScrollFactor(0));
-    w2.lineStyle(2,0xc4a44a);
-    for(let x=0;x<200;x++){const y=Math.sin(x*0.12+Math.sin(x*0.03)*2)*15*Math.exp(-x*0.008);if(x===0)w2.moveTo(120+x,200+y);else w2.lineTo(120+x,200+y);}
-    els.push(this.add.text(320,240,'The 13th chime has a different resonance.\nIt matches the pendulum room mechanism.',{fontSize:'8px',color:'#a0b0c0',fontFamily:'Courier New',align:'center',wordWrap:{width:400}}).setOrigin(0.5).setDepth(601).setScrollFactor(0));
-    const btn = this.add.text(260, 290, '[ RECORD FINDING ]', { fontSize: '10px', color: '#4ac47a', fontFamily: 'Courier New', backgroundColor: '#1a2a1a', padding: { x: 10, y: 4 } }).setOrigin(0.5).setDepth(601).setScrollFactor(0).setInteractive({ useHandCursor: true }); els.push(btn);
+
+    // 1. Steampunk Brass Oscilloscope Housing
+    const bkg = this.add.rectangle(320, 180, 520, 270, 0x0a0e1c, 0.98).setDepth(600).setScrollFactor(0);
+    const frame = this.add.graphics().setDepth(601).setScrollFactor(0);
+    frame.lineStyle(3, 0xd4af37, 1);
+    frame.strokeRect(60, 45, 520, 270);
+    frame.lineStyle(1, 0x6e5418, 1);
+    frame.strokeRect(64, 49, 512, 262);
+    // Brass corner studs
+    frame.fillStyle(0xffe066, 1);
+    frame.fillRect(66, 51, 4, 4); frame.fillRect(570, 51, 4, 4);
+    frame.fillRect(66, 305, 4, 4); frame.fillRect(570, 305, 4, 4);
+    els.push(bkg, frame);
+
+    // Header placard
+    els.push(this.add.text(320, 68, '🎧 ECHO LENS • ACOUSTIC RESONANCE OSCILLOSCOPE', {
+      fontSize: '11px', color: '#ffd700', fontFamily: 'Courier New, monospace', fontStyle: 'bold', letterSpacing: 1
+    }).setOrigin(0.5).setDepth(602).setScrollFactor(0));
+
+    // 2. Phosphor CRT Screen
+    const crtBg = this.add.rectangle(245, 175, 330, 160, 0x04140c, 1).setDepth(601).setScrollFactor(0);
+    const crtGrid = this.add.graphics().setDepth(602).setScrollFactor(0);
+    crtGrid.lineStyle(1, 0x0c301c, 0.5);
+    for (let x = 85; x <= 405; x += 20) { crtGrid.moveTo(x, 95); crtGrid.lineTo(x, 255); }
+    for (let y = 95; y <= 255; y += 20) { crtGrid.moveTo(85, y); crtGrid.lineTo(405, y); }
+    crtGrid.stroke();
+    crtGrid.lineStyle(2, 0x1a4830, 1);
+    crtGrid.strokeRect(80, 95, 330, 160);
+    els.push(crtBg, crtGrid);
+
+    // Waveform 1: Standard Bell 12th Chime (Cyan trace)
+    const w1 = this.add.graphics().setDepth(603).setScrollFactor(0);
+    els.push(w1);
+    els.push(this.add.text(90, 102, 'CH-A: Standard 12th Chime (440Hz Harmonic)', {
+      fontSize: '8px', color: '#4ac4d4', fontFamily: 'Courier New, monospace', fontStyle: 'bold'
+    }).setDepth(603).setScrollFactor(0));
+    w1.lineStyle(2, 0x4ac4d4, 0.95);
+    for (let x = 0; x < 280; x++) {
+      const y = Math.sin(x * 0.08) * 16 * Math.exp(-x * 0.006);
+      if (x === 0) w1.moveTo(100 + x, 140 + y);
+      else w1.lineTo(100 + x, 140 + y);
+    }
+
+    // Waveform 2: Anomalous 13th Chime (Amber trace)
+    const w2 = this.add.graphics().setDepth(603).setScrollFactor(0);
+    els.push(w2);
+    els.push(this.add.text(90, 175, 'CH-B: Anomalous 13th Chime (Acoustic Match: Pendulum Flue)', {
+      fontSize: '8px', color: '#ffbb33', fontFamily: 'Courier New, monospace', fontStyle: 'bold'
+    }).setDepth(603).setScrollFactor(0));
+    w2.lineStyle(2, 0xffbb33, 0.95);
+    for (let x = 0; x < 280; x++) {
+      const y = (Math.sin(x * 0.12) * 12 + Math.sin(x * 0.04) * 8) * Math.exp(-x * 0.005);
+      if (x === 0) w2.moveTo(100 + x, 215 + y);
+      else w2.lineTo(100 + x, 215 + y);
+    }
+
+    // 3. Right-side Brass Control Panel with Rotary Dials
+    const panelBg = this.add.rectangle(480, 175, 120, 160, 0x121828, 1).setDepth(602).setScrollFactor(0);
+    const dials = this.add.graphics().setDepth(603).setScrollFactor(0);
+    dials.fillStyle(0xd4af37, 1);
+    dials.fillCircle(480, 125, 12); dials.fillCircle(480, 175, 12); dials.fillCircle(480, 225, 12);
+    dials.fillStyle(0x181206, 1);
+    dials.fillCircle(480, 125, 4); dials.fillCircle(480, 175, 4); dials.fillCircle(480, 225, 4);
+    // Dial indicator ticks
+    dials.lineStyle(1.5, 0xffe066, 1);
+    dials.moveTo(480, 125); dials.lineTo(488, 120);
+    dials.moveTo(480, 175); dials.lineTo(485, 165);
+    dials.moveTo(480, 225); dials.lineTo(475, 218);
+    dials.stroke();
+    els.push(panelBg, dials);
+
+    els.push(this.add.text(480, 142, 'FREQ (Hz)', { fontSize: '7px', color: '#8899aa', fontFamily: 'Courier New' }).setOrigin(0.5).setDepth(603).setScrollFactor(0));
+    els.push(this.add.text(480, 192, 'RESONANCE', { fontSize: '7px', color: '#8899aa', fontFamily: 'Courier New' }).setOrigin(0.5).setDepth(603).setScrollFactor(0));
+    els.push(this.add.text(480, 242, 'ATTENUATE', { fontSize: '7px', color: '#8899aa', fontFamily: 'Courier New' }).setOrigin(0.5).setDepth(603).setScrollFactor(0));
+
+    // Summary diagnosis text
+    els.push(this.add.text(320, 268, 'Acoustic Signature verified: The 13th chime vibrates at Project Echo\'s calibration frequency.', {
+      fontSize: '9px', color: '#e6edf4', fontFamily: 'Georgia, serif', fontStyle: 'italic', align: 'center'
+    }).setOrigin(0.5).setDepth(603).setScrollFactor(0));
+
+    // Buttons
+    const btn = this.add.text(250, 296, '✔ RECORD FINDING', {
+      fontSize: '11px', color: '#ffd700', fontFamily: 'Courier New, monospace', fontStyle: 'bold',
+      backgroundColor: '#182436', padding: { x: 12, y: 5 }
+    }).setOrigin(0.5).setDepth(603).setScrollFactor(0).setInteractive({ useHandCursor: true });
+    els.push(btn);
+
     btn.on('pointerdown', () => {
       if (!gameState.hasEvidence('thirteenth_chime_resonance')) {
         gameState.collectEvidence('thirteenth_chime_resonance');
@@ -573,7 +648,12 @@ export class ExplorationScene extends Phaser.Scene {
       els.forEach(e => e.destroy()); this.inDialogue = false; this.activeGadget = null; this.gadgetOverlay?.destroy(); this.gadgetOverlay = null; EventBus.emit('gadget-changed', null); this.save();
     });
 
-    const closeBtn = this.add.text(380, 290, '[ CLOSE ]', { fontSize: '10px', color: '#8899aa', fontFamily: 'Courier New', backgroundColor: '#181b28', padding: { x: 10, y: 4 } }).setOrigin(0.5).setDepth(601).setScrollFactor(0).setInteractive({ useHandCursor: true }); els.push(closeBtn);
+    const closeBtn = this.add.text(390, 296, '✕ CLOSE', {
+      fontSize: '11px', color: '#8899aa', fontFamily: 'Courier New, monospace',
+      backgroundColor: '#141824', padding: { x: 12, y: 5 }
+    }).setOrigin(0.5).setDepth(603).setScrollFactor(0).setInteractive({ useHandCursor: true });
+    els.push(closeBtn);
+
     closeBtn.on('pointerdown', () => {
       els.forEach(e => e.destroy()); this.inDialogue = false; this.activeGadget = null; this.gadgetOverlay?.destroy(); this.gadgetOverlay = null; EventBus.emit('gadget-changed', null);
     });
@@ -582,26 +662,93 @@ export class ExplorationScene extends Phaser.Scene {
   private microRoverMini() {
     this.inDialogue = true;
     const els: Phaser.GameObjects.GameObject[] = [];
-    els.push(this.add.rectangle(320, 180, 400, 250, 0x0a0a12, 0.95).setDepth(600).setScrollFactor(0));
-    els.push(this.add.text(320, 75, '🤖 MICRO ROVER', { fontSize: '10px', color: '#c4a44a', fontFamily: 'Courier New' }).setOrigin(0.5).setDepth(601).setScrollFactor(0));
-    const maze = this.add.graphics().setDepth(601).setScrollFactor(0); els.push(maze);
-    maze.fillStyle(0x2a2a3a); maze.fillRect(160, 100, 320, 140);
-    maze.lineStyle(2, 0x4a4a5a); maze.strokeRect(160, 100, 320, 140);
-    maze.moveTo(220, 100); maze.lineTo(220, 180); maze.moveTo(280, 160); maze.lineTo(280, 240); maze.moveTo(340, 100); maze.lineTo(340, 200); maze.stroke();
-    const rover = this.add.rectangle(180, 120, 8, 8, 0x4ac47a).setDepth(602).setScrollFactor(0); els.push(rover);
-    const goal = this.add.rectangle(460, 220, 12, 12, 0xc4a44a, 0.7).setDepth(601).setScrollFactor(0).setInteractive({ useHandCursor: true }); els.push(goal);
-    this.tweens.add({ targets: goal, alpha: 0.3, yoyo: true, repeat: -1, duration: 500 });
-    els.push(this.add.text(320, 250, 'Click the secret door on the right to navigate the drone!', { fontSize: '8px', color: '#8a9aaa', fontFamily: 'Courier New' }).setOrigin(0.5).setDepth(601).setScrollFactor(0));
 
-    const closeBtn = this.add.text(320, 280, '[ CLOSE ]', { fontSize: '9px', color: '#8899aa', fontFamily: 'Courier New', backgroundColor: '#181b28', padding: { x: 8, y: 3 } }).setOrigin(0.5).setDepth(601).setScrollFactor(0).setInteractive({ useHandCursor: true }); els.push(closeBtn);
+    // Steampunk Drone Remote Console
+    const bkg = this.add.rectangle(320, 180, 460, 270, 0x0a0e1c, 0.98).setDepth(600).setScrollFactor(0);
+    const frame = this.add.graphics().setDepth(601).setScrollFactor(0);
+    frame.lineStyle(3, 0xd4af37, 1);
+    frame.strokeRect(90, 45, 460, 270);
+    frame.lineStyle(1, 0x5a4214, 1);
+    frame.strokeRect(94, 49, 452, 262);
+    // Corner brass studs
+    frame.fillStyle(0xffe066, 1);
+    frame.fillRect(96, 51, 4, 4); frame.fillRect(540, 51, 4, 4);
+    frame.fillRect(96, 305, 4, 4); frame.fillRect(540, 305, 4, 4);
+    els.push(bkg, frame);
+
+    // Title & Telemetry Header
+    els.push(this.add.text(320, 68, '🤖 MICRO ROVER • ACOUSTIC FLUE DUCT NAVIGATION', {
+      fontSize: '10px', color: '#ffd700', fontFamily: 'Courier New, monospace', fontStyle: 'bold', letterSpacing: 1
+    }).setOrigin(0.5).setDepth(602).setScrollFactor(0));
+
+    // Telemetry Indicators
+    els.push(this.add.text(120, 88, 'SIGNAL: ● 98%  |  DEPTH: 14.2m  |  OPTICAL: INFRARED', {
+      fontSize: '8px', color: '#4ac47a', fontFamily: 'Courier New, monospace'
+    }).setDepth(602).setScrollFactor(0));
+
+    // Blueprinted Ventilation Flue Shaft
+    const maze = this.add.graphics().setDepth(602).setScrollFactor(0);
+    els.push(maze);
+    maze.fillStyle(0x0e1424, 1);
+    maze.fillRect(120, 105, 400, 130);
+    maze.lineStyle(2, 0x3a4b66, 1);
+    maze.strokeRect(120, 105, 400, 130);
+    // Duct walls
+    maze.lineStyle(3, 0x4a6a8a, 1);
+    maze.moveTo(200, 105); maze.lineTo(200, 185);
+    maze.moveTo(280, 155); maze.lineTo(280, 235);
+    maze.moveTo(360, 105); maze.lineTo(360, 195);
+    maze.stroke();
+
+    // Ventilation hazard grating texture
+    maze.lineStyle(1, 0x1e2838, 0.6);
+    for (let x = 130; x < 510; x += 15) { maze.moveTo(x, 105); maze.lineTo(x, 235); }
+    maze.stroke();
+
+    // Micro Rover Probe (with headlights & antenna)
+    const roverContainer = this.add.container(145, 130).setDepth(604).setScrollFactor(0);
+    const roverLight = this.add.triangle(0, 0, 0, 0, 30, -10, 30, 10, 0xffea70, 0.3);
+    const roverBody = this.add.rectangle(0, 0, 14, 10, 0x4ac47a);
+    const roverTreads = this.add.rectangle(0, 0, 16, 12, 0x224430).setDepth(-1);
+    const roverAntenna = this.add.line(0, 0, -4, -5, -4, -12, 0xd4af37);
+    roverContainer.add([roverLight, roverTreads, roverBody, roverAntenna]);
+    els.push(roverContainer);
+
+    // Target Goal: Hidden Brass Flue Deadbolt Latch
+    const goalContainer = this.add.container(490, 210).setDepth(604).setScrollFactor(0);
+    const goalGlow = this.add.circle(0, 0, 14, 0xd4af37, 0.4);
+    const goalLatch = this.add.rectangle(0, 0, 14, 14, 0xd4af37).setInteractive({ useHandCursor: true });
+    const goalIcon = this.add.text(0, 0, '⚙', { fontSize: '10px', color: '#1a1005' }).setOrigin(0.5);
+    goalContainer.add([goalGlow, goalLatch, goalIcon]);
+    this.tweens.add({ targets: goalGlow, scale: 1.4, alpha: 0.1, yoyo: true, repeat: -1, duration: 600 });
+    els.push(goalContainer);
+
+    els.push(this.add.text(320, 250, '▶ Click the glowing brass gear latch to navigate the probe through the duct!', {
+      fontSize: '8px', color: '#ffea70', fontFamily: 'Courier New, monospace'
+    }).setOrigin(0.5).setDepth(603).setScrollFactor(0));
+
+    const closeBtn = this.add.text(320, 285, '✕ CLOSE', {
+      fontSize: '10px', color: '#8899aa', fontFamily: 'Courier New, monospace',
+      backgroundColor: '#141824', padding: { x: 12, y: 4 }
+    }).setOrigin(0.5).setDepth(603).setScrollFactor(0).setInteractive({ useHandCursor: true });
+    els.push(closeBtn);
+
     closeBtn.on('pointerdown', () => {
       els.forEach(e => e.destroy()); this.inDialogue = false; this.activeGadget = null; this.gadgetOverlay?.destroy(); this.gadgetOverlay = null; EventBus.emit('gadget-changed', null);
     });
 
-    goal.on('pointerdown', () => {
+    goalLatch.on('pointerdown', () => {
       this.tweens.chain({
-        targets: rover,
-        tweens: [{ x: 230, duration: 400 }, { y: 190, duration: 300 }, { x: 350, y: 210, duration: 400 }, { x: 460, y: 220, duration: 500 }],
+        targets: roverContainer,
+        tweens: [
+          { x: 200, duration: 400 },
+          { y: 200, duration: 350 },
+          { x: 320, duration: 450 },
+          { y: 130, duration: 350 },
+          { x: 420, duration: 400 },
+          { y: 210, duration: 300 },
+          { x: 480, duration: 300 }
+        ],
         onComplete: () => {
           if (!gameState.hasEvidence('connecting_door')) {
             gameState.collectEvidence('connecting_door');
@@ -610,7 +757,7 @@ export class ExplorationScene extends Phaser.Scene {
               itemObj.marker.destroy();
               itemObj.marker = null;
             }
-            this.showDiscovery('Hidden Connecting Door', 'A hidden door between the clockwork gallery and exhibition chamber!');
+            this.showDiscovery('Hidden Connecting Door', 'A hidden acoustic flue door connecting the Clockwork Gallery directly into the Exhibition Chamber!');
           }
           this.time.delayedCall(1200, () => {
             els.forEach(e => e.destroy()); this.inDialogue = false; this.activeGadget = null; this.gadgetOverlay?.destroy(); this.gadgetOverlay = null; EventBus.emit('gadget-changed', null); this.save();
@@ -623,21 +770,76 @@ export class ExplorationScene extends Phaser.Scene {
   private voicePrismMini() {
     this.inDialogue = true;
     const els: Phaser.GameObjects.GameObject[] = [];
-    els.push(this.add.rectangle(320, 180, 500, 280, 0x0a0a12, 0.95).setDepth(600).setScrollFactor(0));
-    els.push(this.add.text(320, 55, '🔊 VOICE PRISM', { fontSize: '10px', color: '#c4a44a', fontFamily: 'Courier New' }).setOrigin(0.5).setDepth(601).setScrollFactor(0));
-    const b1 = this.add.graphics().setDepth(601).setScrollFactor(0); els.push(b1);
-    els.push(this.add.text(120, 75, 'Announcement Recording:', { fontSize: '8px', color: '#4a8a9a', fontFamily: 'Courier New' }).setDepth(601).setScrollFactor(0));
-    for (let i = 0; i < 40; i++) {
-      const h = Math.abs(Math.sin(i * 0.3)) * 20 + 3;
-      b1.fillStyle(0x4a8a9a);
-      b1.fillRect(120 + i * 8, 110 - h, 6, h * 2);
-    }
-    b1.fillStyle(0xc44a4a, 0.8);
-    b1.fillRect(120 + 22 * 8, 85, 2, 50);
-    els.push(this.add.text(120 + 22 * 8, 82, '← SPLICE', { fontSize: '7px', color: '#c44a4a', fontFamily: 'Courier New' }).setDepth(601).setScrollFactor(0));
-    els.push(this.add.text(320, 210, 'Whispered "I\'m sorry" matches Nadia Thorn\nwith 94% confidence.', { fontSize: '8px', color: '#e0e8f0', fontFamily: 'Courier New', align: 'center', wordWrap: { width: 400 } }).setOrigin(0.5).setDepth(601).setScrollFactor(0));
 
-    const btn = this.add.text(260, 280, '[ RECORD FINDINGS ]', { fontSize: '10px', color: '#c4a44a', fontFamily: 'Courier New', backgroundColor: '#2a2a1a', padding: { x: 10, y: 4 } }).setOrigin(0.5).setDepth(601).setScrollFactor(0).setInteractive({ useHandCursor: true }); els.push(btn);
+    // Antique Magnetic Wire Spectrograph Instrument
+    const bkg = this.add.rectangle(320, 180, 520, 280, 0x0a0e1c, 0.98).setDepth(600).setScrollFactor(0);
+    const frame = this.add.graphics().setDepth(601).setScrollFactor(0);
+    frame.lineStyle(3, 0xd4af37, 1);
+    frame.strokeRect(60, 40, 520, 280);
+    frame.lineStyle(1, 0x6e5418, 1);
+    frame.strokeRect(64, 44, 512, 272);
+    // Corner studs
+    frame.fillStyle(0xffe066, 1);
+    frame.fillRect(66, 46, 4, 4); frame.fillRect(570, 46, 4, 4);
+    frame.fillRect(66, 310, 4, 4); frame.fillRect(570, 310, 4, 4);
+    els.push(bkg, frame);
+
+    // Title Header
+    els.push(this.add.text(320, 60, '🔊 VOICE PRISM • MAGNETIC WIRE PHONOGRAPH SPECTROGRAM', {
+      fontSize: '10px', color: '#ffd700', fontFamily: 'Courier New, monospace', fontStyle: 'bold', letterSpacing: 1
+    }).setOrigin(0.5).setDepth(602).setScrollFactor(0));
+
+    // Rotating Magnetic Wire Reels at Top
+    const reel1 = this.add.circle(120, 95, 16, 0xd4af37, 0.9).setDepth(602).setScrollFactor(0);
+    const reel2 = this.add.circle(520, 95, 16, 0xd4af37, 0.9).setDepth(602).setScrollFactor(0);
+    this.tweens.add({ targets: reel1, angle: 360, repeat: -1, duration: 3000 });
+    this.tweens.add({ targets: reel2, angle: 360, repeat: -1, duration: 3000 });
+    els.push(reel1, reel2);
+
+    // Frequency Spectrum Visualizer Display
+    const specBg = this.add.rectangle(320, 155, 380, 85, 0x040814, 1).setDepth(602).setScrollFactor(0);
+    const specFrame = this.add.graphics().setDepth(603).setScrollFactor(0);
+    specFrame.lineStyle(1, 0x2a3854, 0.8);
+    specFrame.strokeRect(130, 112, 380, 85);
+    els.push(specBg, specFrame);
+
+    // Audio frequency bands
+    const b1 = this.add.graphics().setDepth(604).setScrollFactor(0);
+    els.push(b1);
+    els.push(this.add.text(140, 118, 'PLAYBACK: 7:45 PM Demonstration Announcement Track', {
+      fontSize: '8px', color: '#7ac4d4', fontFamily: 'Courier New, monospace', fontStyle: 'bold'
+    }).setDepth(604).setScrollFactor(0));
+
+    for (let i = 0; i < 44; i++) {
+      const h = Math.abs(Math.sin(i * 0.28)) * 22 + 4;
+      b1.fillStyle(0x3a8296);
+      b1.fillRect(140 + i * 8, 172 - h, 6, h);
+      b1.fillStyle(0x6ad0e6);
+      b1.fillRect(140 + i * 8, 172 - h, 6, 2); // peak light
+    }
+
+    // Magnetic wire splice marker
+    b1.fillStyle(0xff3333, 0.9);
+    b1.fillRect(140 + 24 * 8, 128, 3, 58);
+    els.push(this.add.text(140 + 24 * 8 + 6, 130, '◀ SPLICE ARTIFACT DETECTED', {
+      fontSize: '7px', color: '#ff4444', fontFamily: 'Courier New, monospace', fontStyle: 'bold'
+    }).setDepth(604).setScrollFactor(0));
+
+    // Acoustic Analysis & Confidence Result Box
+    const matchBox = this.add.rectangle(320, 230, 420, 36, 0x141c2c, 0.9).setDepth(602).setScrollFactor(0);
+    matchBox.setStrokeStyle(1, 0xd4af37, 0.6);
+    const matchTxt = this.add.text(320, 230, 'ACOUSTIC MATCH: 94% CONFIDENCE — NADIA THORN\nWhispered confession: "I\'m sorry, Aldric..." spliced onto wire spool.', {
+      fontSize: '9px', color: '#ffea70', fontFamily: 'Georgia, serif', align: 'center', lineSpacing: 3
+    }).setOrigin(0.5).setDepth(603).setScrollFactor(0);
+    els.push(matchBox, matchTxt);
+
+    // Buttons
+    const btn = this.add.text(250, 285, '✔ RECORD FINDINGS', {
+      fontSize: '11px', color: '#ffd700', fontFamily: 'Courier New, monospace', fontStyle: 'bold',
+      backgroundColor: '#182436', padding: { x: 12, y: 5 }
+    }).setOrigin(0.5).setDepth(603).setScrollFactor(0).setInteractive({ useHandCursor: true });
+    els.push(btn);
+
     btn.on('pointerdown', () => {
       if (!gameState.hasEvidence('spliced_recording')) {
         gameState.collectEvidence('spliced_recording');
@@ -646,16 +848,21 @@ export class ExplorationScene extends Phaser.Scene {
           itemObj.marker.destroy();
           itemObj.marker = null;
         }
-        this.showDiscovery('Spliced Recording', 'The announcement was assembled from earlier recordings.');
+        this.showDiscovery('Spliced Recording', 'The demonstration announcement was assembled from earlier magnetic recordings.');
       }
       if (!gameState.hasEvidence('petra_recorder') && gameState.hasEvidence('connecting_door')) {
         gameState.collectEvidence('petra_recorder');
-        this.showDiscovery('Voice Match', 'Whispered voice matches Nadia Thorn.');
+        this.showDiscovery('Voice Match', 'Whispered voice matches Nadia Thorn with 94% confidence.');
       }
       els.forEach(e => e.destroy()); this.inDialogue = false; this.activeGadget = null; this.gadgetOverlay?.destroy(); this.gadgetOverlay = null; EventBus.emit('gadget-changed', null); this.save();
     });
 
-    const closeBtn = this.add.text(380, 280, '[ CLOSE ]', { fontSize: '10px', color: '#8899aa', fontFamily: 'Courier New', backgroundColor: '#181b28', padding: { x: 10, y: 4 } }).setOrigin(0.5).setDepth(601).setScrollFactor(0).setInteractive({ useHandCursor: true }); els.push(closeBtn);
+    const closeBtn = this.add.text(390, 285, '✕ CLOSE', {
+      fontSize: '11px', color: '#8899aa', fontFamily: 'Courier New, monospace',
+      backgroundColor: '#141824', padding: { x: 12, y: 5 }
+    }).setOrigin(0.5).setDepth(603).setScrollFactor(0).setInteractive({ useHandCursor: true });
+    els.push(closeBtn);
+
     closeBtn.on('pointerdown', () => {
       els.forEach(e => e.destroy()); this.inDialogue = false; this.activeGadget = null; this.gadgetOverlay?.destroy(); this.gadgetOverlay = null; EventBus.emit('gadget-changed', null);
     });

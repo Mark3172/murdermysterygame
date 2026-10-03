@@ -24,7 +24,10 @@ export class PixelRenderer {
     deck_sensors: 'prop_deck_sensors',
   };
 
-  static getPropKey(id: string): string {
+  static getPropKey(id: string, roomId?: string): string {
+    if (id === 'desk' && roomId === 'exhibition_chamber') {
+      return 'prop_crime_scene_desk';
+    }
     return this.propKeyMap[id] || 'prop_generic';
   }
 
@@ -1369,6 +1372,7 @@ export class PixelRenderer {
     this.generateInteractionMarker(scene);
 
     this.drawDeskProp(scene);
+    this.drawCrimeSceneDeskProp(scene);
     this.drawThermosProp(scene);
     this.drawDoorBoltProp(scene);
     this.drawPlaqueProp(scene);
@@ -1387,6 +1391,73 @@ export class PixelRenderer {
     this.drawTelescopeProp(scene);
     this.drawDeckSensorsProp(scene);
     this.drawGenericProp(scene);
+  }
+
+  private static drawCrimeSceneDeskProp(scene: Phaser.Scene) {
+    const key = 'prop_crime_scene_desk';
+    if (scene.textures.exists(key)) return;
+    const canvas = scene.textures.createCanvas(key, 64, 44);
+    if (!canvas) return;
+    const ctx = canvas.getContext();
+    if (!ctx) return;
+
+    // Base Mahogany Executive Desk
+    ctx.fillStyle = '#3a1f10';
+    ctx.fillRect(2, 6, 60, 36);
+    ctx.fillStyle = '#5c331a';
+    ctx.fillRect(0, 4, 64, 14);
+    ctx.fillStyle = '#784323';
+    ctx.fillRect(0, 2, 64, 2);
+
+    // Green leather blotter pad with gold leaf trim
+    ctx.fillStyle = '#1c3a28';
+    ctx.fillRect(16, 5, 32, 10);
+    ctx.strokeStyle = '#d4af37';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(17, 6, 30, 8);
+
+    // Scattered Project Echo schematics and blueprints
+    ctx.fillStyle = '#e8ecf4';
+    ctx.fillRect(8, 6, 12, 8);
+    ctx.fillStyle = '#3466aa';
+    ctx.fillRect(10, 8, 8, 1);
+    ctx.fillRect(10, 10, 5, 1);
+
+    // Overturned porcelain teacup with dark aconitine poison puddle
+    ctx.fillStyle = '#ffffff'; // Fallen teacup
+    ctx.fillRect(36, 7, 5, 4);
+    ctx.fillStyle = '#1a4836'; // Poison puddle
+    ctx.beginPath();
+    ctx.ellipse(43, 9, 6, 3, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Spilled black ink stain
+    ctx.fillStyle = '#0a1018';
+    ctx.beginPath();
+    ctx.ellipse(27, 11, 4, 2, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Slumped chair with Professor Sable's tweed jacket draped
+    ctx.fillStyle = '#241408'; // High-backed Victorian leather chair
+    ctx.fillRect(22, 16, 20, 20);
+    ctx.fillStyle = '#48301c'; // Draped tweed coat
+    ctx.fillRect(24, 18, 16, 16);
+    ctx.fillStyle = '#d8cca8'; // Collar
+    ctx.fillRect(29, 18, 6, 3);
+    ctx.fillStyle = '#ffd700'; // Watch chain
+    ctx.fillRect(35, 24, 1, 6);
+    ctx.fillRect(34, 30, 3, 2);
+
+    // Pedestal drawers (left and right)
+    ctx.fillStyle = '#2e180c';
+    ctx.fillRect(4, 18, 16, 22);
+    ctx.fillRect(44, 18, 16, 22);
+
+    // Yellow detective cordon chalk marker at base
+    ctx.fillStyle = 'rgba(255, 234, 112, 0.45)';
+    ctx.fillRect(0, 42, 64, 2);
+
+    canvas.refresh();
   }
 
   private static drawDeskProp(scene: Phaser.Scene) {
