@@ -5,7 +5,7 @@ import { storyManager } from '../logic/StoryPhaseManager';
 import { SaveManager } from '../engine/SaveManager';
 import { AudioManager } from '../engine/AudioManager';
 import { PixelRenderer } from '../rendering/PixelRenderer';
-import { rooms } from '../data/rooms';
+import { rooms, RoomData } from '../data/rooms';
 import { suspects } from '../data/suspects';
 import { evidence as evidenceData } from '../data/evidence';
 import { dialogue } from '../data/dialogue';
@@ -47,6 +47,7 @@ export class ExplorationScene extends Phaser.Scene {
     const room = rooms[this.roomId];
     if (!room) { this.scene.start('TitleScene'); return; }
     gameState.setCurrentRoom(this.roomId);
+    EventBus.emit('room-changed', this.roomId);
 
     // Ensure all 5 detective gadgets are unlocked so the player can immediately investigate
     const detectiveGadgets = ['tranquility_focus', 'echo_lens', 'trace_light', 'micro_rover', 'voice_prism'];
@@ -92,10 +93,10 @@ export class ExplorationScene extends Phaser.Scene {
     (this.player.body as Phaser.Physics.Arcade.Body).setCollideWorldBounds(true);
     this.playerFacing = 'down';
 
-    // Player tag
-    this.playerTag = this.add.text(sx, sy - 24, '🕵️ Ren', {
+    // Player tag (hidden from view for clean 16-bit immersion)
+    this.playerTag = this.add.text(sx, sy - 24, 'Ren', {
       fontSize: '8px', color: '#7ab4f8', fontFamily: 'Courier New', backgroundColor: '#060a16d0', padding: { x: 4, y: 1 }
-    }).setOrigin(0.5).setDepth(300);
+    }).setOrigin(0.5).setDepth(300).setVisible(false);
 
     this.physics.world.setBounds(0, 0, rw, rh);
     this.cameras.main.setBounds(0, 0, rw, rh);
@@ -255,15 +256,15 @@ export class ExplorationScene extends Phaser.Scene {
         nadia: '🎵', vale: '🧪', hugo: '👨‍⚕️', petra: '📷', felix: '💎', iris: '⚙️'
       };
       const icon = sus ? roleIcons[sus.id] || '👤' : '👤';
-      const roleLabel = sus ? `${icon} ${sus.name} • ${sus.title}` : npc.id;
+      const roleLabel = sus ? `${sus.name} • ${sus.title}` : npc.id;
       const lb = this.add.text(nx, ny + 18, roleLabel, {
-        fontSize: '8px', color: '#ffffff', fontFamily: 'Courier New', backgroundColor: '#090d1af0', padding: { x: 5, y: 2 }
-      }).setOrigin(0.5).setDepth(ny + 100);
+        fontSize: '8px', color: '#ffd700', fontFamily: 'Courier New, monospace', backgroundColor: '#090d1af0', padding: { x: 5, y: 2 }
+      }).setOrigin(0.5).setDepth(ny + 100).setVisible(false);
 
-      // Exclamation mark for un-interviewed suspects
+      // Diamond sparkle marker for un-interviewed suspects
       if (sus && !gameState.isSuspectInterviewed(sus.id)) {
-        const exclaim = this.add.text(nx, ny - 24, '❗', { fontSize: '10px', color: '#ffea70' }).setOrigin(0.5).setDepth(ny + 101);
-        this.tweens.add({ targets: exclaim, y: ny - 28, yoyo: true, repeat: -1, duration: 600 });
+        const exclaim = this.add.image(nx, ny - 24, 'sparkle_gleam').setDepth(ny + 101);
+        this.tweens.add({ targets: exclaim, y: ny - 28, alpha: 0.5, yoyo: true, repeat: -1, duration: 600 });
       }
 
       this.npcObjects.push({ sprite: sp as any, data: npc, label: lb });
@@ -275,9 +276,8 @@ export class ExplorationScene extends Phaser.Scene {
       this.tweens.add({targets:d, x:d.x+(Math.random()-0.5)*100, y:d.y+(Math.random()-0.5)*50, alpha:0, duration:4000+Math.random()*3000, repeat:-1, yoyo:true});
     }
 
-    // Room name
-    const rn = this.add.text(rw/2, 20, room.name, {fontSize:'10px',color:'#7ac4d4',fontFamily:'Courier New'}).setOrigin(0.5).setDepth(200).setScrollFactor(0);
-    this.tweens.add({targets:rn, alpha:0, delay:2000, duration:1000});
+    // Grand Victorian Room Entrance Placard
+    this.showRoomPlacard(room);
 
     // Input
     if (this.input.keyboard) {
@@ -429,7 +429,7 @@ export class ExplorationScene extends Phaser.Scene {
 
     this.playerShadow.setPosition(this.player.x, this.player.y + 15);
     this.playerShadow.setDepth(this.player.y - 1);
-    this.playerTag.setPosition(this.player.x, this.player.y - 24);
+    if (this.playerTag.visible) this.playerTag.setPosition(this.player.x, this.player.y - 24);
     this.player.setDepth(this.player.y);
 
     // Proximity
@@ -444,15 +444,15 @@ export class ExplorationScene extends Phaser.Scene {
     let nearNpc: typeof this.npcObjects[0]|null = null;
     for (const n of this.npcObjects) {
       const d = Phaser.Math.Distance.Between(this.player.x, this.player.y, n.sprite.x, n.sprite.y);
+      n.label.setVisible(d < 50);
       if (d < 45) nearNpc = n;
     }
 
-    // Update floating interaction prompt
+    // Update floating interaction prompt (dispatches to high-DPI HTML overlay)
     if (nearNpc) {
       const sus = nearNpc.data.suspectId ? suspects[nearNpc.data.suspectId] : null;
       const promptText = `💬 [E] Talk to ${sus?.name || nearNpc.data.id}`;
       this.interactionPrompt.setText(promptText);
-      this.interactionPrompt.setVisible(true);
       EventBus.emit('update-prompt', { text: promptText, visible: true });
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('update-prompt', { detail: { text: promptText, visible: true } }));
@@ -460,13 +460,11 @@ export class ExplorationScene extends Phaser.Scene {
     } else if (nearObj) {
       const promptText = `🔍 [E] Examine ${nearObj.data.name}`;
       this.interactionPrompt.setText(promptText);
-      this.interactionPrompt.setVisible(true);
       EventBus.emit('update-prompt', { text: promptText, visible: true });
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('update-prompt', { detail: { text: promptText, visible: true } }));
       }
     } else {
-      this.interactionPrompt.setVisible(false);
       EventBus.emit('update-prompt', { text: '', visible: false });
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('update-prompt', { detail: { text: '', visible: false } }));
@@ -941,6 +939,62 @@ export class ExplorationScene extends Phaser.Scene {
       this.registry.set('spawnX', sx);
       this.registry.set('spawnY', sy);
       this.scene.restart({ roomId: target });
+    });
+  }
+
+  private showRoomPlacard(room: RoomData) {
+    const banner = this.add.container(320, 16).setDepth(500).setScrollFactor(0).setAlpha(0);
+
+    const bg = this.add.graphics();
+    const bw = 320, bh = 42;
+    bg.fillStyle(0x070b16, 0.94);
+    bg.fillRoundedRect(-bw / 2, 0, bw, bh, 6);
+    bg.lineStyle(1.5, 0xd4af37, 0.9);
+    bg.strokeRoundedRect(-bw / 2, 0, bw, bh, 6);
+
+    // Corner filigree studs
+    bg.fillStyle(0xd4af37, 1);
+    bg.fillCircle(-bw / 2 + 6, 6, 2);
+    bg.fillCircle(bw / 2 - 6, 6, 2);
+    bg.fillCircle(-bw / 2 + 6, bh - 6, 2);
+    bg.fillCircle(bw / 2 - 6, bh - 6, 2);
+
+    const title = this.add.text(0, 12, `✦ ${room.name.toUpperCase()} ✦`, {
+      fontFamily: 'Georgia, serif',
+      fontSize: '12px',
+      color: '#ffd700',
+      fontStyle: 'bold',
+      letterSpacing: 1.5
+    }).setOrigin(0.5);
+
+    const descText = room.description && room.description.length > 55 ? room.description.substring(0, 52) + '...' : (room.description || '');
+    const desc = this.add.text(0, 28, descText, {
+      fontFamily: 'Courier New, monospace',
+      fontSize: '8px',
+      color: '#a0b8d0'
+    }).setOrigin(0.5);
+
+    banner.add([bg, title, desc]);
+
+    // Smooth slide down and fade out
+    this.tweens.add({
+      targets: banner,
+      y: 42,
+      alpha: 1,
+      duration: 400,
+      ease: 'Cubic.easeOut',
+      onComplete: () => {
+        this.time.delayedCall(2200, () => {
+          this.tweens.add({
+            targets: banner,
+            y: 20,
+            alpha: 0,
+            duration: 600,
+            ease: 'Cubic.easeIn',
+            onComplete: () => banner.destroy()
+          });
+        });
+      }
     });
   }
 

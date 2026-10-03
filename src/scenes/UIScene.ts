@@ -5,6 +5,7 @@ import { AudioManager } from '../engine/AudioManager';
 import { storyManager } from '../logic/StoryPhaseManager';
 import { hintSystem } from '../logic/HintSystem';
 import { gadgets } from '../data/gadgets';
+import { rooms } from '../data/rooms';
 
 export class UIScene extends Phaser.Scene {
     private gadgetText!: Phaser.GameObjects.Text;
@@ -61,15 +62,14 @@ export class UIScene extends Phaser.Scene {
             });
         });
 
-        // Gadget Text badge
+        // Gadget Text badge (hidden from canvas, gadget is cleanly shown in top HUD bar)
         this.gadgetText = this.add.text(16, 346, '🔧 Gadgets [1-5]: Click or press 1-5', { 
             fontSize: '10px', 
             color: '#8899aa', 
             backgroundColor: '#0a0e1cee',
             padding: { x: 8, y: 4 },
             fontFamily: 'Courier New, monospace'
-        }).setOrigin(0, 1).setInteractive({ useHandCursor: true });
-        this.gadgetText.on('pointerdown', () => this.cycleGadgets());
+        }).setOrigin(0, 1).setVisible(false);
         this.updateGadgetText();
 
         EventBus.on('gadget-unlocked', this.updateGadgetText, this);
@@ -77,6 +77,19 @@ export class UIScene extends Phaser.Scene {
             this.currentGadget = g;
             this.updateGadgetText();
         }, this);
+
+        // Room badge in top HUD
+        this.updateRoomBadge(gameState.getCurrentRoom() || 'main_hall');
+        EventBus.on('room-changed', (r: string) => this.updateRoomBadge(r), this);
+    }
+
+    updateRoomBadge(roomId: string) {
+        const badge = document.getElementById('hud-room-badge');
+        if (badge) {
+            const r = rooms[roomId];
+            const name = r ? r.name : roomId.replace(/_/g, ' ');
+            badge.innerText = `📍 ${name.toUpperCase()}`;
+        }
     }
 
     createFallbackHUD() {
