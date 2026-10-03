@@ -192,6 +192,115 @@ export const cutscenes: Record<string, CutsceneData> = {
       }
     ]
   },
+  gadget_tutorial: {
+    id: 'gadget_tutorial',
+    name: 'Gadget Operations Briefing',
+    skippable: true,
+    music: 'main_theme',
+    panels: [
+      {
+        type: 'image',
+        backgroundColor: '#070a16',
+        animation: 'fade_in',
+        sound: 'discoveryString',
+        duration: 1500,
+        autoAdvance: true,
+        autoAdvanceDelay: 3200
+      },
+      {
+        type: 'dialogue',
+        speaker: 'Dr. Vale',
+        dialogue: 'Ren, my scientific inventions in your coat are calibrated for this investigation. Let me review each gadget\'s operation with you.',
+        animation: 'slide_up'
+      },
+      // Gadget 1: Tranquility Focus
+      {
+        type: 'image',
+        backgroundColor: '#081226',
+        animation: 'zoom_in',
+        sound: 'digital_beep',
+        duration: 1200,
+        autoAdvance: true,
+        autoAdvanceDelay: 2800
+      },
+      {
+        type: 'dialogue',
+        speaker: 'Dr. Vale',
+        dialogue: '[HOTKEY: KEY 1] TRANQUILITY FOCUS — Steady your breathing to enter deep concentration. It highlights all interactive props and points of interest across the chamber.',
+        animation: 'slide_left'
+      },
+      // Gadget 2: Echo Lens
+      {
+        type: 'image',
+        backgroundColor: '#061824',
+        animation: 'zoom_in',
+        sound: 'digital_beep',
+        duration: 1200,
+        autoAdvance: true,
+        autoAdvanceDelay: 2800
+      },
+      {
+        type: 'dialogue',
+        speaker: 'Dr. Vale',
+        dialogue: '[HOTKEY: KEY 2] ECHO LENS — An acoustic visualizer that converts sound vibrations into visible waveforms. Use it to trace hidden resonance and sensor data.',
+        animation: 'slide_left'
+      },
+      // Gadget 3: Trace Light
+      {
+        type: 'image',
+        backgroundColor: '#180826',
+        animation: 'zoom_in',
+        sound: 'digital_beep',
+        duration: 1200,
+        autoAdvance: true,
+        autoAdvanceDelay: 2800
+      },
+      {
+        type: 'dialogue',
+        speaker: 'Dr. Vale',
+        dialogue: '[HOTKEY: KEY 3] TRACE LIGHT — Ultraviolet spectrum illuminator. It reveals invisible chemical traces, aconitine poison residues, and smudged fingerprints on locks.',
+        animation: 'slide_left'
+      },
+      // Gadget 4: Micro Rover
+      {
+        type: 'image',
+        backgroundColor: '#1e1408',
+        animation: 'zoom_in',
+        sound: 'digital_beep',
+        duration: 1200,
+        autoAdvance: true,
+        autoAdvanceDelay: 2800
+      },
+      {
+        type: 'dialogue',
+        speaker: 'Dr. Vale',
+        dialogue: '[HOTKEY: KEY 4] MICRO ROVER — Deploy a miniature crawler drone with live telemetry. It crawls through narrow wall gaps and ventilation ducts to bypass locked doors.',
+        animation: 'slide_left'
+      },
+      // Gadget 5: Voice Prism
+      {
+        type: 'image',
+        backgroundColor: '#180a1c',
+        animation: 'zoom_in',
+        sound: 'digital_beep',
+        duration: 1200,
+        autoAdvance: true,
+        autoAdvanceDelay: 2800
+      },
+      {
+        type: 'dialogue',
+        speaker: 'Dr. Vale',
+        dialogue: '[HOTKEY: KEY 5] VOICE PRISM — Audio spectrograph that analyzes sound frequencies and tape splices. If a voice or PA recording was pre-recorded or tampered with, this exposes it!',
+        animation: 'slide_left'
+      },
+      {
+        type: 'dialogue',
+        speaker: 'Ren',
+        dialogue: 'Understood, Doctor. Keys [1] through [5] to equip, or click the Gadgets button on the top HUD bar. Let\'s uncover the truth!',
+        animation: 'slide_up'
+      }
+    ]
+  },
   discovery_scene: {
     id: 'discovery_scene',
     name: 'Finding the Body',

@@ -16,6 +16,7 @@ export class CutsceneScene extends Scene {
   private autoAdvanceTimer?: Phaser.Time.TimerEvent;
   private uiContainer!: Phaser.GameObjects.Container;
   private panelCounterText!: Phaser.GameObjects.Text;
+  private returnTo: string | null = null;
   
   constructor() {
     super('CutsceneScene');
@@ -23,6 +24,7 @@ export class CutsceneScene extends Scene {
 
   init(data: any) {
     this.cutsceneId = data.cutsceneId || 'cold_open';
+    this.returnTo = data.returnTo || null;
     this.currentPanelIndex = 0;
     this.isTransitioning = false;
   }
@@ -364,12 +366,23 @@ export class CutsceneScene extends Scene {
 
     this.cameras.main.fadeOut(1000, 0, 0, 0);
     this.cameras.main.once('camerafadeoutcomplete', () => {
+        if (this.returnTo) {
+            this.scene.start(this.returnTo);
+            return;
+        }
         switch(this.cutsceneId) {
             case 'cold_open':
                 this.scene.start('CutsceneScene', { cutsceneId: 'opening_title' });
                 break;
             case 'opening_title':
-                this.scene.start('CutsceneScene', { cutsceneId: 'discovery_scene' });
+                this.scene.start('CutsceneScene', { cutsceneId: 'gadget_tutorial' });
+                break;
+            case 'gadget_tutorial':
+                if (gameState.hasCutsceneSeen('discovery_scene')) {
+                    this.scene.start('ExplorationScene', { roomId: 'main_hall' });
+                } else {
+                    this.scene.start('CutsceneScene', { cutsceneId: 'discovery_scene' });
+                }
                 break;
             case 'discovery_scene':
             case 'midpoint_reversal':
@@ -926,6 +939,472 @@ export class CutsceneScene extends Scene {
       }).setOrigin(0.5);
 
       this.panelContainer.add([g, insc, notice]);
+      return true;
+    }
+
+    // 9. Gadget Tutorial Panel 0: 5 Gadgets Overview
+    if (cid === 'gadget_tutorial' && pIdx === 0) {
+      const g = this.add.graphics();
+      // Obsidian card background
+      g.fillStyle(0x060914, 1);
+      g.fillRect(10, 10, width - 20, height - 20);
+
+      // Gold border & studs
+      g.lineStyle(2, 0xd4af37, 0.9);
+      g.strokeRect(10, 10, width - 20, height - 20);
+      g.lineStyle(1, 0x8a6a28, 0.5);
+      g.strokeRect(16, 16, width - 32, height - 32);
+
+      g.fillStyle(0xd4af37, 1);
+      g.fillCircle(14, 14, 3); g.fillCircle(width - 14, 14, 3);
+      g.fillCircle(14, height - 14, 3); g.fillCircle(width - 14, height - 14, 3);
+
+      const title = this.add.text(width / 2, 38, '✦ DR. VALE\'S SCIENTIFIC TOOLKIT ✦', {
+        fontFamily: 'Georgia, serif',
+        fontSize: '17px',
+        color: '#f6d888',
+        fontStyle: 'bold',
+        letterSpacing: 2
+      }).setOrigin(0.5);
+
+      const sub = this.add.text(width / 2, 58, 'FIVE SPECIALIZED GADGETS TO UNRAVEL THE CONSPIRACY', {
+        fontFamily: 'Courier New, monospace',
+        fontSize: '9px',
+        color: '#88a6c8',
+        fontStyle: 'bold',
+        letterSpacing: 1.5
+      }).setOrigin(0.5);
+
+      // 5 gadget summary cards across the screen
+      const cards = [
+        { slot: '[1]', name: 'FOCUS', desc: 'Perception\n& Clues', color: 0x14223c, border: 0x4a9aff, icon: '🧠' },
+        { slot: '[2]', name: 'ECHO LENS', desc: 'Acoustic\nResonance', color: 0x0a2830, border: 0x33e0ff, icon: '🔍' },
+        { slot: '[3]', name: 'TRACE LIGHT', desc: 'UV Poison\n& Prints', color: 0x280e38, border: 0xd888ff, icon: '🔦' },
+        { slot: '[4]', name: 'MICRO ROVER', desc: 'Air Ducts\n& Telemetry', color: 0x30200a, border: 0xffb844, icon: '🚙' },
+        { slot: '[5]', name: 'VOICE PRISM', desc: 'Frequency\n& Splices', color: 0x2e0c1a, border: 0xff4488, icon: '🎙️' }
+      ];
+
+      const startX = 64;
+      const stepX = 128;
+      const cardY = 165;
+      const cardW = 112;
+      const cardH = 148;
+
+      cards.forEach((c, idx) => {
+        const cx = startX + idx * stepX;
+        // Card bg
+        g.fillStyle(c.color, 0.95);
+        g.fillRect(cx - cardW / 2, cardY - cardH / 2, cardW, cardH);
+        g.lineStyle(1.5, c.border, 0.9);
+        g.strokeRect(cx - cardW / 2, cardY - cardH / 2, cardW, cardH);
+
+        // Key badge at top
+        const slotText = this.add.text(cx, cardY - 52, c.slot, {
+          fontFamily: 'Courier New, monospace',
+          fontSize: '11px',
+          color: '#ffffff',
+          fontStyle: 'bold',
+          backgroundColor: '#0a0d18e0',
+          padding: { x: 6, y: 2 }
+        }).setOrigin(0.5);
+
+        // Emoji / Icon
+        const iconText = this.add.text(cx, cardY - 20, c.icon, {
+          fontSize: '24px'
+        }).setOrigin(0.5);
+
+        // Name
+        const nameText = this.add.text(cx, cardY + 16, c.name, {
+          fontFamily: 'Georgia, serif',
+          fontSize: '10px',
+          color: '#ffd700',
+          fontStyle: 'bold',
+          align: 'center'
+        }).setOrigin(0.5);
+
+        // Desc
+        const descText = this.add.text(cx, cardY + 44, c.desc, {
+          fontFamily: 'Courier New, monospace',
+          fontSize: '8px',
+          color: '#d0e0f0',
+          align: 'center',
+          lineSpacing: 2
+        }).setOrigin(0.5);
+
+        this.panelContainer.add([slotText, iconText, nameText, descText]);
+      });
+
+      const prompt = this.add.text(width / 2, 282, '▼ PRESS [SPACE] OR CLICK TO LEARN OPERATIONS', {
+        fontFamily: 'Courier New, monospace',
+        fontSize: '9px',
+        color: '#ffea70',
+        fontStyle: 'bold'
+      }).setOrigin(0.5);
+
+      this.panelContainer.add([g, title, sub, prompt]);
+      return true;
+    }
+
+    // 10. Gadget Tutorial Panel 2: Tranquility Focus
+    if (cid === 'gadget_tutorial' && pIdx === 2) {
+      const g = this.add.graphics();
+      g.fillGradientStyle(0x060c1c, 0x060c1c, 0x0c1836, 0x12244c, 1);
+      g.fillRect(0, 0, width, height);
+
+      // Expanding concentric mind focus waves
+      const ring1 = this.add.circle(320, 120, 45, 0x4a9aff, 0).setStrokeStyle(2, 0x4a9aff, 0.8);
+      const ring2 = this.add.circle(320, 120, 85, 0x66bbff, 0).setStrokeStyle(2, 0x66bbff, 0.5);
+      const ring3 = this.add.circle(320, 120, 125, 0xd4af37, 0).setStrokeStyle(1.5, 0xd4af37, 0.4);
+
+      this.tweens.add({ targets: ring1, scale: 1.6, alpha: 0, duration: 1800, repeat: -1 });
+      this.tweens.add({ targets: ring2, scale: 1.6, alpha: 0, duration: 1800, delay: 450, repeat: -1 });
+      this.tweens.add({ targets: ring3, scale: 1.6, alpha: 0, duration: 1800, delay: 900, repeat: -1 });
+
+      // Chronometer Pocket-Watch Focus Center
+      g.fillStyle(0x0c1a38, 1);
+      g.fillCircle(320, 120, 48);
+      g.lineStyle(3, 0xd4af37, 1);
+      g.strokeCircle(320, 120, 48);
+
+      // Glowing Eye / Mind symbol
+      g.lineStyle(2, 0x7ac4ff, 1);
+      g.strokeEllipse(320, 120, 56, 26);
+      g.fillStyle(0xffd700, 1);
+      g.fillCircle(320, 120, 8);
+      g.fillStyle(0x0a1428, 1);
+      g.fillCircle(320, 120, 4);
+
+      // Telemetry Cards
+      const t1 = this.add.text(320, 204, '✦ PULSE RATE: 58 BPM // SENSORY CALIBRATION: HEIGHTENED ✦', {
+        fontFamily: 'Courier New, monospace',
+        fontSize: '10px',
+        color: '#66bbff',
+        fontStyle: 'bold'
+      }).setOrigin(0.5);
+
+      const t2 = this.add.text(320, 224, 'EFFECT: HIGHLIGHTS ALL PROPS, CLUES, AND NPC DETAILS IN CURRENT ROOM', {
+        fontFamily: 'Courier New, monospace',
+        fontSize: '9px',
+        color: '#edf2f8'
+      }).setOrigin(0.5);
+
+      const hotkey = this.add.text(320, 256, 'HOTKEY: PRESS [1] TO ACTIVATE TRANQUILITY FOCUS', {
+        fontFamily: 'Courier New, monospace',
+        fontSize: '11px',
+        color: '#ffd700',
+        fontStyle: 'bold',
+        backgroundColor: '#0a162ef0',
+        padding: { x: 14, y: 5 }
+      }).setOrigin(0.5);
+
+      this.panelContainer.add([g, ring1, ring2, ring3, t1, t2, hotkey]);
+      return true;
+    }
+
+    // 11. Gadget Tutorial Panel 4: Echo Lens
+    if (cid === 'gadget_tutorial' && pIdx === 4) {
+      const g = this.add.graphics();
+      g.fillStyle(0x050d14, 1);
+      g.fillRect(0, 0, width, height);
+
+      // Steampunk Oscilloscope Housing
+      g.fillStyle(0x18242a, 1);
+      g.fillRoundedRect(90, 24, width - 180, 175, 8);
+      g.lineStyle(2, 0xd4af37, 0.9);
+      g.strokeRoundedRect(90, 24, width - 180, 175, 8);
+
+      // CRT Phosphor Display
+      g.fillStyle(0x031818, 1);
+      g.fillRoundedRect(106, 38, width - 212, 147, 5);
+
+      // Grid
+      g.lineStyle(1, 0x093030, 0.8);
+      for (let x = 106; x <= width - 106; x += 32) {
+        g.beginPath(); g.moveTo(x, 38); g.lineTo(x, 185); g.stroke();
+      }
+      for (let y = 38; y <= 185; y += 22) {
+        g.beginPath(); g.moveTo(106, y); g.lineTo(width - 106, y); g.stroke();
+      }
+
+      // Dual Oscillating Acoustic Sine Waves in Cyan
+      g.lineStyle(2.5, 0x33e0ff, 0.95);
+      g.beginPath();
+      for (let x = 110; x <= width - 110; x += 4) {
+        const y = 112 + Math.sin((x - 110) * 0.08) * 24 * Math.sin(x * 0.02);
+        if (x === 110) g.moveTo(x, y); else g.lineTo(x, y);
+      }
+      g.stroke();
+
+      // Telemetry
+      const t1 = this.add.text(320, 218, '✦ ACOUSTIC FREQUENCY MAPPING // 432 Hz HARMONIC DETECTED ✦', {
+        fontFamily: 'Courier New, monospace',
+        fontSize: '10px',
+        color: '#33e0ff',
+        fontStyle: 'bold'
+      }).setOrigin(0.5);
+
+      const t2 = this.add.text(320, 236, 'APPLICATION: TRACE SOUND REFLECTIONS, VIBRATION ANOMALIES & RAIN SENSORS', {
+        fontFamily: 'Courier New, monospace',
+        fontSize: '9px',
+        color: '#edf2f8'
+      }).setOrigin(0.5);
+
+      const hotkey = this.add.text(320, 264, 'HOTKEY: PRESS [2] TO ACTIVATE ECHO LENS', {
+        fontFamily: 'Courier New, monospace',
+        fontSize: '11px',
+        color: '#ffd700',
+        fontStyle: 'bold',
+        backgroundColor: '#071e2ef0',
+        padding: { x: 14, y: 5 }
+      }).setOrigin(0.5);
+
+      this.panelContainer.add([g, t1, t2, hotkey]);
+      return true;
+    }
+
+    // 12. Gadget Tutorial Panel 6: Trace Light
+    if (cid === 'gadget_tutorial' && pIdx === 6) {
+      const g = this.add.graphics();
+      g.fillStyle(0x0e051a, 1);
+      g.fillRect(0, 0, width, height);
+
+      // Angled UV flashlight cone beam
+      g.fillStyle(0x8822cc, 0.22);
+      g.beginPath();
+      g.moveTo(140, 20);
+      g.lineTo(40, 210);
+      g.lineTo(540, 210);
+      g.closePath();
+      g.fillPath();
+
+      // Deadbolt on door with glowing cyan smudged fingerprints
+      g.fillStyle(0x2a1c12, 1);
+      g.fillRect(170, 60, 110, 80);
+      g.lineStyle(2, 0xd4af37, 0.85);
+      g.strokeRect(170, 60, 110, 80);
+      // Brass bolt
+      g.fillStyle(0x5a4218, 1);
+      g.fillRect(195, 90, 80, 20);
+
+      // Glowing Cyan Fingerprints
+      g.lineStyle(1.5, 0x44ffff, 0.95);
+      for (let r = 3; r <= 15; r += 3) {
+        g.strokeCircle(235, 100, r);
+      }
+      const printTag = this.add.text(235, 50, 'LATENT FINGERPRINTS', {
+        fontFamily: 'Courier New, monospace',
+        fontSize: '8px',
+        color: '#44ffff',
+        backgroundColor: '#0a1020f0',
+        padding: { x: 4, y: 2 }
+      }).setOrigin(0.5);
+
+      // Poisoned teacup with glowing green aconitine residue
+      g.fillStyle(0xdcdcdc, 1);
+      g.fillRect(370, 85, 36, 40); // Teacup
+      g.lineStyle(1, 0x888888, 1);
+      g.strokeRect(370, 85, 36, 40);
+      // Neon green toxic puddle
+      g.fillStyle(0x22ee44, 0.9);
+      g.fillEllipse(388, 132, 54, 14);
+      const poisonTag = this.add.text(388, 70, 'ACONITINE TOXIN GLOW', {
+        fontFamily: 'Courier New, monospace',
+        fontSize: '8px',
+        color: '#22ee44',
+        backgroundColor: '#081a0af0',
+        padding: { x: 4, y: 2 }
+      }).setOrigin(0.5);
+
+      // Telemetry
+      const t1 = this.add.text(320, 208, '✦ ULTRAVIOLET 365nm // FLUORESCENCE ACTIVE ✦', {
+        fontFamily: 'Courier New, monospace',
+        fontSize: '10px',
+        color: '#d888ff',
+        fontStyle: 'bold'
+      }).setOrigin(0.5);
+
+      const t2 = this.add.text(320, 228, 'APPLICATION: EXPOSES LATENT FINGERPRINTS, POISON PUDDLES & HIDDEN RESIDUES', {
+        fontFamily: 'Courier New, monospace',
+        fontSize: '9px',
+        color: '#edf2f8'
+      }).setOrigin(0.5);
+
+      const hotkey = this.add.text(320, 258, 'HOTKEY: PRESS [3] TO ACTIVATE TRACE LIGHT', {
+        fontFamily: 'Courier New, monospace',
+        fontSize: '11px',
+        color: '#ffd700',
+        fontStyle: 'bold',
+        backgroundColor: '#260838f0',
+        padding: { x: 14, y: 5 }
+      }).setOrigin(0.5);
+
+      this.panelContainer.add([g, printTag, poisonTag, t1, t2, hotkey]);
+      return true;
+    }
+
+    // 13. Gadget Tutorial Panel 8: Micro Rover
+    if (cid === 'gadget_tutorial' && pIdx === 8) {
+      const g = this.add.graphics();
+      g.fillStyle(0x0e0a05, 1);
+      g.fillRect(0, 0, width, height);
+
+      // Steampunk blueprint terminal
+      g.fillStyle(0x1c140a, 1);
+      g.fillRect(70, 26, width - 140, 170);
+      g.lineStyle(2, 0xd4af37, 0.9);
+      g.strokeRect(70, 26, width - 140, 170);
+
+      // Blueprint duct schematic
+      g.lineStyle(1, 0x5a3c18, 0.6);
+      g.strokeRect(100, 54, width - 200, 115);
+      // Wall gap duct passage
+      g.fillStyle(0x281a0e, 1);
+      g.fillRect(160, 90, 320, 45);
+      g.lineStyle(2, 0xb87a28, 0.85);
+      g.strokeRect(160, 90, 320, 45);
+
+      // Micro Crawler Rover Sprite/Graphics inside duct
+      const rx = 280, ry = 112;
+      g.fillStyle(0xb8860b, 1);
+      g.fillRoundedRect(rx - 22, ry - 12, 44, 24, 4); // Brass chassis
+      // 6 treads/wheels
+      g.fillStyle(0x221a10, 1);
+      [-16, 0, 16].forEach(wx => {
+        g.fillRect(rx + wx - 4, ry - 16, 8, 4);
+        g.fillRect(rx + wx - 4, ry + 12, 8, 4);
+      });
+      // Headlights
+      g.fillStyle(0xffea70, 0.9);
+      g.fillCircle(rx + 20, ry - 6, 3);
+      g.fillCircle(rx + 20, ry + 6, 3);
+      // Antenna
+      g.lineStyle(1.5, 0xd4af37, 1);
+      g.beginPath(); g.moveTo(rx - 12, ry); g.lineTo(rx - 22, ry - 14); g.stroke();
+      g.fillStyle(0xff3333, 1); g.fillCircle(rx - 22, ry - 14, 2);
+
+      // Secret passage door at end of duct
+      g.fillStyle(0xd4af37, 1);
+      g.fillRect(450, 94, 14, 37);
+
+      const roverLabel = this.add.text(rx, ry - 24, 'MICRO ROVER UNIT 01', {
+        fontFamily: 'Courier New, monospace',
+        fontSize: '8px',
+        color: '#ffea70',
+        backgroundColor: '#0a0d18f0',
+        padding: { x: 4, y: 2 }
+      }).setOrigin(0.5);
+
+      // Telemetry
+      const t1 = this.add.text(320, 212, '✦ REMOTE ROVER TELEMETRY // SIGNAL STRENGTH: 98% ✦', {
+        fontFamily: 'Courier New, monospace',
+        fontSize: '10px',
+        color: '#ffb844',
+        fontStyle: 'bold'
+      }).setOrigin(0.5);
+
+      const t2 = this.add.text(320, 232, 'APPLICATION: INFILTRATE NARROW WALL GAPS & VENTILATION DUCTS TO BYPASS LOCKS', {
+        fontFamily: 'Courier New, monospace',
+        fontSize: '9px',
+        color: '#edf2f8'
+      }).setOrigin(0.5);
+
+      const hotkey = this.add.text(320, 260, 'HOTKEY: PRESS [4] TO DEPLOY MICRO ROVER', {
+        fontFamily: 'Courier New, monospace',
+        fontSize: '11px',
+        color: '#ffd700',
+        fontStyle: 'bold',
+        backgroundColor: '#301c0af0',
+        padding: { x: 14, y: 5 }
+      }).setOrigin(0.5);
+
+      this.panelContainer.add([g, roverLabel, t1, t2, hotkey]);
+      return true;
+    }
+
+    // 14. Gadget Tutorial Panel 10: Voice Prism
+    if (cid === 'gadget_tutorial' && pIdx === 10) {
+      const g = this.add.graphics();
+      g.fillStyle(0x0c0612, 1);
+      g.fillRect(0, 0, width, height);
+
+      // Mahogany & Brass Wire Recorder Casing
+      g.fillStyle(0x1c101c, 1);
+      g.fillRect(80, 24, width - 160, 175);
+      g.lineStyle(2, 0xd4af37, 0.9);
+      g.strokeRect(80, 24, width - 160, 175);
+
+      // Twin Spinning Wire Tape Reels
+      g.lineStyle(2, 0x8a6a28, 0.8);
+      g.strokeCircle(160, 80, 32); g.strokeCircle(480, 80, 32);
+      g.fillStyle(0xd4af37, 1);
+      g.fillCircle(160, 80, 6); g.fillCircle(480, 80, 6);
+
+      // Spectrograph Screen in Center
+      g.fillStyle(0x05040a, 1);
+      g.fillRect(215, 40, 210, 80);
+      g.lineStyle(1.5, 0x4a8a9a, 0.8);
+      g.strokeRect(215, 40, 210, 80);
+
+      // Normal cyan audio frequencies
+      g.lineStyle(2, 0x4ac4d4, 0.9);
+      g.beginPath();
+      for (let x = 220; x < 305; x += 3) {
+        const y = 80 + Math.sin((x - 220) * 0.15) * 16;
+        if (x === 220) g.moveTo(x, y); else g.lineTo(x, y);
+      }
+      g.stroke();
+
+      // Red Splice Spike (center)
+      g.lineStyle(2.5, 0xff2222, 1);
+      g.beginPath();
+      g.moveTo(305, 80);
+      g.lineTo(312, 48);
+      g.lineTo(322, 112);
+      g.lineTo(330, 80);
+      g.stroke();
+
+      // Normal resumed frequencies
+      g.lineStyle(2, 0x4ac4d4, 0.9);
+      g.beginPath();
+      for (let x = 330; x <= 420; x += 3) {
+        const y = 80 + Math.sin((x - 330) * 0.15) * 16;
+        if (x === 330) g.moveTo(x, y); else g.lineTo(x, y);
+      }
+      g.stroke();
+
+      const spliceTag = this.add.text(317, 134, '⚠ SPLICE DETECTED // 94% CONFIDENCE', {
+        fontFamily: 'Courier New, monospace',
+        fontSize: '9px',
+        color: '#ff4444',
+        fontStyle: 'bold',
+        backgroundColor: '#2a0a14f0',
+        padding: { x: 6, y: 3 }
+      }).setOrigin(0.5);
+
+      // Telemetry
+      const t1 = this.add.text(320, 212, '✦ FREQUENCY BREAK ANALYSIS & VOICE RECOGNITION ✦', {
+        fontFamily: 'Courier New, monospace',
+        fontSize: '10px',
+        color: '#ff66aa',
+        fontStyle: 'bold'
+      }).setOrigin(0.5);
+
+      const t2 = this.add.text(320, 232, 'APPLICATION: EXPOSE PRE-RECORDED ANNOUNCEMENTS, TAPED ALIBIS & AUDIO TAMPERING', {
+        fontFamily: 'Courier New, monospace',
+        fontSize: '9px',
+        color: '#edf2f8'
+      }).setOrigin(0.5);
+
+      const hotkey = this.add.text(320, 260, 'HOTKEY: PRESS [5] TO ACTIVATE VOICE PRISM', {
+        fontFamily: 'Courier New, monospace',
+        fontSize: '11px',
+        color: '#ffd700',
+        fontStyle: 'bold',
+        backgroundColor: '#300a20f0',
+        padding: { x: 14, y: 5 }
+      }).setOrigin(0.5);
+
+      this.panelContainer.add([g, spliceTag, t1, t2, hotkey]);
       return true;
     }
 

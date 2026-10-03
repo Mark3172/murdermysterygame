@@ -33,6 +33,9 @@ export class UIScene extends Phaser.Scene {
         const btnGadgets = document.getElementById('btn-gadgets');
         if (btnGadgets) btnGadgets.onclick = () => this.cycleGadgets();
 
+        const btnGadgetTutorial = document.getElementById('btn-gadget-tutorial');
+        if (btnGadgetTutorial) btnGadgetTutorial.onclick = () => this.playGadgetTutorial();
+
         const btnHint = document.getElementById('btn-hint');
         if (btnHint) btnHint.onclick = () => this.showHint();
 
@@ -45,6 +48,7 @@ export class UIScene extends Phaser.Scene {
 
         // Keyboard shortcuts
         this.input.keyboard?.on('keydown-N', () => this.toggleNotebook());
+        this.input.keyboard?.on('keydown-T', () => this.playGadgetTutorial());
         this.input.keyboard?.on('keydown-H', () => this.showHint());
         this.input.keyboard?.on('keydown-ESC', () => this.togglePause());
 
@@ -137,6 +141,14 @@ export class UIScene extends Phaser.Scene {
         } else {
             this.scene.launch('NotebookScene');
         }
+    }
+
+    playGadgetTutorial() {
+        AudioManager.getInstance().playSFX('discoveryString');
+        if (this.scene.isActive('NotebookScene')) {
+            this.scene.stop('NotebookScene');
+        }
+        this.scene.start('CutsceneScene', { cutsceneId: 'gadget_tutorial', returnTo: 'ExplorationScene' });
     }
 
     private currentGadget: string | null = null;

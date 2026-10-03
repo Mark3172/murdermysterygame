@@ -166,6 +166,11 @@ export class NotebookScene extends Phaser.Scene {
                 <div style="margin-bottom:8px;"><strong style="color:#d4af37;">Objective:</strong> <span style="color:#e0e8f0;">${storyManager.getObjective() || 'Investigate the observatory and gather clues.'}</span></div>
                 <div style="margin-bottom:8px;"><strong style="color:#d4af37;">Evidence Collected:</strong> <span style="color:#4ac47a;">${gameState.getCollectedEvidence().length} / 12 key clues</span></div>
                 <div><strong style="color:#d4af37;">Available Gadgets:</strong> <span style="color:#9ad4ea;">${gameState.getUnlockedGadgets().map(g => g.replace(/_/g, ' ')).join(', ') || 'Tranquility Focus'}</span></div>
+                <div style="margin-top:14px; padding-top:12px; border-top:1px solid rgba(212,175,55,0.3); text-align:center;">
+                    <button id="btn-notebook-tutorial" style="background:rgba(212,175,55,0.15); border:1px solid #d4af37; color:#ffd700; padding:6px 14px; font-family:Georgia,serif; font-size:11px; font-weight:bold; cursor:pointer; border-radius:4px; transition:0.2s;">
+                        📺 Review Dr. Vale's Gadget Briefing Cutscene
+                    </button>
+                </div>
             </div>`;
         } else if (tabName === 'history') {
             html = '<h3 style="color:#d4af37; font-size:14px; text-transform:uppercase; letter-spacing:1px; margin-bottom:12px;">Case Timeline Dossier</h3>';
@@ -190,6 +195,14 @@ export class NotebookScene extends Phaser.Scene {
         }
 
         content.innerHTML = html;
+
+        const tutBtn = document.getElementById('btn-notebook-tutorial');
+        if (tutBtn) {
+            tutBtn.onclick = () => {
+                this.closeNotebook();
+                this.scene.start('CutsceneScene', { cutsceneId: 'gadget_tutorial', returnTo: 'ExplorationScene' });
+            };
+        }
     }
 
     closeNotebook() {
