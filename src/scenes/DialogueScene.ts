@@ -277,6 +277,9 @@ export class DialogueScene extends Scene {
       window.clearInterval(this.typewriterTimer);
     }
     
+    const speedSetting = typeof window !== 'undefined' ? parseInt(localStorage.getItem('setting_text_speed') || '3', 10) : 3;
+    const interval = Math.max(8, 30 - (speedSetting - 3) * 8);
+
     this.typewriterTimer = window.setInterval(() => {
       this.textEl.textContent += this.fullText[charIndex];
       charIndex++;
@@ -284,7 +287,7 @@ export class DialogueScene extends Scene {
       if (charIndex >= this.fullText.length) {
         this.finishTypewriter();
       }
-    }, 30);
+    }, interval);
   }
 
   private finishTypewriter() {

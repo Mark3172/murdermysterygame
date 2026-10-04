@@ -2,6 +2,7 @@ export class AudioManager {
     private static instance: AudioManager;
     
     public audioContext: AudioContext | null = null;
+    private masterGain: GainNode | null = null;
     private musicGain: GainNode | null = null;
     private ambienceGain: GainNode | null = null;
     private sfxGain: GainNode | null = null;
@@ -23,9 +24,14 @@ export class AudioManager {
 
     public init() {
         // Hook up to HTML settings sliders
-        const setupSlider = (id: string, channel: 'music' | 'ambience' | 'sfx') => {
+        const setupSlider = (id: string, channel: 'master' | 'music' | 'ambience' | 'sfx') => {
             const slider = document.getElementById(id) as HTMLInputElement;
             if (slider) {
+                const saved = localStorage.getItem(`vol_${channel}`);
+                if (saved !== null) {
+                    const parsed = parseFloat(saved);
+                    slider.value = String(Math.round(parsed * 100));
+                }
                 slider.addEventListener('input', (e) => {
                     const target = e.target as HTMLInputElement;
                     this.setVolume(channel, parseFloat(target.value));
@@ -33,6 +39,7 @@ export class AudioManager {
             }
         };
 
+        setupSlider('vol-master', 'master');
         setupSlider('vol-music', 'music');
         setupSlider('vol-ambience', 'ambience');
         setupSlider('vol-sfx', 'sfx');
@@ -54,17 +61,25 @@ export class AudioManager {
         if (!this.audioContext) {
             this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
             
+            this.masterGain = this.audioContext.createGain();
             this.musicGain = this.audioContext.createGain();
             this.ambienceGain = this.audioContext.createGain();
             this.sfxGain = this.audioContext.createGain();
 
-            this.musicGain.connect(this.audioContext.destination);
-            this.ambienceGain.connect(this.audioContext.destination);
-            this.sfxGain.connect(this.audioContext.destination);
-            
-            this.musicGain.gain.value = 0.5;
-            this.ambienceGain.gain.value = 0.5;
-            this.sfxGain.gain.value = 0.8;
+            this.musicGain.connect(this.masterGain);
+            this.ambienceGain.connect(this.masterGain);
+            this.sfxGain.connect(this.masterGain);
+            this.masterGain.connect(this.audioContext.destination);
+
+            const savedMaster = localStorage.getItem('vol_master');
+            const savedMusic = localStorage.getItem('vol_music');
+            const savedAmbience = localStorage.getItem('vol_ambience');
+            const savedSfx = localStorage.getItem('vol_sfx');
+
+            this.masterGain.gain.value = savedMaster !== null ? parseFloat(savedMaster) : 0.8;
+            this.musicGain.gain.value = savedMusic !== null ? parseFloat(savedMusic) : 0.6;
+            this.ambienceGain.gain.value = savedAmbience !== null ? parseFloat(savedAmbience) : 0.5;
+            this.sfxGain.gain.value = savedSfx !== null ? parseFloat(savedSfx) : 0.8;
         }
     }
 
@@ -91,20 +106,20 @@ export class AudioManager {
         osc.stop(this.audioContext.currentTime + duration);
     }
 
-    public setVolume(channel: 'music' | 'ambience' | 'sfx', value: number) {
+    public setVolume(channel: 'master' | 'music' | 'ambience' | 'sfx', value: number) {
         this.ensureContext();
         if (!this.audioContext) return;
         const normalized = Math.max(0, Math.min(1, value > 1 ? value / 100 : value));
-        const destGain = channel === 'music' ? this.musicGain : (channel === 'ambience' ? this.ambienceGain : this.sfxGain);
+        const destGain = channel === 'master' ? this.masterGain : (channel === 'music' ? this.musicGain : (channel === 'ambience' ? this.ambienceGain : this.sfxGain));
         if (destGain) destGain.gain.setValueAtTime(normalized, this.audioContext.currentTime);
         try {
             localStorage.setItem(`vol_${channel}`, String(normalized));
         } catch(e) {}
     }
 
-    public toggleMute(channel: 'music' | 'ambience' | 'sfx') {
+    public toggleMute(channel: 'master' | 'music' | 'ambience' | 'sfx') {
         if (!this.audioContext) return;
-        const destGain = channel === 'music' ? this.musicGain : (channel === 'ambience' ? this.ambienceGain : this.sfxGain);
+        const destGain = channel === 'master' ? this.masterGain : (channel === 'music' ? this.musicGain : (channel === 'ambience' ? this.ambienceGain : this.sfxGain));
         if (destGain) {
             const currentVolume = destGain.gain.value;
             destGain.gain.setValueAtTime(currentVolume > 0 ? 0 : 0.5, this.audioContext.currentTime);
@@ -113,6 +128,31 @@ export class AudioManager {
 
     public playSFX(name: string) {
         this.ensureContext();
+
+        // Sound Captions accessibility feature
+        try {
+            if (typeof window !== 'undefined' && localStorage.getItem('setting_sound_captions') === 'true') {
+                const captions: Record<string, string> = {
+                    thunder: '⚡ [Thunder rumbles]',
+                    clockTick: '⏱ [Clock ticks]',
+                    doorOpen: '🚪 [Door opens]',
+                    discoveryString: '✨ [Discovery chime]',
+                    glass_shatter: '💥 [Glass shatters]',
+                    type_blip: '⌨ [Typewriter click]',
+                    ui_click: '🔘 [Click]',
+                    uiClick: '🔘 [Click]',
+                    digital_beep: '📡 [Gadget signal]',
+                    gadget_beep: '📡 [Gadget signal]',
+                    tensionDrone: '🎶 [Low tension drone]',
+                    success: '🎺 [Victorian success fanfare]',
+                    error: '⚠ [Evidence mismatch buzz]'
+                };
+                if (captions[name]) {
+                    window.dispatchEvent(new CustomEvent('show-msg', { detail: { text: captions[name] } }));
+                }
+            }
+        } catch(e) {}
+
         switch(name) {
             case 'footstep': this.footstep(); break;
             case 'doorOpen': this.doorOpen(); break;

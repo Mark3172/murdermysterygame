@@ -24,7 +24,7 @@ export class PreloadScene extends Phaser.Scene {
         const loadingBar = document.getElementById('loading-bar');
         const loadingText = document.getElementById('loading-text');
 
-        const characters = ['ren', 'vale', 'nadia', 'hugo', 'petra', 'felix', 'iris'];
+        const characters = ['ren', 'vale', 'nadia', 'hugo', 'petra', 'felix', 'iris', 'aldric'];
         const expressions = ['neutral', 'angry', 'sad', 'surprised', 'thinking', 'nervous', 'smiling'];
 
         const hideLoadingUI = () => {

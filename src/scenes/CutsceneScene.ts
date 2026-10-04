@@ -301,7 +301,12 @@ export class CutsceneScene extends Scene {
             onComplete: () => { this.isTransitioning = false; }
         });
     } else if (anim === 'shake') {
-        this.cameras.main.shake(panel.duration || 500, 0.05);
+        const reduced = typeof window !== 'undefined' && localStorage.getItem('setting_reduced_motion') === 'true';
+        if (reduced) {
+            this.cameras.main.flash(panel.duration || 400, 70, 80, 100);
+        } else {
+            this.cameras.main.shake(panel.duration || 500, 0.05);
+        }
         this.isTransitioning = false;
     } else if (anim === 'flash') {
         this.cameras.main.flash(panel.duration || 500);
@@ -322,9 +327,11 @@ export class CutsceneScene extends Scene {
   private typewriterEffect(textObj: Phaser.GameObjects.Text, fullText: string) {
     this.currentTypewriterTextObj = textObj;
     this.currentFullText = fullText;
+    const speedSetting = typeof window !== 'undefined' ? parseInt(localStorage.getItem('setting_text_speed') || '3', 10) : 3;
+    const charDelay = Math.max(8, 25 - (speedSetting - 3) * 7);
     let charIndex = 0;
     this.typeWriterTimer = this.time.addEvent({
-        delay: 25,
+        delay: charDelay,
         callback: () => {
             charIndex++;
             textObj.setText(fullText.substring(0, charIndex));

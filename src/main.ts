@@ -22,6 +22,39 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Text speed slider
+  const textSpeedSlider = document.getElementById('text-speed') as HTMLInputElement;
+  if (textSpeedSlider) {
+    const savedSpeed = localStorage.getItem('setting_text_speed');
+    if (savedSpeed) textSpeedSlider.value = savedSpeed;
+    textSpeedSlider.addEventListener('input', () => {
+      localStorage.setItem('setting_text_speed', textSpeedSlider.value);
+      EventBus.emit('setting-changed', { setting: 'text_speed', value: parseInt(textSpeedSlider.value, 10) });
+    });
+  }
+
+  // Reduced motion checkbox
+  const reducedMotionBox = document.getElementById('reduced-motion') as HTMLInputElement;
+  if (reducedMotionBox) {
+    const savedMotion = localStorage.getItem('setting_reduced_motion') === 'true';
+    reducedMotionBox.checked = savedMotion;
+    reducedMotionBox.addEventListener('change', () => {
+      localStorage.setItem('setting_reduced_motion', String(reducedMotionBox.checked));
+      EventBus.emit('setting-changed', { setting: 'reduced_motion', value: reducedMotionBox.checked });
+    });
+  }
+
+  // Sound captions checkbox
+  const soundCaptionsBox = document.getElementById('sound-captions') as HTMLInputElement;
+  if (soundCaptionsBox) {
+    const savedCaptions = localStorage.getItem('setting_sound_captions') === 'true';
+    soundCaptionsBox.checked = savedCaptions;
+    soundCaptionsBox.addEventListener('change', () => {
+      localStorage.setItem('setting_sound_captions', String(soundCaptionsBox.checked));
+      EventBus.emit('setting-changed', { setting: 'sound_captions', value: soundCaptionsBox.checked });
+    });
+  }
+
   // Notebook close button
   const notebookClose = document.getElementById('notebook-close');
   if (notebookClose) {
