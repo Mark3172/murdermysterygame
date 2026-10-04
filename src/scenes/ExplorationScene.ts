@@ -34,6 +34,7 @@ export class ExplorationScene extends Phaser.Scene {
   private doorCooldown = true;
   private obstacleColliders!: Phaser.Physics.Arcade.StaticGroup;
   private focusHighlights: Phaser.GameObjects.GameObject[] = [];
+  private currentRoomZoom = 1;
 
   constructor() { super('ExplorationScene'); }
 
@@ -43,6 +44,7 @@ export class ExplorationScene extends Phaser.Scene {
     this.activeGadget = null;
     this.doorCooldown = true;
     this.focusHighlights = [];
+    this.currentRoomZoom = 1;
   }
 
   create() {
@@ -104,6 +106,12 @@ export class ExplorationScene extends Phaser.Scene {
     if (hud) hud.style.display = 'flex';
 
     this.physics.world.setBounds(0, 0, rw, rh);
+
+    // Calculate adaptive zoom so the room fills the 640x360 screen without black borders
+    const zoomX = 640 / rw;
+    const zoomY = 360 / rh;
+    this.currentRoomZoom = Math.max(1, Math.max(zoomX, zoomY));
+    this.cameras.main.setZoom(this.currentRoomZoom);
     this.cameras.main.setBounds(0, 0, rw, rh);
     this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
     this.cameras.main.resetFX();
@@ -657,6 +665,7 @@ export class ExplorationScene extends Phaser.Scene {
 
   private echoLensMini() {
     this.inDialogue = true;
+    this.cameras.main.setZoom(1.0);
     const els: Phaser.GameObjects.GameObject[] = [];
     const isObsDeck = this.roomId === 'observation_deck';
     const isPendulum = this.roomId === 'pendulum_room';
@@ -782,6 +791,7 @@ export class ExplorationScene extends Phaser.Scene {
       this.activeGadget = null;
       this.gadgetOverlay?.destroy();
       this.gadgetOverlay = null;
+      this.cameras.main.setZoom(this.currentRoomZoom);
       EventBus.emit('gadget-changed', null);
     };
 
@@ -824,6 +834,7 @@ export class ExplorationScene extends Phaser.Scene {
 
   private microRoverMini() {
     this.inDialogue = true;
+    this.cameras.main.setZoom(1.0);
     const els: Phaser.GameObjects.GameObject[] = [];
     let isFinished = false;
     let roverTween: Phaser.Tweens.Tween | null = null;
@@ -912,6 +923,7 @@ export class ExplorationScene extends Phaser.Scene {
       this.activeGadget = null;
       this.gadgetOverlay?.destroy();
       this.gadgetOverlay = null;
+      this.cameras.main.setZoom(this.currentRoomZoom);
       EventBus.emit('gadget-changed', null);
     };
 
@@ -1045,6 +1057,7 @@ export class ExplorationScene extends Phaser.Scene {
 
   private voicePrismMini() {
     this.inDialogue = true;
+    this.cameras.main.setZoom(1.0);
     const els: Phaser.GameObjects.GameObject[] = [];
     const isClockwork = this.roomId === 'clockwork_gallery';
 
@@ -1133,6 +1146,7 @@ export class ExplorationScene extends Phaser.Scene {
       this.activeGadget = null;
       this.gadgetOverlay?.destroy();
       this.gadgetOverlay = null;
+      this.cameras.main.setZoom(this.currentRoomZoom);
       EventBus.emit('gadget-changed', null);
     };
 
