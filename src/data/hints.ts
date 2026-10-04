@@ -15,7 +15,7 @@ export const hints: Record<string, HintData> = {
   phase_2_alibis: {
     phase: 'Checking Alibis',
     level1: 'Talk to the suspects and cross-reference their claims with the environmental data.',
-    level2: 'Hugo claims to have been on the Observation Deck. Check the sensors there with your Data Slicer.',
+    level2: 'Hugo claims to have been on the Observation Deck. Check the sensors there with your Echo Lens.',
     level3: 'The rain sensor data from the Observation Deck shows no one was there during the blackout. Hugo is lying about his alibi.'
   },
   phase_3_locked_room: {

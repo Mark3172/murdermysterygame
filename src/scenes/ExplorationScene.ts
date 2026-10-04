@@ -33,6 +33,7 @@ export class ExplorationScene extends Phaser.Scene {
   private interactionPrompt!: Phaser.GameObjects.Text;
   private doorCooldown = true;
   private obstacleColliders!: Phaser.Physics.Arcade.StaticGroup;
+  private focusHighlights: Phaser.GameObjects.GameObject[] = [];
 
   constructor() { super('ExplorationScene'); }
 
@@ -41,6 +42,7 @@ export class ExplorationScene extends Phaser.Scene {
     this.inDialogue = false;
     this.activeGadget = null;
     this.doorCooldown = true;
+    this.focusHighlights = [];
   }
 
   create() {
@@ -494,7 +496,82 @@ export class ExplorationScene extends Phaser.Scene {
     if (this.keys.N && Phaser.Input.Keyboard.JustDown(this.keys.N)) EventBus.emit('toggle-notebook');
   }
 
+  private toggleTranquilityFocus() {
+    this.clearTranquilityFocus();
+    if (this.activeGadget !== 'tranquility_focus') return;
+
+    AudioManager.getInstance().playSFX('discoveryString');
+    this.showMsg('🧠 TRANQUILITY FOCUS • Detective vision active. Points of interest illuminated.');
+
+    // Highlight interactable clues
+    for (const obj of this.interactableObjects) {
+      if (obj.data.evidenceId && gameState.hasEvidence(obj.data.evidenceId)) continue;
+      const ox = obj.zone.x, oy = obj.zone.y;
+      const halo = this.add.circle(ox, oy, 22, 0x4ac4e2, 0.28).setDepth(140);
+      this.tweens.add({ targets: halo, scale: 1.35, alpha: 0.1, yoyo: true, repeat: -1, duration: 800 });
+      const tag = this.add.text(ox, oy - 20, `✦ ${obj.data.name.toUpperCase()}`, {
+        fontSize: '8px', color: '#ffd700', fontFamily: 'Courier New', fontStyle: 'bold',
+        backgroundColor: '#0a1020f0', padding: { x: 5, y: 2 }
+      }).setOrigin(0.5).setDepth(200);
+      this.focusHighlights.push(halo, tag);
+    }
+
+    // Highlight suspects
+    for (const npc of this.npcObjects) {
+      const sx = npc.sprite.x, sy = npc.sprite.y;
+      const halo = this.add.circle(sx, sy, 26, 0xffd700, 0.28).setDepth(140);
+      this.tweens.add({ targets: halo, scale: 1.3, alpha: 0.1, yoyo: true, repeat: -1, duration: 750 });
+      const tag = this.add.text(sx, sy - 28, `★ ${npc.data.suspectId ? npc.data.suspectId.toUpperCase() : 'SUSPECT'}`, {
+        fontSize: '8px', color: '#ffea70', fontFamily: 'Courier New', fontStyle: 'bold',
+        backgroundColor: '#181206f0', padding: { x: 5, y: 2 }
+      }).setOrigin(0.5).setDepth(200);
+      this.focusHighlights.push(halo, tag);
+    }
+  }
+
+  private clearTranquilityFocus() {
+    this.focusHighlights.forEach(h => h.destroy());
+    this.focusHighlights = [];
+  }
+
   private interact(obj: any) {
+    // Contextual handling for Micro Rover duct deployment
+    if (obj.id === 'wall_gap' || obj.gadgetRequired === 'micro_rover') {
+      if (gameState.hasEvidence('connecting_door')) {
+        this.showMsg('The Micro Rover has already mapped the hidden connecting door through this gap.');
+      } else {
+        this.microRoverMini();
+      }
+      return;
+    }
+
+    // Contextual handling for Voice Prism audio sources
+    if (obj.gadgetRequired === 'voice_prism' || ['pa_speaker', 'dark_corner'].includes(obj.id)) {
+      if (obj.evidenceId && gameState.hasEvidence(obj.evidenceId)) {
+        this.showMsg('The Voice Prism has already analyzed this audio source.');
+      } else {
+        this.voicePrismMini();
+      }
+      return;
+    }
+
+    // Contextual handling for Echo Lens acoustic resonance / environmental sensors
+    if (obj.gadgetRequired === 'echo_lens' || ['acoustics', 'deck_sensors', 'floor_grates'].includes(obj.id)) {
+      if (obj.evidenceId && gameState.hasEvidence(obj.evidenceId)) {
+        this.showMsg('The Echo Lens has already recorded the acoustic telemetry for this area.');
+      } else {
+        this.echoLensMini();
+      }
+      return;
+    }
+
+    // Contextual handling for Trace Light items (auto-activate if unlocked)
+    if (obj.gadgetRequired === 'trace_light') {
+      if (gameState.hasGadget('trace_light') && this.activeGadget !== 'trace_light') {
+        this.useGadget('trace_light');
+      }
+    }
+
     if (obj.gadgetRequired && obj.gadgetRequired !== 'none' && this.activeGadget !== obj.gadgetRequired) {
       const gMap: Record<string, string> = {
         tranquility_focus: 'Tranquility Focus [1]',
@@ -506,15 +583,7 @@ export class ExplorationScene extends Phaser.Scene {
       this.showMsg(`Requires: ${gMap[obj.gadgetRequired] || obj.gadgetRequired.replace('_', ' ')}`);
       return;
     }
-    // Contextual handling for Micro Rover duct deployment
-    if (obj.id === 'wall_gap') {
-      if (gameState.hasEvidence('connecting_door')) {
-        this.showMsg('The Micro Rover has already mapped the hidden connecting door through this gap.');
-      } else {
-        this.microRoverMini();
-      }
-      return;
-    }
+
     if (obj.evidenceId && !gameState.hasEvidence(obj.evidenceId)) {
       gameState.collectEvidence(obj.evidenceId);
       const ev = evidenceData[obj.evidenceId];
@@ -541,25 +610,56 @@ export class ExplorationScene extends Phaser.Scene {
 
   private useGadget(id: string) {
     if (!gameState.hasGadget(id)) { this.showMsg('Gadget not unlocked yet.'); return; }
-    if (this.activeGadget === id) { this.activeGadget=null; this.gadgetOverlay?.destroy(); this.gadgetOverlay=null; EventBus.emit('gadget-changed',null); return; }
+    if (this.activeGadget === id) {
+      this.activeGadget = null;
+      this.gadgetOverlay?.destroy();
+      this.gadgetOverlay = null;
+      this.clearTranquilityFocus();
+      EventBus.emit('gadget-changed', null);
+      return;
+    }
+    this.clearTranquilityFocus();
     this.activeGadget = id;
     this.gadgetOverlay?.destroy();
 
-    const colors: Record<string,number> = {tranquility_focus:0x2a4a6a, echo_lens:0x2a6a4a, trace_light:0x6a2a8a, voice_prism:0x6a6a2a, micro_rover:0x4a4a2a};
-    this.gadgetOverlay = this.add.rectangle(320,180,640,360,colors[id]||0x333333,0.15).setDepth(400).setScrollFactor(0);
+    const colors: Record<string, number> = {
+      tranquility_focus: 0x1a385a,
+      echo_lens: 0x1a483a,
+      trace_light: 0x4a1a6a,
+      voice_prism: 0x4a3a1a,
+      micro_rover: 0x3a3a1a
+    };
+    this.gadgetOverlay = this.add.rectangle(320, 180, 640, 360, colors[id] || 0x333333, 0.18).setDepth(400).setScrollFactor(0);
     EventBus.emit('gadget-changed', id);
 
-    if (id==='echo_lens' && (this.roomId==='pendulum_room'||this.roomId==='main_hall')) this.echoLensMini();
-    else if (id==='micro_rover' && (this.roomId==='clockwork_gallery'||this.roomId==='exhibition_chamber')) this.microRoverMini();
-    else if (id==='voice_prism' && (this.roomId==='exhibition_chamber'||this.roomId==='main_hall')) this.voicePrismMini();
-    else if (id==='trace_light') this.revealTraceItems();
-    else if (id==='micro_rover') this.showMsg('Micro Rover active. Deploy near wall gaps or ducts in the Clockwork Gallery.');
-    else this.showMsg(`${id.replace(/_/g,' ')} active.`);
+    if (id === 'tranquility_focus') {
+      this.toggleTranquilityFocus();
+    } else if (id === 'echo_lens') {
+      this.echoLensMini();
+    } else if (id === 'micro_rover') {
+      if (this.roomId === 'clockwork_gallery' || this.roomId === 'exhibition_chamber') {
+        this.microRoverMini();
+      } else {
+        this.showMsg('Micro Rover active. Deploy near wall gaps or ducts in the Clockwork Gallery.');
+      }
+    } else if (id === 'voice_prism') {
+      if (['main_hall', 'exhibition_chamber', 'clockwork_gallery'].includes(this.roomId)) {
+        this.voicePrismMini();
+      } else {
+        this.showMsg('Voice Prism active. Point toward PA speakers or recording spools.');
+      }
+    } else if (id === 'trace_light') {
+      this.revealTraceItems();
+    } else {
+      this.showMsg(`${id.replace(/_/g, ' ')} active.`);
+    }
   }
 
   private echoLensMini() {
     this.inDialogue = true;
     const els: Phaser.GameObjects.GameObject[] = [];
+    const isObsDeck = this.roomId === 'observation_deck';
+    const isPendulum = this.roomId === 'pendulum_room';
 
     // 1. Steampunk Brass Oscilloscope Housing
     const bkg = this.add.rectangle(320, 180, 520, 270, 0x0a0e1c, 0.98).setDepth(600).setScrollFactor(0);
@@ -575,8 +675,11 @@ export class ExplorationScene extends Phaser.Scene {
     els.push(bkg, frame);
 
     // Header placard
-    els.push(this.add.text(320, 68, '🎧 ECHO LENS • ACOUSTIC RESONANCE OSCILLOSCOPE', {
-      fontSize: '11px', color: '#ffd700', fontFamily: 'Courier New, monospace', fontStyle: 'bold', letterSpacing: 1
+    const titleText = isObsDeck
+      ? '🎧 ECHO LENS • WEATHER STATION ENVIRONMENTAL ACOUSTIC SCANNER'
+      : '🎧 ECHO LENS • ACOUSTIC RESONANCE OSCILLOSCOPE';
+    els.push(this.add.text(320, 68, titleText, {
+      fontSize: '10px', color: '#ffd700', fontFamily: 'Courier New, monospace', fontStyle: 'bold', letterSpacing: 1
     }).setOrigin(0.5).setDepth(602).setScrollFactor(0));
 
     // 2. Phosphor CRT Screen
@@ -590,30 +693,53 @@ export class ExplorationScene extends Phaser.Scene {
     crtGrid.strokeRect(80, 95, 330, 160);
     els.push(crtBg, crtGrid);
 
-    // Waveform 1: Standard Bell 12th Chime (Cyan trace)
     const w1 = this.add.graphics().setDepth(603).setScrollFactor(0);
-    els.push(w1);
-    els.push(this.add.text(90, 102, 'CH-A: Standard 12th Chime (440Hz Harmonic)', {
-      fontSize: '8px', color: '#4ac4d4', fontFamily: 'Courier New, monospace', fontStyle: 'bold'
-    }).setDepth(603).setScrollFactor(0));
-    w1.lineStyle(2, 0x4ac4d4, 0.95);
-    for (let x = 0; x < 280; x++) {
-      const y = Math.sin(x * 0.08) * 16 * Math.exp(-x * 0.006);
-      if (x === 0) w1.moveTo(100 + x, 140 + y);
-      else w1.lineTo(100 + x, 140 + y);
-    }
-
-    // Waveform 2: Anomalous 13th Chime (Amber trace)
     const w2 = this.add.graphics().setDepth(603).setScrollFactor(0);
-    els.push(w2);
-    els.push(this.add.text(90, 175, 'CH-B: Anomalous 13th Chime (Acoustic Match: Pendulum Flue)', {
-      fontSize: '8px', color: '#ffbb33', fontFamily: 'Courier New, monospace', fontStyle: 'bold'
-    }).setDepth(603).setScrollFactor(0));
-    w2.lineStyle(2, 0xffbb33, 0.95);
-    for (let x = 0; x < 280; x++) {
-      const y = (Math.sin(x * 0.12) * 12 + Math.sin(x * 0.04) * 8) * Math.exp(-x * 0.005);
-      if (x === 0) w2.moveTo(100 + x, 215 + y);
-      else w2.lineTo(100 + x, 215 + y);
+    els.push(w1, w2);
+
+    if (isObsDeck) {
+      // Channel A: Rain Sensor Patter
+      els.push(this.add.text(90, 102, 'CH-A: Weather Sensor — Continuous Storm Precipitation', {
+        fontSize: '8px', color: '#4ac4d4', fontFamily: 'Courier New, monospace', fontStyle: 'bold'
+      }).setDepth(603).setScrollFactor(0));
+      w1.lineStyle(2, 0x4ac4d4, 0.95);
+      for (let x = 0; x < 280; x++) {
+        const y = Math.sin(x * 0.25) * 8 * Math.cos(x * 0.05);
+        if (x === 0) w1.moveTo(100 + x, 140 + y);
+        else w1.lineTo(100 + x, 140 + y);
+      }
+
+      // Channel B: Floor Pressure Foot Traffic (Flatline during blackout)
+      els.push(this.add.text(90, 175, 'CH-B: Deck Floor Sensors — Footstep Acoustic Signature (7:30 - 8:30 PM)', {
+        fontSize: '8px', color: '#ff6666', fontFamily: 'Courier New, monospace', fontStyle: 'bold'
+      }).setDepth(603).setScrollFactor(0));
+      w2.lineStyle(2, 0xff4444, 0.95);
+      w2.moveTo(100, 215); w2.lineTo(380, 215); // Zero flatline!
+      w2.stroke();
+      els.push(this.add.text(240, 219, '◀ ZERO FOOTSTEPS DETECTED (FLATLINE)', {
+        fontSize: '7px', color: '#ff4444', fontFamily: 'Courier New', fontStyle: 'bold'
+      }).setOrigin(0.5).setDepth(604).setScrollFactor(0));
+    } else {
+      // Standard Pendulum Oscilloscope
+      els.push(this.add.text(90, 102, 'CH-A: Standard 12th Chime (440Hz Harmonic)', {
+        fontSize: '8px', color: '#4ac4d4', fontFamily: 'Courier New, monospace', fontStyle: 'bold'
+      }).setDepth(603).setScrollFactor(0));
+      w1.lineStyle(2, 0x4ac4d4, 0.95);
+      for (let x = 0; x < 280; x++) {
+        const y = Math.sin(x * 0.08) * 16 * Math.exp(-x * 0.006);
+        if (x === 0) w1.moveTo(100 + x, 140 + y);
+        else w1.lineTo(100 + x, 140 + y);
+      }
+
+      els.push(this.add.text(90, 175, 'CH-B: Anomalous 13th Chime (Acoustic Match: Pendulum Flue)', {
+        fontSize: '8px', color: '#ffbb33', fontFamily: 'Courier New, monospace', fontStyle: 'bold'
+      }).setDepth(603).setScrollFactor(0));
+      w2.lineStyle(2, 0xffbb33, 0.95);
+      for (let x = 0; x < 280; x++) {
+        const y = (Math.sin(x * 0.12) * 12 + Math.sin(x * 0.04) * 8) * Math.exp(-x * 0.005);
+        if (x === 0) w2.moveTo(100 + x, 215 + y);
+        else w2.lineTo(100 + x, 215 + y);
+      }
     }
 
     // 3. Right-side Brass Control Panel with Rotary Dials
@@ -623,7 +749,6 @@ export class ExplorationScene extends Phaser.Scene {
     dials.fillCircle(480, 125, 12); dials.fillCircle(480, 175, 12); dials.fillCircle(480, 225, 12);
     dials.fillStyle(0x181206, 1);
     dials.fillCircle(480, 125, 4); dials.fillCircle(480, 175, 4); dials.fillCircle(480, 225, 4);
-    // Dial indicator ticks
     dials.lineStyle(1.5, 0xffe066, 1);
     dials.moveTo(480, 125); dials.lineTo(488, 120);
     dials.moveTo(480, 175); dials.lineTo(485, 165);
@@ -633,10 +758,13 @@ export class ExplorationScene extends Phaser.Scene {
 
     els.push(this.add.text(480, 142, 'FREQ (Hz)', { fontSize: '7px', color: '#8899aa', fontFamily: 'Courier New' }).setOrigin(0.5).setDepth(603).setScrollFactor(0));
     els.push(this.add.text(480, 192, 'RESONANCE', { fontSize: '7px', color: '#8899aa', fontFamily: 'Courier New' }).setOrigin(0.5).setDepth(603).setScrollFactor(0));
-    els.push(this.add.text(480, 242, 'ATTENUATE', { fontSize: '7px', color: '#8899aa', fontFamily: 'Courier New' }).setOrigin(0.5).setDepth(603).setScrollFactor(0));
+    els.push(this.add.text(480, 242, 'TELEMETRY', { fontSize: '7px', color: '#8899aa', fontFamily: 'Courier New' }).setOrigin(0.5).setDepth(603).setScrollFactor(0));
 
     // Summary diagnosis text
-    els.push(this.add.text(320, 268, 'Acoustic Signature verified: The 13th chime vibrates at Project Echo\'s calibration frequency.', {
+    const summaryStr = isObsDeck
+      ? 'Acoustic telemetry confirms: Zero footsteps registered on the deck during the blackout. Hugo\'s alibi is shattered!'
+      : 'Acoustic signature verified: The 13th chime vibrates at Project Echo\'s calibration frequency.';
+    els.push(this.add.text(320, 268, summaryStr, {
       fontSize: '9px', color: '#e6edf4', fontFamily: 'Georgia, serif', fontStyle: 'italic', align: 'center'
     }).setOrigin(0.5).setDepth(603).setScrollFactor(0));
 
@@ -647,28 +775,51 @@ export class ExplorationScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(603).setScrollFactor(0).setInteractive({ useHandCursor: true });
     els.push(btn);
 
+    const closeConsole = () => {
+      window.removeEventListener('keydown', onEsc);
+      els.forEach(e => e.destroy());
+      this.inDialogue = false;
+      this.activeGadget = null;
+      this.gadgetOverlay?.destroy();
+      this.gadgetOverlay = null;
+      EventBus.emit('gadget-changed', null);
+    };
+
+    const onEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeConsole();
+    };
+    window.addEventListener('keydown', onEsc);
+
     btn.on('pointerdown', () => {
-      if (!gameState.hasEvidence('thirteenth_chime_resonance')) {
-        gameState.collectEvidence('thirteenth_chime_resonance');
-        const itemObj = this.interactableObjects.find(io => io.data.evidenceId === 'thirteenth_chime_resonance');
-        if (itemObj?.marker) {
-          itemObj.marker.destroy();
-          itemObj.marker = null;
+      if (isObsDeck) {
+        if (!gameState.hasEvidence('rain_sensor_data')) {
+          gameState.collectEvidence('rain_sensor_data');
+          const itemObj = this.interactableObjects.find(io => io.data.evidenceId === 'rain_sensor_data');
+          if (itemObj?.marker) { itemObj.marker.destroy(); itemObj.marker = null; }
+          this.showDiscovery('Rain Sensor Data', 'Floor sensors show zero footsteps during the blackout. Hugo was not on the Observation Deck!');
         }
-        this.showDiscovery('Thirteenth Chime Resonance', 'The 13th chime matches the pendulum room — and Project Echo\'s calibration frequency.');
+      } else {
+        if (!gameState.hasEvidence('thirteenth_chime_resonance')) {
+          gameState.collectEvidence('thirteenth_chime_resonance');
+          const itemObj = this.interactableObjects.find(io => io.data.evidenceId === 'thirteenth_chime_resonance');
+          if (itemObj?.marker) { itemObj.marker.destroy(); itemObj.marker = null; }
+          this.showDiscovery('Thirteenth Chime Resonance', 'The 13th chime matches the pendulum room — and Project Echo\'s calibration frequency.');
+        }
+        if (isPendulum && !gameState.hasEvidence('pendulum_weight_sensor')) {
+          gameState.collectEvidence('pendulum_weight_sensor');
+        }
       }
-      els.forEach(e => e.destroy()); this.inDialogue = false; this.activeGadget = null; this.gadgetOverlay?.destroy(); this.gadgetOverlay = null; EventBus.emit('gadget-changed', null); this.save();
+      closeConsole();
+      this.save();
     });
 
-    const closeBtn = this.add.text(390, 296, '✕ CLOSE', {
+    const closeBtn = this.add.text(390, 296, '✕ CLOSE [ESC]', {
       fontSize: '11px', color: '#8899aa', fontFamily: 'Courier New, monospace',
       backgroundColor: '#141824', padding: { x: 12, y: 5 }
     }).setOrigin(0.5).setDepth(603).setScrollFactor(0).setInteractive({ useHandCursor: true });
     els.push(closeBtn);
 
-    closeBtn.on('pointerdown', () => {
-      els.forEach(e => e.destroy()); this.inDialogue = false; this.activeGadget = null; this.gadgetOverlay?.destroy(); this.gadgetOverlay = null; EventBus.emit('gadget-changed', null);
-    });
+    closeBtn.on('pointerdown', closeConsole);
   }
 
   private microRoverMini() {
@@ -895,6 +1046,7 @@ export class ExplorationScene extends Phaser.Scene {
   private voicePrismMini() {
     this.inDialogue = true;
     const els: Phaser.GameObjects.GameObject[] = [];
+    const isClockwork = this.roomId === 'clockwork_gallery';
 
     // Antique Magnetic Wire Spectrograph Instrument
     const bkg = this.add.rectangle(320, 180, 520, 280, 0x0a0e1c, 0.98).setDepth(600).setScrollFactor(0);
@@ -910,7 +1062,10 @@ export class ExplorationScene extends Phaser.Scene {
     els.push(bkg, frame);
 
     // Title Header
-    els.push(this.add.text(320, 60, '🔊 VOICE PRISM • MAGNETIC WIRE PHONOGRAPH SPECTROGRAM', {
+    const titleText = isClockwork
+      ? '🔊 VOICE PRISM • HIDDEN WIRE DICTAPHONE SPECTROGRAM'
+      : '🔊 VOICE PRISM • MAGNETIC WIRE PHONOGRAPH SPECTROGRAM';
+    els.push(this.add.text(320, 60, titleText, {
       fontSize: '10px', color: '#ffd700', fontFamily: 'Courier New, monospace', fontStyle: 'bold', letterSpacing: 1
     }).setOrigin(0.5).setDepth(602).setScrollFactor(0));
 
@@ -931,7 +1086,10 @@ export class ExplorationScene extends Phaser.Scene {
     // Audio frequency bands
     const b1 = this.add.graphics().setDepth(604).setScrollFactor(0);
     els.push(b1);
-    els.push(this.add.text(140, 118, 'PLAYBACK: 7:45 PM Demonstration Announcement Track', {
+    const trackLabel = isClockwork
+      ? 'PLAYBACK: Hidden Pocket Dictaphone (Recovered from Dark Alcove)'
+      : 'PLAYBACK: 7:45 PM Demonstration Announcement Track';
+    els.push(this.add.text(140, 118, trackLabel, {
       fontSize: '8px', color: '#7ac4d4', fontFamily: 'Courier New, monospace', fontStyle: 'bold'
     }).setDepth(604).setScrollFactor(0));
 
@@ -953,7 +1111,10 @@ export class ExplorationScene extends Phaser.Scene {
     // Acoustic Analysis & Confidence Result Box
     const matchBox = this.add.rectangle(320, 230, 420, 36, 0x141c2c, 0.9).setDepth(602).setScrollFactor(0);
     matchBox.setStrokeStyle(1, 0xd4af37, 0.6);
-    const matchTxt = this.add.text(320, 230, 'ACOUSTIC MATCH: 94% CONFIDENCE — NADIA THORN\nWhispered confession: "I\'m sorry, Aldric..." spliced onto wire spool.', {
+    const matchString = isClockwork
+      ? 'ACOUSTIC MATCH: 94% CONFIDENCE — NADIA THORN\nWhispered tape confession: "I\'m sorry, Aldric... I had no choice."'
+      : 'SPLICE DETECTED: Announcement was assembled from pre-recorded tape spools.\nAldric Sable was already dead before the broadcast began!';
+    const matchTxt = this.add.text(320, 230, matchString, {
       fontSize: '9px', color: '#ffea70', fontFamily: 'Georgia, serif', align: 'center', lineSpacing: 3
     }).setOrigin(0.5).setDepth(603).setScrollFactor(0);
     els.push(matchBox, matchTxt);
@@ -965,43 +1126,69 @@ export class ExplorationScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(603).setScrollFactor(0).setInteractive({ useHandCursor: true });
     els.push(btn);
 
+    const closeConsole = () => {
+      window.removeEventListener('keydown', onEsc);
+      els.forEach(e => e.destroy());
+      this.inDialogue = false;
+      this.activeGadget = null;
+      this.gadgetOverlay?.destroy();
+      this.gadgetOverlay = null;
+      EventBus.emit('gadget-changed', null);
+    };
+
+    const onEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeConsole();
+    };
+    window.addEventListener('keydown', onEsc);
+
     btn.on('pointerdown', () => {
-      if (!gameState.hasEvidence('spliced_recording')) {
-        gameState.collectEvidence('spliced_recording');
-        const itemObj = this.interactableObjects.find(io => io.data.evidenceId === 'spliced_recording');
-        if (itemObj?.marker) {
-          itemObj.marker.destroy();
-          itemObj.marker = null;
+      if (isClockwork) {
+        if (!gameState.hasEvidence('petra_hidden_recorder')) {
+          gameState.collectEvidence('petra_hidden_recorder');
+          const itemObj = this.interactableObjects.find(io => io.data.id === 'dark_corner');
+          if (itemObj?.marker) { itemObj.marker.destroy(); itemObj.marker = null; }
+          this.showDiscovery('Hidden Dictaphone', 'A pocket recorder concealed in the alcove, bearing Nadia Thorn\'s whispered confession.');
         }
-        this.showDiscovery('Spliced Recording', 'The demonstration announcement was assembled from earlier magnetic recordings.');
+        if (!gameState.hasEvidence('petra_recorder')) {
+          gameState.collectEvidence('petra_recorder');
+        }
+      } else {
+        if (!gameState.hasEvidence('spliced_recording')) {
+          gameState.collectEvidence('spliced_recording');
+          const itemObj = this.interactableObjects.find(io => io.data.evidenceId === 'spliced_recording');
+          if (itemObj?.marker) { itemObj.marker.destroy(); itemObj.marker = null; }
+          this.showDiscovery('Spliced Recording', 'The demonstration announcement was assembled from earlier magnetic recordings.');
+        }
       }
-      if (!gameState.hasEvidence('petra_recorder') && gameState.hasEvidence('connecting_door')) {
-        gameState.collectEvidence('petra_recorder');
-        this.showDiscovery('Voice Match', 'Whispered voice matches Nadia Thorn with 94% confidence.');
-      }
-      els.forEach(e => e.destroy()); this.inDialogue = false; this.activeGadget = null; this.gadgetOverlay?.destroy(); this.gadgetOverlay = null; EventBus.emit('gadget-changed', null); this.save();
+      closeConsole();
+      this.save();
     });
 
-    const closeBtn = this.add.text(390, 285, '✕ CLOSE', {
+    const closeBtn = this.add.text(390, 285, '✕ CLOSE [ESC]', {
       fontSize: '11px', color: '#8899aa', fontFamily: 'Courier New, monospace',
       backgroundColor: '#141824', padding: { x: 12, y: 5 }
     }).setOrigin(0.5).setDepth(603).setScrollFactor(0).setInteractive({ useHandCursor: true });
     els.push(closeBtn);
 
-    closeBtn.on('pointerdown', () => {
-      els.forEach(e => e.destroy()); this.inDialogue = false; this.activeGadget = null; this.gadgetOverlay?.destroy(); this.gadgetOverlay = null; EventBus.emit('gadget-changed', null);
-    });
+    closeBtn.on('pointerdown', closeConsole);
   }
 
   private revealTraceItems() {
     const room = rooms[this.roomId];
     if (!room?.interactables) return;
+    AudioManager.getInstance().playSFX('discoveryString');
+    let traceFound = 0;
     for (const obj of room.interactables) {
       if (obj.gadgetRequired === 'trace_light' && obj.evidenceId && !gameState.hasEvidence(obj.evidenceId)) {
+        traceFound++;
         const existing = this.interactableObjects.find(io => io.data.id === obj.id);
         if (existing) {
-          existing.label.setColor('#d896ff');
+          existing.label.setColor('#e6a8ff');
           existing.label.setText(`🔦 ${obj.name}`);
+          existing.label.setVisible(true);
+          if (existing.marker) {
+            existing.marker.fillStyle(0xcc66ff, 1);
+          }
         } else {
           const ox = obj.x * TILE;
           const oy = obj.y * TILE;
@@ -1010,22 +1197,27 @@ export class ExplorationScene extends Phaser.Scene {
           const z = this.add.zone(ox, oy, ow + 8, oh + 8);
           this.physics.add.existing(z, true);
           const mk = this.add.graphics();
-          mk.fillStyle(0x9a4aaa, 0.9);
-          mk.fillRect(-3, -3, 6, 6);
+          mk.fillStyle(0xcc66ff, 0.95);
+          mk.fillRect(-4, -4, 8, 8);
           mk.setPosition(ox, oy - 16).setDepth(150);
-          this.tweens.add({ targets: mk, y: oy - 20, yoyo: true, repeat: -1, duration: 600 });
+          this.tweens.add({ targets: mk, y: oy - 22, yoyo: true, repeat: -1, duration: 550 });
           const lb = this.add.text(ox, oy + 12, `🔦 ${obj.name}`, {
-            fontSize: '8px', color: '#d896ff', fontFamily: 'Courier New', backgroundColor: '#090d18ee', padding: { x: 5, y: 2 }
-          }).setOrigin(0.5).setDepth(150).setVisible(false);
+            fontSize: '8px', color: '#e6a8ff', fontFamily: 'Courier New', backgroundColor: '#090d18ee', padding: { x: 5, y: 2 }
+          }).setOrigin(0.5).setDepth(150).setVisible(true);
           this.interactableObjects.push({ zone: z, data: obj, marker: mk, label: lb });
         }
       }
     }
-    this.showMsg('🔦 Trace Light: chemical residues & latent marks revealed.');
+    if (traceFound > 0) {
+      this.showMsg(`🔦 Trace Light: ${traceFound} latent chemical / fingerprint mark(s) illuminated.`);
+    } else {
+      this.showMsg('🔦 Trace Light active: No latent chemical traces detected in this area.');
+    }
   }
 
   private goToRoom(target: string, fromDir: string) {
     if (this.doorCooldown || this.inDialogue) return;
+    this.clearTranquilityFocus();
     this.doorCooldown = true;
     this.inDialogue = true;
     AudioManager.getInstance().playSFX('doorOpen');

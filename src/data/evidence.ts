@@ -75,7 +75,7 @@ export const evidence: Record<string, EvidenceData> = {
     fullDesc: 'The motion and pressure sensors on the Observation Deck floor. The logs from 7:30 PM to 8:30 PM show absolutely zero activity, directly contradicting Hugo\'s claim that he was there during the blackout.',
     discoveryLocation: 'Observation Deck',
     gadgetRequired: 'echo_lens',
-    discoveryDialogue: "According to the Data Slicer, the floor sensors up here didn't register a single footstep between 7:30 and 8:30. Hugo wasn't on the Observation Deck at all.",
+    discoveryDialogue: "According to the Echo Lens, the floor sensors up here didn't register a single footstep between 7:30 and 8:30. Hugo wasn't on the Observation Deck at all.",
     relatedSuspect: 'hugo',
     isRequired: true,
     category: 'document'

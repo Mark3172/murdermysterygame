@@ -128,7 +128,7 @@ export const rooms: Record<string, RoomData> = {
     interactables: [
       { id: 'pendulum', name: 'Great Pendulum', x: 15, y: 14, width: 4, height: 4, description: 'A heavy brass weight swinging eternally.' },
       { id: 'acoustics', name: 'Room Acoustics', x: 15, y: 5, width: 2, height: 2, description: 'The echo in here is very distinct.', evidenceId: 'thirteenth_chime_resonance', gadgetRequired: 'echo_lens', dialogueOnInteract: 'The Echo Lens maps the sound waves of this room perfectly to the 13th chime.' },
-      { id: 'floor_grates', name: 'Floor Grates', x: 11, y: 16, width: 2, height: 2, description: 'Ventilation grates with built-in weight sensors for maintenance logging.', evidenceId: 'pendulum_weight_sensor', gadgetRequired: 'echo_lens', dialogueOnInteract: 'The Data Slicer can pull the logs from these floor weight sensors.' }
+      { id: 'floor_grates', name: 'Floor Grates', x: 11, y: 16, width: 2, height: 2, description: 'Ventilation grates with built-in weight sensors for maintenance logging.', evidenceId: 'pendulum_weight_sensor', gadgetRequired: 'echo_lens', dialogueOnInteract: 'The Echo Lens can extract acoustic logs from these floor weight sensors.' }
     ],
     npcs: [
       { id: 'npc_iris', suspectId: 'iris', x: 20, y: 20 }
@@ -150,7 +150,7 @@ export const rooms: Record<string, RoomData> = {
     ],
     interactables: [
       { id: 'telescope', name: 'Telescope', x: 10, y: 5, width: 2, height: 2, description: 'A large optical telescope, currently capped.' },
-      { id: 'deck_sensors', name: 'Weather Sensors', x: 4, y: 5, width: 2, height: 2, description: 'Environmental monitoring equipment.', evidenceId: 'rain_sensor_data', gadgetRequired: 'echo_lens', dialogueOnInteract: 'The Data Slicer can connect to the weather station logs to check foot traffic.' }
+      { id: 'deck_sensors', name: 'Weather Sensors', x: 4, y: 5, width: 2, height: 2, description: 'Environmental monitoring equipment.', evidenceId: 'rain_sensor_data', gadgetRequired: 'echo_lens', dialogueOnInteract: 'The Echo Lens can analyze the weather station logs to check foot traffic.' }
     ],
     npcs: [],
     spawnPoint: { x: 10, y: 13 },
