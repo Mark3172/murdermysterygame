@@ -506,6 +506,15 @@ export class ExplorationScene extends Phaser.Scene {
       this.showMsg(`Requires: ${gMap[obj.gadgetRequired] || obj.gadgetRequired.replace('_', ' ')}`);
       return;
     }
+    // Contextual handling for Micro Rover duct deployment
+    if (obj.id === 'wall_gap') {
+      if (gameState.hasEvidence('connecting_door')) {
+        this.showMsg('The Micro Rover has already mapped the hidden connecting door through this gap.');
+      } else {
+        this.microRoverMini();
+      }
+      return;
+    }
     if (obj.evidenceId && !gameState.hasEvidence(obj.evidenceId)) {
       gameState.collectEvidence(obj.evidenceId);
       const ev = evidenceData[obj.evidenceId];
@@ -541,9 +550,10 @@ export class ExplorationScene extends Phaser.Scene {
     EventBus.emit('gadget-changed', id);
 
     if (id==='echo_lens' && (this.roomId==='pendulum_room'||this.roomId==='main_hall')) this.echoLensMini();
-    else if (id==='micro_rover' && this.roomId==='clockwork_gallery') this.microRoverMini();
-    else if (id==='voice_prism' && this.roomId==='exhibition_chamber') this.voicePrismMini();
+    else if (id==='micro_rover' && (this.roomId==='clockwork_gallery'||this.roomId==='exhibition_chamber')) this.microRoverMini();
+    else if (id==='voice_prism' && (this.roomId==='exhibition_chamber'||this.roomId==='main_hall')) this.voicePrismMini();
     else if (id==='trace_light') this.revealTraceItems();
+    else if (id==='micro_rover') this.showMsg('Micro Rover active. Deploy near wall gaps or ducts in the Clockwork Gallery.');
     else this.showMsg(`${id.replace(/_/g,' ')} active.`);
   }
 
@@ -664,109 +674,222 @@ export class ExplorationScene extends Phaser.Scene {
   private microRoverMini() {
     this.inDialogue = true;
     const els: Phaser.GameObjects.GameObject[] = [];
+    let isFinished = false;
+    let roverTween: Phaser.Tweens.Tween | null = null;
+    const cleanups: Array<() => void> = [];
 
-    // Steampunk Drone Remote Console
-    const bkg = this.add.rectangle(320, 180, 460, 270, 0x0a0e1c, 0.98).setDepth(600).setScrollFactor(0);
+    // Steampunk Drone Remote Console Base
+    const bkg = this.add.rectangle(320, 180, 480, 280, 0x0a0e1c, 0.98).setDepth(600).setScrollFactor(0);
     const frame = this.add.graphics().setDepth(601).setScrollFactor(0);
     frame.lineStyle(3, 0xd4af37, 1);
-    frame.strokeRect(90, 45, 460, 270);
+    frame.strokeRect(80, 40, 480, 280);
     frame.lineStyle(1, 0x5a4214, 1);
-    frame.strokeRect(94, 49, 452, 262);
+    frame.strokeRect(84, 44, 472, 272);
     // Corner brass studs
     frame.fillStyle(0xffe066, 1);
-    frame.fillRect(96, 51, 4, 4); frame.fillRect(540, 51, 4, 4);
-    frame.fillRect(96, 305, 4, 4); frame.fillRect(540, 305, 4, 4);
+    frame.fillRect(86, 46, 4, 4); frame.fillRect(550, 46, 4, 4);
+    frame.fillRect(86, 310, 4, 4); frame.fillRect(550, 310, 4, 4);
     els.push(bkg, frame);
 
     // Title & Telemetry Header
-    els.push(this.add.text(320, 68, '🤖 MICRO ROVER • ACOUSTIC FLUE DUCT NAVIGATION', {
-      fontSize: '10px', color: '#ffd700', fontFamily: 'Courier New, monospace', fontStyle: 'bold', letterSpacing: 1
+    els.push(this.add.text(320, 62, '🤖 MICRO ROVER • ACOUSTIC FLUE REMOTE NAVIGATION', {
+      fontSize: '11px', color: '#ffd700', fontFamily: 'Courier New, monospace', fontStyle: 'bold', letterSpacing: 1
     }).setOrigin(0.5).setDepth(602).setScrollFactor(0));
 
     // Telemetry Indicators
-    els.push(this.add.text(120, 88, 'SIGNAL: ● 98%  |  DEPTH: 14.2m  |  OPTICAL: INFRARED', {
+    const telemetryTxt = this.add.text(110, 82, 'SIGNAL: ● 99%  |  HEADLIGHTS: ACTIVE  |  MODE: MANUAL DRIVE / AUTO', {
       fontSize: '8px', color: '#4ac47a', fontFamily: 'Courier New, monospace'
-    }).setDepth(602).setScrollFactor(0));
+    }).setDepth(602).setScrollFactor(0);
+    els.push(telemetryTxt);
 
     // Blueprinted Ventilation Flue Shaft
     const maze = this.add.graphics().setDepth(602).setScrollFactor(0);
     els.push(maze);
     maze.fillStyle(0x0e1424, 1);
-    maze.fillRect(120, 105, 400, 130);
+    maze.fillRect(110, 98, 420, 134);
     maze.lineStyle(2, 0x3a4b66, 1);
-    maze.strokeRect(120, 105, 400, 130);
-    // Duct walls
-    maze.lineStyle(3, 0x4a6a8a, 1);
-    maze.moveTo(200, 105); maze.lineTo(200, 185);
-    maze.moveTo(280, 155); maze.lineTo(280, 235);
-    maze.moveTo(360, 105); maze.lineTo(360, 195);
+    maze.strokeRect(110, 98, 420, 134);
+    // Duct internal baffle guides
+    maze.lineStyle(3, 0x4a6a8a, 0.9);
+    maze.moveTo(200, 98); maze.lineTo(200, 178);
+    maze.moveTo(280, 150); maze.lineTo(280, 232);
+    maze.moveTo(370, 98); maze.lineTo(370, 185);
     maze.stroke();
 
     // Ventilation hazard grating texture
-    maze.lineStyle(1, 0x1e2838, 0.6);
-    for (let x = 130; x < 510; x += 15) { maze.moveTo(x, 105); maze.lineTo(x, 235); }
+    maze.lineStyle(1, 0x1e2838, 0.5);
+    for (let x = 120; x < 520; x += 16) { maze.moveTo(x, 98); maze.lineTo(x, 232); }
     maze.stroke();
 
+    // Interactive clickable hit zone over the entire duct area for mouse/touch steering
+    const ductClickZone = this.add.zone(320, 165, 420, 134).setDepth(603).setScrollFactor(0).setInteractive({ useHandCursor: true });
+    els.push(ductClickZone);
+
     // Micro Rover Probe (with headlights & antenna)
-    const roverContainer = this.add.container(145, 130).setDepth(604).setScrollFactor(0);
-    const roverLight = this.add.triangle(0, 0, 0, 0, 30, -10, 30, 10, 0xffea70, 0.3);
-    const roverBody = this.add.rectangle(0, 0, 14, 10, 0x4ac47a);
-    const roverTreads = this.add.rectangle(0, 0, 16, 12, 0x224430).setDepth(-1);
-    const roverAntenna = this.add.line(0, 0, -4, -5, -4, -12, 0xd4af37);
+    const roverContainer = this.add.container(145, 130).setDepth(605).setScrollFactor(0);
+    const roverLight = this.add.triangle(18, 0, 0, 0, 36, -14, 36, 14, 0xffea70, 0.4);
+    const roverBody = this.add.rectangle(0, 0, 16, 11, 0x4ac47a);
+    const roverTreads = this.add.rectangle(0, 0, 18, 14, 0x224430).setDepth(-1);
+    const roverAntenna = this.add.line(0, 0, -5, -6, -5, -14, 0xd4af37);
     roverContainer.add([roverLight, roverTreads, roverBody, roverAntenna]);
     els.push(roverContainer);
 
     // Target Goal: Hidden Brass Flue Deadbolt Latch
-    const goalContainer = this.add.container(490, 210).setDepth(604).setScrollFactor(0);
-    const goalGlow = this.add.circle(0, 0, 14, 0xd4af37, 0.4);
-    const goalLatch = this.add.rectangle(0, 0, 14, 14, 0xd4af37).setInteractive({ useHandCursor: true });
-    const goalIcon = this.add.text(0, 0, '⚙', { fontSize: '10px', color: '#1a1005' }).setOrigin(0.5);
-    goalContainer.add([goalGlow, goalLatch, goalIcon]);
-    this.tweens.add({ targets: goalGlow, scale: 1.4, alpha: 0.1, yoyo: true, repeat: -1, duration: 600 });
-    els.push(goalContainer);
+    const goalX = 485, goalY = 205;
+    const goalGlow = this.add.circle(goalX, goalY, 16, 0xd4af37, 0.4).setDepth(603).setScrollFactor(0);
+    const goalLatch = this.add.rectangle(goalX, goalY, 28, 28, 0x5a4214, 0.8).setDepth(604).setScrollFactor(0);
+    const goalGear = this.add.text(goalX, goalY, '⚙', { fontSize: '14px', color: '#ffd700' }).setOrigin(0.5).setDepth(605).setScrollFactor(0);
+    const goalLabel = this.add.text(goalX, goalY - 22, 'TARGET LATCH', { fontSize: '7px', color: '#ffd700', fontFamily: 'Courier New', fontStyle: 'bold' }).setOrigin(0.5).setDepth(605).setScrollFactor(0);
+    this.tweens.add({ targets: goalGlow, scale: 1.5, alpha: 0.1, yoyo: true, repeat: -1, duration: 600 });
+    els.push(goalGlow, goalLatch, goalGear, goalLabel);
 
-    els.push(this.add.text(320, 250, '▶ Click the glowing brass gear latch to navigate the probe through the duct!', {
+    // Large goal click zone
+    const goalHitZone = this.add.zone(goalX, goalY, 56, 56).setDepth(606).setScrollFactor(0).setInteractive({ useHandCursor: true });
+    els.push(goalHitZone);
+
+    // Guidance text
+    const guideTxt = this.add.text(320, 246, '▶ [W/A/S/D] or [ARROWS] to Drive  •  Click in Duct to Steer  •  Click Goal / Auto-Pilot', {
       fontSize: '8px', color: '#ffea70', fontFamily: 'Courier New, monospace'
-    }).setOrigin(0.5).setDepth(603).setScrollFactor(0));
+    }).setOrigin(0.5).setDepth(603).setScrollFactor(0);
+    els.push(guideTxt);
 
-    const closeBtn = this.add.text(320, 285, '✕ CLOSE', {
-      fontSize: '10px', color: '#8899aa', fontFamily: 'Courier New, monospace',
-      backgroundColor: '#141824', padding: { x: 12, y: 4 }
-    }).setOrigin(0.5).setDepth(603).setScrollFactor(0).setInteractive({ useHandCursor: true });
-    els.push(closeBtn);
+    const closeConsole = () => {
+      cleanups.forEach(c => c());
+      if (roverTween) roverTween.stop();
+      els.forEach(e => e.destroy());
+      this.inDialogue = false;
+      this.activeGadget = null;
+      this.gadgetOverlay?.destroy();
+      this.gadgetOverlay = null;
+      EventBus.emit('gadget-changed', null);
+    };
 
-    closeBtn.on('pointerdown', () => {
-      els.forEach(e => e.destroy()); this.inDialogue = false; this.activeGadget = null; this.gadgetOverlay?.destroy(); this.gadgetOverlay = null; EventBus.emit('gadget-changed', null);
-    });
+    const finishMission = () => {
+      if (isFinished) return;
+      isFinished = true;
+      cleanups.forEach(c => c());
+      if (roverTween) roverTween.stop();
 
-    goalLatch.on('pointerdown', () => {
+      AudioManager.getInstance().playSFX('discoveryString');
+      AudioManager.getInstance().playSFX('success');
+
+      telemetryTxt.setColor('#00ff88');
+      telemetryTxt.setText('STATUS: ✔ SECRET CONNECTING FLUE DOOR DISCOVERED!');
+      guideTxt.setColor('#00ff88');
+      guideTxt.setText('✦ FLUE PASSAGEWAY MAPPED TO EXHIBITION CHAMBER! ✦');
+
+      if (!gameState.hasEvidence('connecting_door')) {
+        gameState.collectEvidence('connecting_door');
+        const itemObj = this.interactableObjects.find(io => io.data.evidenceId === 'connecting_door');
+        if (itemObj?.marker) {
+          itemObj.marker.destroy();
+          itemObj.marker = null;
+        }
+        this.showDiscovery('Hidden Connecting Door', 'A hidden acoustic flue door connecting the Clockwork Gallery directly into the Exhibition Chamber!');
+      }
+
+      this.time.delayedCall(1600, () => {
+        closeConsole();
+        this.save();
+      });
+    };
+
+    // Auto-pilot / Auto-navigate button
+    const autoBtn = this.add.text(240, 285, '▶ AUTO-PILOT [SPACE]', {
+      fontSize: '10px', color: '#ffd700', fontFamily: 'Courier New, monospace', fontStyle: 'bold',
+      backgroundColor: '#182436', padding: { x: 10, y: 4 }
+    }).setOrigin(0.5).setDepth(604).setScrollFactor(0).setInteractive({ useHandCursor: true });
+    els.push(autoBtn);
+
+    const startAutoPilot = () => {
+      if (isFinished) return;
+      guideTxt.setText('AUTONAVIGATING PROBE THROUGH AIR DUCT...');
+      if (roverTween) roverTween.stop();
       this.tweens.chain({
         targets: roverContainer,
         tweens: [
-          { x: 200, duration: 400 },
-          { y: 200, duration: 350 },
-          { x: 320, duration: 450 },
-          { y: 130, duration: 350 },
-          { x: 420, duration: 400 },
-          { y: 210, duration: 300 },
-          { x: 480, duration: 300 }
+          { x: 200, duration: 400, onStart: () => roverContainer.setAngle(0) },
+          { y: 200, duration: 350, onStart: () => roverContainer.setAngle(90) },
+          { x: 320, duration: 450, onStart: () => roverContainer.setAngle(0) },
+          { y: 130, duration: 350, onStart: () => roverContainer.setAngle(-90) },
+          { x: 420, duration: 400, onStart: () => roverContainer.setAngle(0) },
+          { y: goalY, duration: 300, onStart: () => roverContainer.setAngle(90) },
+          { x: goalX, duration: 300, onStart: () => roverContainer.setAngle(0) }
         ],
         onComplete: () => {
-          if (!gameState.hasEvidence('connecting_door')) {
-            gameState.collectEvidence('connecting_door');
-            const itemObj = this.interactableObjects.find(io => io.data.evidenceId === 'connecting_door');
-            if (itemObj?.marker) {
-              itemObj.marker.destroy();
-              itemObj.marker = null;
-            }
-            this.showDiscovery('Hidden Connecting Door', 'A hidden acoustic flue door connecting the Clockwork Gallery directly into the Exhibition Chamber!');
+          finishMission();
+        }
+      });
+    };
+
+    autoBtn.on('pointerdown', startAutoPilot);
+    goalHitZone.on('pointerdown', startAutoPilot);
+
+    // Close button
+    const closeBtn = this.add.text(400, 285, '✕ CLOSE [ESC]', {
+      fontSize: '10px', color: '#8899aa', fontFamily: 'Courier New, monospace',
+      backgroundColor: '#141824', padding: { x: 10, y: 4 }
+    }).setOrigin(0.5).setDepth(604).setScrollFactor(0).setInteractive({ useHandCursor: true });
+    els.push(closeBtn);
+
+    closeBtn.on('pointerdown', closeConsole);
+
+    // Click anywhere in duct to steer
+    ductClickZone.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      if (isFinished) return;
+      const tx = Phaser.Math.Clamp(pointer.x, 130, 495);
+      const ty = Phaser.Math.Clamp(pointer.y, 115, 220);
+      const angle = Phaser.Math.RadToDeg(Phaser.Math.Angle.Between(roverContainer.x, roverContainer.y, tx, ty));
+      roverContainer.setAngle(angle);
+
+      if (roverTween) roverTween.stop();
+      const dist = Phaser.Math.Distance.Between(roverContainer.x, roverContainer.y, tx, ty);
+      roverTween = this.tweens.add({
+        targets: roverContainer,
+        x: tx,
+        y: ty,
+        duration: Math.max(150, dist * 3),
+        onUpdate: () => {
+          if (Phaser.Math.Distance.Between(roverContainer.x, roverContainer.y, goalX, goalY) < 42) {
+            finishMission();
           }
-          this.time.delayedCall(1200, () => {
-            els.forEach(e => e.destroy()); this.inDialogue = false; this.activeGadget = null; this.gadgetOverlay?.destroy(); this.gadgetOverlay = null; EventBus.emit('gadget-changed', null); this.save();
-          });
+        },
+        onComplete: () => {
+          if (Phaser.Math.Distance.Between(roverContainer.x, roverContainer.y, goalX, goalY) < 42) {
+            finishMission();
+          }
         }
       });
     });
+
+    // Manual Keyboard Drive (W / A / S / D / Arrow Keys)
+    const moveStep = (dx: number, dy: number, angle: number) => {
+      if (isFinished) return;
+      if (roverTween) { roverTween.stop(); roverTween = null; }
+      roverContainer.x = Phaser.Math.Clamp(roverContainer.x + dx, 130, 495);
+      roverContainer.y = Phaser.Math.Clamp(roverContainer.y + dy, 115, 220);
+      roverContainer.setAngle(angle);
+      try { AudioManager.getInstance().playSFX('type_blip'); } catch(e) {}
+
+      telemetryTxt.setText(`SIGNAL: ● 99%  |  X: ${Math.round(roverContainer.x)} Y: ${Math.round(roverContainer.y)}  |  STATUS: DRIVING`);
+      if (Phaser.Math.Distance.Between(roverContainer.x, roverContainer.y, goalX, goalY) < 42) {
+        finishMission();
+      }
+    };
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (isFinished) return;
+      const k = e.key.toUpperCase();
+      if (k === 'W' || k === 'ARROWUP') moveStep(0, -18, -90);
+      else if (k === 'S' || k === 'ARROWDOWN') moveStep(0, 18, 90);
+      else if (k === 'A' || k === 'ARROWLEFT') moveStep(-18, 0, 180);
+      else if (k === 'D' || k === 'ARROWRIGHT') moveStep(18, 0, 0);
+      else if (k === ' ' || k === 'ENTER') startAutoPilot();
+      else if (k === 'ESCAPE') closeConsole();
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    cleanups.push(() => window.removeEventListener('keydown', onKeyDown));
   }
 
   private voicePrismMini() {
