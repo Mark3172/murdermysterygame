@@ -1137,9 +1137,7 @@
     // --- Global Keyboard Dismiss Shortcuts ---
     window.addEventListener('keydown', (e) => {
       if (discoveryModal && discoveryModal.style.display === 'flex') {
-        if (e.key === ' ' || e.key === 'e' || e.key === 'E' || e.key === 'Enter' || e.key === 'Escape') {
-          hideDiscovery();
-        }
+        hideDiscovery();
       }
       if (hintOverlay && hintOverlay.style.display === 'block') {
         if (e.key === 'Escape') {

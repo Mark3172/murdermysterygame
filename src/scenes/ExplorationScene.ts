@@ -434,8 +434,13 @@ export class ExplorationScene extends Phaser.Scene {
   }
 
   update() {
-    // Safety: auto-recover if inDialogue was set but DialogueScene is no longer active
-    if (this.inDialogue && !this.scene.isActive('DialogueScene')) {
+    // Safety: auto-recover if inDialogue was set but DialogueScene or mini-games are no longer active
+    const dialogueDomActive = typeof document !== 'undefined' && document.getElementById('dialogue-container')?.style.display === 'flex';
+    const isMiniGameActive = this.inDialogue && (this.activeGadget === 'echo_lens' || this.activeGadget === 'micro_rover' || this.activeGadget === 'voice_prism');
+    if (this.inDialogue && !dialogueDomActive && !isMiniGameActive) {
+      if (this.scene.isActive('DialogueScene')) {
+        this.scene.stop('DialogueScene');
+      }
       this.inDialogue = false;
     }
 
@@ -546,7 +551,11 @@ export class ExplorationScene extends Phaser.Scene {
         const did = nearNpc.data.suspectId ? `${nearNpc.data.suspectId}_interview` : 'intro_arrival';
         this.scene.launch('DialogueScene', {dialogueId:did, suspectId:nearNpc.data.suspectId});
       } else if (nearObj) {
-        this.interact(nearObj.data);
+        try {
+          this.interact(nearObj.data);
+        } catch (err) {
+          console.error('[ExplorationScene] interact error:', err);
+        }
       }
     }
 
@@ -690,6 +699,11 @@ export class ExplorationScene extends Phaser.Scene {
       this.gadgetOverlay?.destroy();
       this.gadgetOverlay = null;
       this.clearTranquilityFocus();
+      for (const io of this.interactableObjects) {
+        if (io.marker && typeof (io.marker as any).clearTint === 'function') {
+          (io.marker as any).clearTint();
+        }
+      }
       EventBus.emit('gadget-changed', null);
       return;
     }
@@ -1268,7 +1282,11 @@ export class ExplorationScene extends Phaser.Scene {
           existing.label.setText(`🔦 ${obj.name}`);
           existing.label.setVisible(true);
           if (existing.marker) {
-            existing.marker.fillStyle(0xcc66ff, 1);
+            if (typeof (existing.marker as any).setTint === 'function') {
+              (existing.marker as any).setTint(0xcc66ff);
+            } else if (typeof (existing.marker as any).fillStyle === 'function') {
+              (existing.marker as any).fillStyle(0xcc66ff, 1);
+            }
           }
         } else {
           const ox = obj.x * TILE;
@@ -1277,15 +1295,17 @@ export class ExplorationScene extends Phaser.Scene {
           const oh = (obj.height || 1) * TILE;
           const z = this.add.zone(ox, oy, ow + 8, oh + 8);
           this.physics.add.existing(z, true);
-          const mk = this.add.graphics();
-          mk.fillStyle(0xcc66ff, 0.95);
-          mk.fillRect(-4, -4, 8, 8);
-          mk.setPosition(ox, oy - 16).setDepth(150);
-          this.tweens.add({ targets: mk, y: oy - 22, yoyo: true, repeat: -1, duration: 550 });
+          z.setInteractive({ useHandCursor: true });
+          z.on('pointerdown', () => {
+            if (!this.inDialogue) this.interact(obj);
+          });
+          const mk = this.add.image(ox, oy - oh / 2 - 8, 'sparkle_gleam').setDepth(oy + 20);
+          mk.setTint(0xcc66ff);
+          this.tweens.add({ targets: mk, y: oy - oh / 2 - 12, alpha: 0.5, scale: 0.85, yoyo: true, repeat: -1, duration: 600 });
           const lb = this.add.text(ox, oy + 12, `🔦 ${obj.name}`, {
             fontSize: '8px', color: '#e6a8ff', fontFamily: 'Courier New', backgroundColor: '#090d18ee', padding: { x: 5, y: 2 }
           }).setOrigin(0.5).setDepth(150).setVisible(true);
-          this.interactableObjects.push({ zone: z, data: obj, marker: mk, label: lb });
+          this.interactableObjects.push({ zone: z, data: obj, marker: mk as any, label: lb });
         }
       }
     }
