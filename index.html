@@ -697,6 +697,111 @@
       from { opacity: 0; transform: translateY(-14px); }
       to { opacity: 1; transform: translateY(0); }
     }
+
+    /* Blueprint Map styles */
+    .map-grid-container {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 10px;
+    }
+    @media (max-width: 600px) {
+      .map-grid-container {
+        grid-template-columns: 1fr;
+      }
+    }
+    .map-chamber-card {
+      background: rgba(12, 18, 32, 0.94);
+      border: 1px solid #324464;
+      border-radius: 6px;
+      padding: 12px 14px;
+      position: relative;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .map-chamber-card:hover {
+      border-color: #d4af37;
+      background: rgba(18, 28, 48, 0.98);
+      box-shadow: 0 6px 18px rgba(212, 175, 55, 0.2);
+    }
+    .map-chamber-card.current-room {
+      border: 2px solid #ffd700;
+      background: rgba(24, 36, 62, 0.98);
+      box-shadow: 0 0 16px rgba(255, 215, 0, 0.35);
+    }
+    .map-chamber-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    .map-chamber-name {
+      font-family: Georgia, serif;
+      font-size: 13px;
+      font-weight: 700;
+      color: #ffd700;
+      letter-spacing: 0.5px;
+    }
+    .map-here-badge {
+      font-family: var(--font-sans);
+      font-size: 10px;
+      font-weight: 700;
+      color: #040812;
+      background: #ffd700;
+      padding: 2px 6px;
+      border-radius: 3px;
+      letter-spacing: 0.5px;
+    }
+    .map-chamber-desc {
+      font-size: 11px;
+      color: #a4b6cc;
+      line-height: 1.4;
+      margin-bottom: 8px;
+    }
+    .map-chamber-meta {
+      font-family: var(--font-sans);
+      font-size: 10.5px;
+      color: #7ac4d4;
+      margin-bottom: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .map-fast-travel-btn {
+      background: rgba(212, 175, 55, 0.18);
+      border: 1px solid #d4af37;
+      color: #ffd700;
+      padding: 6px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: var(--font-sans);
+      font-size: 11px;
+      font-weight: 600;
+      width: 100%;
+      text-align: center;
+      transition: all 0.15s;
+    }
+    .map-fast-travel-btn:hover {
+      background: #d4af37;
+      color: #0a0e1c;
+      box-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
+    }
+    .map-secret-conduit {
+      grid-column: 1 / -1;
+      background: rgba(255, 170, 0, 0.12);
+      border: 1px dashed #ffaa00;
+      border-radius: 6px;
+      padding: 10px 14px;
+      color: #ffcc66;
+      font-size: 11.5px;
+      font-family: var(--font-sans);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
   </style>
 </head>
 <body>
@@ -708,7 +813,8 @@
           <div id="loading-bar-bg"><div id="loading-bar"></div></div>
         </div>
         <div id="hud-bar" style="display:none">
-          <span id="hud-room-badge" class="hud-room-badge">📍 MAIN HALL</span>
+          <span id="hud-room-badge" class="hud-room-badge" title="Click to view Observatory Map [M]" style="cursor:pointer">📍 MAIN HALL</span>
+          <button class="hud-btn" id="btn-map" title="View Observatory Blueprint Map & Fast Travel">🗺 Map [M]</button>
           <button class="hud-btn" id="btn-notebook">📓 Notes [N]</button>
           <button class="hud-btn" id="btn-gadgets">🔧 Gadgets [1-5]</button>
           <button class="hud-btn" id="btn-gadget-tutorial" title="Watch Dr. Vale's Gadget Operations Briefing">📺 Tutorial [T]</button>
@@ -734,6 +840,7 @@
             <span class="notebook-tab" data-tab="suspects">Suspects</span>
             <span class="notebook-tab" data-tab="objectives">Objectives</span>
             <span class="notebook-tab" data-tab="history">History</span>
+            <span class="notebook-tab" data-tab="map">Observatory Map</span>
           </div>
           <div id="notebook-content"></div>
         </div>

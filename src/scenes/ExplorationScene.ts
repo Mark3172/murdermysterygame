@@ -302,6 +302,14 @@ export class ExplorationScene extends Phaser.Scene {
         E: this.input.keyboard.addKey('E'), N: this.input.keyboard.addKey('N'),
       };
       this.input.keyboard.on('keydown-ESC', () => this.scene.launch('SettingsScene'));
+      this.input.keyboard.on('keydown-M', () => {
+        if (this.scene.isActive('NotebookScene')) {
+          const nb = this.scene.get('NotebookScene') as any;
+          if (nb && nb.switchTab) nb.switchTab('map');
+        } else {
+          this.scene.launch('NotebookScene', { tab: 'map' });
+        }
+      });
       this.input.keyboard.on('keydown-ONE', () => this.useGadget('tranquility_focus'));
       this.input.keyboard.on('keydown-TWO', () => this.useGadget('echo_lens'));
       this.input.keyboard.on('keydown-THREE', () => this.useGadget('trace_light'));
@@ -338,10 +346,41 @@ export class ExplorationScene extends Phaser.Scene {
     EventBus.on('gadget-selected', (gadgetId: string) => {
       this.useGadget(gadgetId);
     });
-    EventBus.on('toggle-notebook', () => {
-      if (this.scene.isActive('NotebookScene')) this.scene.stop('NotebookScene');
-      else this.scene.launch('NotebookScene');
+    EventBus.on('toggle-notebook', (data?: { tab?: string }) => {
+      if (this.scene.isActive('NotebookScene')) {
+        if (data?.tab) {
+          const nb = this.scene.get('NotebookScene') as any;
+          if (nb && nb.switchTab) nb.switchTab(data.tab);
+        } else {
+          this.scene.stop('NotebookScene');
+        }
+      } else {
+        this.scene.launch('NotebookScene', data);
+      }
     });
+
+    const onFastTravel = ({ roomId }: { roomId: string }) => {
+      if (this.roomId === roomId || this.inDialogue) return;
+      this.clearTranquilityFocus();
+      AudioManager.getInstance().playSFX('doorOpen');
+      const td = rooms[roomId];
+      if (!td) return;
+      const sx = (td.width || 40) * TILE / 2;
+      const sy = (td.height || 22) * TILE / 2;
+      this.registry.set('spawnX', sx);
+      this.registry.set('spawnY', sy);
+      this.cameras.main.fadeOut(200);
+      let transitioned = false;
+      const doRestart = () => {
+        if (transitioned) return;
+        transitioned = true;
+        this.scene.restart({ roomId });
+      };
+      this.cameras.main.once('camerafadeoutcomplete', doRestart);
+      this.time.delayedCall(250, doRestart);
+    };
+
+    EventBus.on('fast-travel', onFastTravel);
 
     // Cutscene check
     const phase = storyManager.getCurrentPhase();
@@ -387,6 +426,7 @@ export class ExplorationScene extends Phaser.Scene {
 
     this.events.once('shutdown', () => {
       if (this.lightningTimer) this.lightningTimer.destroy();
+      EventBus.off('fast-travel', onFastTravel);
       EventBus.emit('update-prompt', { text: '', visible: false });
     });
 

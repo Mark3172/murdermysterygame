@@ -3,6 +3,7 @@ import { dialogue, DialogueTree, DialogueNode } from '../data/dialogue';
 import { gameState } from '../logic/GameState';
 import { EventBus } from '../engine/EventBus';
 import { PortraitRenderer } from '../rendering/PortraitRenderer';
+import { AudioManager } from '../engine/AudioManager';
 
 export class DialogueScene extends Scene {
   private dialogueId!: string;
@@ -281,7 +282,11 @@ export class DialogueScene extends Scene {
     const interval = Math.max(8, 30 - (speedSetting - 3) * 8);
 
     this.typewriterTimer = window.setInterval(() => {
-      this.textEl.textContent += this.fullText[charIndex];
+      const ch = this.fullText[charIndex];
+      this.textEl.textContent += ch;
+      if (charIndex % 3 === 0 && ch !== ' ') {
+        try { AudioManager.getInstance().playSFX('type_blip'); } catch(e) {}
+      }
       charIndex++;
       
       if (charIndex >= this.fullText.length) {
@@ -381,6 +386,7 @@ export class DialogueScene extends Scene {
     if (!this.isTyping && this.currentChoices.length > 0) {
       this.selectedChoiceIndex = (this.selectedChoiceIndex - 1 + this.currentChoices.length) % this.currentChoices.length;
       this.updateChoiceSelection();
+      try { AudioManager.getInstance().playSFX('ui_click'); } catch(e) {}
     }
   }
 
@@ -388,6 +394,7 @@ export class DialogueScene extends Scene {
     if (!this.isTyping && this.currentChoices.length > 0) {
       this.selectedChoiceIndex = (this.selectedChoiceIndex + 1) % this.currentChoices.length;
       this.updateChoiceSelection();
+      try { AudioManager.getInstance().playSFX('ui_click'); } catch(e) {}
     }
   }
 
@@ -401,6 +408,7 @@ export class DialogueScene extends Scene {
 
   private makeChoice(index: number) {
     if (index >= 0 && index < this.currentChoices.length) {
+      try { AudioManager.getInstance().playSFX('ui_click'); } catch(e) {}
       const nextId = this.currentChoices[index].nextId;
       this.advanceToNode(nextId);
     }

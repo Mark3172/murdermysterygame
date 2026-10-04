@@ -4,15 +4,30 @@ import { storyManager } from '../logic/StoryPhaseManager';
 import { evidence as evidenceData } from '../data/evidence';
 import { suspects } from '../data/suspects';
 import { PortraitRenderer } from '../rendering/PortraitRenderer';
+import { AudioManager } from '../engine/AudioManager';
+import { EventBus } from '../engine/EventBus';
 
 export class NotebookScene extends Phaser.Scene {
     private overlay!: HTMLElement;
+    private currentTab: string = 'evidence';
 
     constructor() {
         super('NotebookScene');
     }
 
-    create() {
+    init(data?: { tab?: string }) {
+        if (data?.tab) {
+            this.currentTab = data.tab;
+        }
+    }
+
+    create(data?: { tab?: string }) {
+        if (data?.tab) {
+            this.currentTab = data.tab;
+        }
+
+        try { AudioManager.getInstance().playSFX('paperRustle'); } catch(e) {}
+
         this.overlay = document.getElementById('notebook-overlay') as HTMLElement;
         if (!this.overlay) {
             this.createFallbackHTML();
@@ -23,6 +38,14 @@ export class NotebookScene extends Phaser.Scene {
 
         this.input.keyboard?.on('keydown-TAB', this.closeNotebook, this);
         this.input.keyboard?.on('keydown-N', this.closeNotebook, this);
+        this.input.keyboard?.on('keydown-ESC', this.closeNotebook, this);
+        this.input.keyboard?.on('keydown-M', () => {
+            if (this.currentTab === 'map') {
+                this.closeNotebook();
+            } else {
+                this.switchTab('map');
+            }
+        }, this);
         
         const closeBtn = document.getElementById('notebook-close');
         if (closeBtn) closeBtn.onclick = () => this.closeNotebook();
@@ -32,14 +55,14 @@ export class NotebookScene extends Phaser.Scene {
         this.overlay = document.createElement('div');
         this.overlay.id = 'notebook-overlay';
         this.overlay.style.position = 'absolute';
-        this.overlay.style.top = '10%';
-        this.overlay.style.left = '10%';
-        this.overlay.style.width = '80%';
-        this.overlay.style.height = '80%';
-        this.overlay.style.backgroundColor = '#ddd';
+        this.overlay.style.top = '5%';
+        this.overlay.style.bottom = '5%';
+        this.overlay.style.left = '6%';
+        this.overlay.style.right = '6%';
+        this.overlay.style.backgroundColor = 'rgba(14, 12, 18, 0.98)';
         this.overlay.style.display = 'flex';
         this.overlay.style.flexDirection = 'column';
-        this.overlay.style.zIndex = '1000';
+        this.overlay.style.zIndex = '60';
         document.body.appendChild(this.overlay);
 
         const tabs = document.createElement('div');
@@ -47,7 +70,9 @@ export class NotebookScene extends Phaser.Scene {
             <button class="notebook-tab" data-tab="evidence">Evidence</button>
             <button class="notebook-tab" data-tab="suspects">Suspects</button>
             <button class="notebook-tab" data-tab="objectives">Objectives</button>
-            <button id="notebook-close" style="float:right">Close</button>
+            <button class="notebook-tab" data-tab="history">History</button>
+            <button class="notebook-tab" data-tab="map">Observatory Map</button>
+            <button id="notebook-close" style="float:right">✕</button>
         `;
         this.overlay.appendChild(tabs);
 
@@ -63,13 +88,26 @@ export class NotebookScene extends Phaser.Scene {
         const tabs = document.querySelectorAll('.notebook-tab');
         tabs.forEach(tab => {
             (tab as HTMLElement).onclick = (e) => {
-                tabs.forEach(t => t.classList.remove('active'));
-                const target = e.target as HTMLElement;
-                target.classList.add('active');
-                this.showTab(target.getAttribute('data-tab') || 'evidence');
+                const target = e.currentTarget as HTMLElement;
+                const tabName = target.getAttribute('data-tab') || 'evidence';
+                this.switchTab(tabName);
             };
         });
-        this.showTab('evidence');
+        this.switchTab(this.currentTab);
+    }
+
+    public switchTab(tabName: string) {
+        this.currentTab = tabName;
+        try { AudioManager.getInstance().playSFX('paperRustle'); } catch(e) {}
+        const tabs = document.querySelectorAll('.notebook-tab');
+        tabs.forEach(t => {
+            if (t.getAttribute('data-tab') === tabName) {
+                t.classList.add('active');
+            } else {
+                t.classList.remove('active');
+            }
+        });
+        this.showTab(tabName);
     }
 
     showTab(tabName: string) {
@@ -140,7 +178,7 @@ export class NotebookScene extends Phaser.Scene {
                 let contradictionNote = '';
                 if (interviewed && s.id === 'nadia' && gameState.hasEvidence('missing_lantern')) {
                     contradictionNote = '<div style="margin-top:6px; padding:4px 8px; background:rgba(255,80,60,0.15); border-left:2px solid #ff4444; color:#ff9988; font-size:11px;">⚠ <strong>CONTRADICTION:</strong> Missing lantern proves the darkened hallway was intentionally staged!</div>';
-                } else if (interviewed && s.id === 'hugo' && gameState.hasEvidence('secret_passage')) {
+                } else if (interviewed && s.id === 'hugo' && gameState.hasEvidence('connecting_door')) {
                     contradictionNote = '<div style="margin-top:6px; padding:4px 8px; background:rgba(255,80,60,0.15); border-left:2px solid #ff4444; color:#ff9988; font-size:11px;">⚠ <strong>CONTRADICTION:</strong> Hidden acoustic flue passage directly connects the crime scene to Hugo\'s quarters!</div>';
                 }
 
@@ -182,20 +220,125 @@ export class NotebookScene extends Phaser.Scene {
                     • <strong>8:05 PM:</strong> Emergency power restored. Professor Sable found dead inside the sealed Exhibition Chamber bolted from the inside.
                 </p>
             </div>`;
-            if (gameState.hasEvidence('secret_passage') || gameState.hasEvidence('recording_equipment')) {
+            if (gameState.hasEvidence('connecting_door') || gameState.hasEvidence('spliced_recording')) {
                 html += `<div class="evidence-item" style="border-left:3px solid #d4af37; margin-bottom:10px;">
                     <h4 style="color:#ffd700; font-size:12px; margin-bottom:6px;">BREAKTHROUGH DISCOVERIES</h4>
                     <p style="color:#d0dce5; font-size:12px; line-height:1.6;">
-                        ${gameState.hasEvidence('recording_equipment') ? '• <strong>Acoustic Deception:</strong> The 7:45 PM PA announcement was pre-recorded on magnetic wire, creating a false window of life.<br>' : ''}
-                        ${gameState.hasEvidence('poisoned_tea') ? '• <strong>Cause of Death:</strong> Toxic aconitine residue in the tea cup indicates Professor Sable died <em>prior</em> to the 13th chime.<br>' : ''}
-                        ${gameState.hasEvidence('secret_passage') ? '• <strong>Locked Room Bypass:</strong> Hidden acoustic flue allows entry and exit without touching the heavy brass deadbolt.' : ''}
+                        ${gameState.hasEvidence('spliced_recording') ? '• <strong>Acoustic Deception:</strong> The 7:45 PM PA announcement was pre-recorded on magnetic wire, creating a false window of life.<br>' : ''}
+                        ${gameState.hasEvidence('poisoned_tea') ? '• <strong>Cause of Death:</strong> Toxic industrial solvent residue in the thermos indicates Professor Sable died <em>prior</em> to the 13th chime.<br>' : ''}
+                        ${gameState.hasEvidence('connecting_door') ? '• <strong>Locked Room Bypass:</strong> Hidden acoustic flue connecting duct allows entry and exit without touching the heavy brass deadbolt.' : ''}
                     </p>
                 </div>`;
             }
+        } else if (tabName === 'map') {
+            const currentRoomId = gameState.getCurrentRoom() || 'main_hall';
+            const collected = gameState.getCollectedEvidence();
+            const hasSecretPassage = gameState.hasEvidence('connecting_door');
+
+            html = `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <div>
+                    <h3 style="color:#d4af37; font-size:14px; text-transform:uppercase; letter-spacing:1px; margin:0;">Observatory Architectural Blueprint</h3>
+                    <p style="color:#8a9cb0; font-size:11px; margin:2px 0 0 0;">Interactive floor plan of Stellara Mountain Observatory. Click any chamber to fast-travel.</p>
+                </div>
+            </div>`;
+
+            const chambers = [
+                {
+                    id: 'observation_deck',
+                    name: 'Observation Deck',
+                    icon: '🔭',
+                    desc: 'Balcony in freezing rain. Optical telescopes & environmental sensors.',
+                    suspect: null,
+                    clues: ['rain_sensor_data']
+                },
+                {
+                    id: 'exhibition_chamber',
+                    name: 'Exhibition Chamber',
+                    icon: '🔒',
+                    desc: 'Crime scene. Bolted from inside. Professor\'s desk & secret flue.',
+                    suspect: 'Hugo Wren',
+                    clues: ['poisoned_tea', 'hugo_fingerprints', 'mothers_photo']
+                },
+                {
+                    id: 'main_hall',
+                    name: 'Main Hall',
+                    icon: '🏛',
+                    desc: 'Grand domed central atrium. PA speakers & marble checkerboard.',
+                    suspect: 'Nadia Thorn',
+                    clues: ['spliced_recording']
+                },
+                {
+                    id: 'pendulum_room',
+                    name: 'Pendulum Room',
+                    icon: '⏱',
+                    desc: 'Gothic chamber with the swinging Foucault pendulum & floor sensors.',
+                    suspect: 'Iris Blackwell',
+                    clues: ['thirteenth_chime_resonance', 'pendulum_weight_sensor']
+                },
+                {
+                    id: 'library',
+                    name: 'Library & Archive',
+                    icon: '📚',
+                    desc: 'Towering bookcases, ledger desks, filing cabinets & rare inkwells.',
+                    suspect: 'Felix Ashworth',
+                    clues: ['missing_lantern', 'felix_ink_stain', 'project_echo_notes', 'nadia_vial']
+                },
+                {
+                    id: 'clockwork_gallery',
+                    name: 'Clockwork Gallery',
+                    icon: '⚙',
+                    desc: 'Churning giant brass gears, steam escapements & ventilation flue gap.',
+                    suspect: 'Petra Solano',
+                    clues: ['petra_hidden_recorder', 'connecting_door']
+                }
+            ];
+
+            html += `<div class="map-grid-container">`;
+
+            chambers.forEach(ch => {
+                const isCurrent = ch.id === currentRoomId;
+                const foundCount = ch.clues.filter(c => collected.includes(c)).length;
+                const suspectText = ch.suspect ? `👤 Suspect: <strong>${ch.suspect}</strong>` : '👤 Suspects: None present';
+                const cardClass = isCurrent ? 'map-chamber-card current-room' : 'map-chamber-card';
+
+                html += `
+                <div class="${cardClass}">
+                    <div>
+                        <div class="map-chamber-header">
+                            <span class="map-chamber-name">${ch.icon} ${ch.name}</span>
+                            ${isCurrent ? '<span class="map-here-badge">📍 HERE</span>' : ''}
+                        </div>
+                        <div class="map-chamber-desc">${ch.desc}</div>
+                        <div class="map-chamber-meta">
+                            <span>${suspectText}</span>
+                            <span>🔍 Clues Found: <strong style="color:#ffd700;">${foundCount} / ${ch.clues.length}</strong></span>
+                        </div>
+                    </div>
+                    <div>
+                        ${isCurrent 
+                            ? '<div style="text-align:center; padding:5px 0; color:#66e099; font-size:11px; font-weight:bold; letter-spacing:0.5px;">✓ CURRENT LOCATION</div>' 
+                            : `<button class="map-fast-travel-btn" data-room="${ch.id}">🧭 WALK TO CHAMBER</button>`}
+                    </div>
+                </div>`;
+            });
+
+            if (hasSecretPassage) {
+                html += `
+                <div class="map-secret-conduit">
+                    <span style="font-size:16px;">⚙▶🔒</span>
+                    <div>
+                        <strong style="color:#ffd700;">SECRET FLUE CONDUIT UNLOCKED:</strong>
+                        <span> Direct bypass mapped between Clockwork Gallery and Exhibition Chamber.</span>
+                    </div>
+                </div>`;
+            }
+
+            html += `</div>`;
         }
 
         content.innerHTML = html;
 
+        // Wire tutorial button if present
         const tutBtn = document.getElementById('btn-notebook-tutorial');
         if (tutBtn) {
             tutBtn.onclick = () => {
@@ -207,9 +350,20 @@ export class NotebookScene extends Phaser.Scene {
                 this.scene.start('CutsceneScene', { cutsceneId: 'gadget_tutorial', returnTo: 'ExplorationScene', returnRoom: currentRoom });
             };
         }
+
+        // Wire fast travel buttons
+        document.querySelectorAll('.map-fast-travel-btn').forEach(btn => {
+            (btn as HTMLElement).onclick = (e) => {
+                const targetRoom = (e.currentTarget as HTMLElement).getAttribute('data-room');
+                if (!targetRoom) return;
+                this.closeNotebook();
+                EventBus.emit('fast-travel', { roomId: targetRoom });
+            };
+        });
     }
 
     closeNotebook() {
+        try { AudioManager.getInstance().playSFX('ui_click'); } catch(e) {}
         if (this.overlay) {
             this.overlay.style.display = 'none';
         }

@@ -27,6 +27,16 @@ export class UIScene extends Phaser.Scene {
         }
 
         // Setup Buttons
+        const btnMap = document.getElementById('btn-map');
+        if (btnMap) btnMap.onclick = () => this.openMap();
+
+        const hudBadge = document.getElementById('hud-room-badge');
+        if (hudBadge) {
+            hudBadge.style.cursor = 'pointer';
+            hudBadge.title = 'Click to view Observatory Map [M]';
+            hudBadge.onclick = () => this.openMap();
+        }
+
         const btnNotebook = document.getElementById('btn-notebook');
         if (btnNotebook) btnNotebook.onclick = () => this.toggleNotebook();
 
@@ -47,6 +57,7 @@ export class UIScene extends Phaser.Scene {
         if (settingsClose) settingsClose.onclick = () => this.toggleSettings();
 
         // Keyboard shortcuts
+        this.input.keyboard?.on('keydown-M', () => this.openMap());
         this.input.keyboard?.on('keydown-N', () => this.toggleNotebook());
         this.input.keyboard?.on('keydown-T', () => this.playGadgetTutorial());
         this.input.keyboard?.on('keydown-H', () => this.showHint());
@@ -134,13 +145,22 @@ export class UIScene extends Phaser.Scene {
         }
     }
 
-    toggleNotebook() {
+    toggleNotebook(tab?: string) {
         AudioManager.getInstance().playSFX('paperRustle');
         if (this.scene.isActive('NotebookScene')) {
-            this.scene.stop('NotebookScene');
+            if (tab) {
+                const nb = this.scene.get('NotebookScene') as any;
+                if (nb && nb.switchTab) nb.switchTab(tab);
+            } else {
+                this.scene.stop('NotebookScene');
+            }
         } else {
-            this.scene.launch('NotebookScene');
+            this.scene.launch('NotebookScene', { tab: tab || 'evidence' });
         }
+    }
+
+    openMap() {
+        this.toggleNotebook('map');
     }
 
     playGadgetTutorial() {
