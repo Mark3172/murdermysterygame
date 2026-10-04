@@ -450,6 +450,15 @@ export class ExplorationScene extends Phaser.Scene {
     let nearObj: typeof this.interactableObjects[0]|null = null;
     let nearDist = 45;
     for (const ia of this.interactableObjects) {
+      if (ia.data.id === 'desk' && !gameState.hasEvidence('poisoned_tea')) {
+        ia.label.setVisible(false);
+        continue;
+      }
+      if (ia.data.id === 'archive_desk' && !gameState.hasEvidence('felix_ink_stain')) {
+        ia.label.setVisible(false);
+        continue;
+      }
+
       const d = Phaser.Math.Distance.Between(this.player.x, this.player.y, ia.zone.x, ia.zone.y);
       ia.label.setVisible(d < 45);
       if (d < nearDist) { nearObj = ia; nearDist = d; }
@@ -543,6 +552,24 @@ export class ExplorationScene extends Phaser.Scene {
   }
 
   private interact(obj: any) {
+    // Contextual tabletop delegation (examining desk inspects the clue atop it)
+    if (obj.id === 'desk' && !gameState.hasEvidence('poisoned_tea')) {
+      const room = rooms[this.roomId];
+      const thermos = room?.interactables?.find((i: any) => i.id === 'thermos');
+      if (thermos) {
+        this.interact(thermos);
+        return;
+      }
+    }
+    if (obj.id === 'archive_desk' && !gameState.hasEvidence('felix_ink_stain')) {
+      const room = rooms[this.roomId];
+      const ink = room?.interactables?.find((i: any) => i.id === 'spilled_ink');
+      if (ink) {
+        this.interact(ink);
+        return;
+      }
+    }
+
     // Contextual handling for Micro Rover duct deployment
     if (obj.id === 'wall_gap' || obj.gadgetRequired === 'micro_rover') {
       if (gameState.hasEvidence('connecting_door')) {
