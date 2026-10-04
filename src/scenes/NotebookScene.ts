@@ -200,7 +200,11 @@ export class NotebookScene extends Phaser.Scene {
         if (tutBtn) {
             tutBtn.onclick = () => {
                 this.closeNotebook();
-                this.scene.start('CutsceneScene', { cutsceneId: 'gadget_tutorial', returnTo: 'ExplorationScene' });
+                const currentRoom = gameState.getCurrentRoom() || 'main_hall';
+                this.scene.stop('NotebookScene');
+                this.scene.stop('ExplorationScene');
+                this.scene.stop('UIScene');
+                this.scene.start('CutsceneScene', { cutsceneId: 'gadget_tutorial', returnTo: 'ExplorationScene', returnRoom: currentRoom });
             };
         }
     }

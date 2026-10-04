@@ -148,7 +148,10 @@ export class UIScene extends Phaser.Scene {
         if (this.scene.isActive('NotebookScene')) {
             this.scene.stop('NotebookScene');
         }
-        this.scene.start('CutsceneScene', { cutsceneId: 'gadget_tutorial', returnTo: 'ExplorationScene' });
+        const currentRoom = gameState.getCurrentRoom() || 'main_hall';
+        this.scene.stop('ExplorationScene');
+        this.scene.stop('UIScene');
+        this.scene.start('CutsceneScene', { cutsceneId: 'gadget_tutorial', returnTo: 'ExplorationScene', returnRoom: currentRoom });
     }
 
     private currentGadget: string | null = null;

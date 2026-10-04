@@ -98,9 +98,13 @@ export class ExplorationScene extends Phaser.Scene {
       fontSize: '8px', color: '#7ab4f8', fontFamily: 'Courier New', backgroundColor: '#060a16d0', padding: { x: 4, y: 1 }
     }).setOrigin(0.5).setDepth(300).setVisible(false);
 
+    const hud = document.getElementById('hud-bar');
+    if (hud) hud.style.display = 'flex';
+
     this.physics.world.setBounds(0, 0, rw, rh);
     this.cameras.main.setBounds(0, 0, rw, rh);
     this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
+    this.cameras.main.resetFX();
     this.cameras.main.fadeIn(300);
 
     // Setup physical obstacle colliders so player doesn't clip through walls or furniture
@@ -935,11 +939,16 @@ export class ExplorationScene extends Phaser.Scene {
     sy = Phaser.Math.Clamp(sy, wallH + 20, th - 32);
 
     this.cameras.main.fadeOut(250);
-    this.cameras.main.once('camerafadeoutcomplete', () => {
+    let transitioned = false;
+    const doRestart = () => {
+      if (transitioned) return;
+      transitioned = true;
       this.registry.set('spawnX', sx);
       this.registry.set('spawnY', sy);
       this.scene.restart({ roomId: target });
-    });
+    };
+    this.cameras.main.once('camerafadeoutcomplete', doRestart);
+    this.time.delayedCall(300, doRestart);
   }
 
   private showRoomPlacard(room: RoomData) {

@@ -17,6 +17,7 @@ export class CutsceneScene extends Scene {
   private uiContainer!: Phaser.GameObjects.Container;
   private panelCounterText!: Phaser.GameObjects.Text;
   private returnTo: string | null = null;
+  private returnRoom: string | null = null;
   private currentTypewriterTextObj: Phaser.GameObjects.Text | null = null;
   private currentFullText: string = '';
   
@@ -27,11 +28,16 @@ export class CutsceneScene extends Scene {
   init(data: any) {
     this.cutsceneId = data.cutsceneId || 'cold_open';
     this.returnTo = data.returnTo || null;
+    this.returnRoom = data.returnRoom || null;
     this.currentPanelIndex = 0;
     this.isTransitioning = false;
   }
 
   create() {
+    // Hide HUD bar during cinematic cutscene
+    const hud = document.getElementById('hud-bar');
+    if (hud) hud.style.display = 'none';
+
     this.cutsceneData = cutscenes[this.cutsceneId];
     if (!this.cutsceneData) {
         console.warn(`Cutscene ${this.cutsceneId} not found, falling back.`);
@@ -380,7 +386,8 @@ export class CutsceneScene extends Scene {
     this.cameras.main.fadeOut(1000, 0, 0, 0);
     this.cameras.main.once('camerafadeoutcomplete', () => {
         if (this.returnTo) {
-            this.scene.start(this.returnTo);
+            const targetRoom = this.returnRoom || gameState.getCurrentRoom() || 'main_hall';
+            this.scene.start(this.returnTo, { roomId: targetRoom });
             return;
         }
         switch(this.cutsceneId) {
