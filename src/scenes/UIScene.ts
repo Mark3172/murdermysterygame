@@ -60,8 +60,10 @@ export class UIScene extends Phaser.Scene {
         this.input.keyboard?.on('keydown-M', () => this.openMap());
         this.input.keyboard?.on('keydown-N', () => this.toggleNotebook());
         this.input.keyboard?.on('keydown-T', () => this.playGadgetTutorial());
-        this.input.keyboard?.on('keydown-H', () => this.showHint());
-        this.input.keyboard?.on('keydown-ESC', () => this.togglePause());
+        this.input.keyboard?.on('keydown-ESC', () => {
+            if (this.scene.isActive('CutsceneScene')) return;
+            this.togglePause();
+        });
 
         // Quick gadget keys 1-5
         const gadgetSlots: Record<string, string> = {
@@ -337,6 +339,7 @@ export class UIScene extends Phaser.Scene {
     }
 
     toggleSettings() {
+        if (this.scene.isActive('CutsceneScene')) return;
         AudioManager.getInstance().playSFX('ui_click');
         if (this.scene.isActive('SettingsScene')) {
             this.scene.stop('SettingsScene');
@@ -346,6 +349,7 @@ export class UIScene extends Phaser.Scene {
     }
 
     togglePause() {
+        if (this.scene.isActive('CutsceneScene')) return;
         this.toggleSettings();
     }
 }

@@ -9,6 +9,11 @@ export class SettingsScene extends Scene {
     }
 
     create() {
+        if (this.scene.isActive('CutsceneScene')) {
+            this.scene.stop();
+            return;
+        }
+
         const { width, height } = this.scale;
 
         // 1. Semi-translucent dark vignette backdrop

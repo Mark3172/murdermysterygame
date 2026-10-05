@@ -38,6 +38,20 @@ export class CutsceneScene extends Scene {
     const hud = document.getElementById('hud-bar');
     if (hud) hud.style.display = 'none';
 
+    // Ensure SettingsScene is closed and sleep UIScene so Pause doesn't overlap cutscenes
+    if (this.scene.isActive('SettingsScene')) {
+        this.scene.stop('SettingsScene');
+    }
+    if (this.scene.isActive('UIScene')) {
+        this.scene.sleep('UIScene');
+    }
+
+    this.events.once('shutdown', () => {
+        if (this.scene.isSleeping('UIScene')) {
+            this.scene.wake('UIScene');
+        }
+    });
+
     this.cutsceneData = cutscenes[this.cutsceneId];
     if (!this.cutsceneData) {
         console.warn(`Cutscene ${this.cutsceneId} not found, falling back.`);
@@ -54,7 +68,7 @@ export class CutsceneScene extends Scene {
     const { width, height } = this.scale;
 
     // Skip button
-    const skipButton = this.add.text(width - 15, 12, '✕ Skip [ESC]', {
+    const skipButton = this.add.text(width - 15, 12, '✕ Skip [ESC / S]', {
         fontFamily: 'Courier New, monospace',
         fontSize: '11px',
         color: '#aaaaaa',
@@ -71,7 +85,7 @@ export class CutsceneScene extends Scene {
     this.uiContainer.add(skipButton);
 
     // Panel counter positioned neatly in the top right beside the Skip button
-    this.panelCounterText = this.add.text(width - 115, 15, '', {
+    this.panelCounterText = this.add.text(width - 130, 15, '', {
         fontFamily: 'Courier New, monospace',
         fontSize: '11px',
         color: '#7f93aa',
@@ -84,6 +98,7 @@ export class CutsceneScene extends Scene {
     this.input.on('pointerdown', this.handleAdvance, this);
     this.input.keyboard?.on('keydown-SPACE', this.handleAdvance, this);
     this.input.keyboard?.on('keydown-ESC', () => this.finishCutscene());
+    this.input.keyboard?.on('keydown-S', () => this.finishCutscene());
 
     this.showPanel();
   }

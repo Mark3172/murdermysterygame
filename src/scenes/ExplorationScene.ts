@@ -301,7 +301,10 @@ export class ExplorationScene extends Phaser.Scene {
         S: this.input.keyboard.addKey('S'), D: this.input.keyboard.addKey('D'),
         E: this.input.keyboard.addKey('E'), N: this.input.keyboard.addKey('N'),
       };
-      this.input.keyboard.on('keydown-ESC', () => this.scene.launch('SettingsScene'));
+      this.input.keyboard.on('keydown-ESC', () => {
+        if (this.scene.isActive('CutsceneScene')) return;
+        this.scene.launch('SettingsScene');
+      });
       this.input.keyboard.on('keydown-M', () => {
         if (this.scene.isActive('NotebookScene')) {
           const nb = this.scene.get('NotebookScene') as any;
