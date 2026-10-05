@@ -242,9 +242,9 @@ export class CutsceneScene extends Scene {
         }).setOrigin(0, 0);
         this.panelContainer.add(speakerTxt);
 
-        // Dialogue text
+        // Dialogue text (using lining numbers font stack so numerals 0-9 align evenly on the baseline)
         const dialogTxt = this.add.text(98, boxY + 32, '', {
-            fontFamily: 'Georgia, serif',
+            fontFamily: '"Times New Roman", Times, "Segoe UI", serif',
             fontSize: '12px',
             color: panel.textColor || '#edf2f8',
             lineSpacing: 4,
@@ -1110,20 +1110,20 @@ export class CutsceneScene extends Scene {
       g.fillCircle(320, 120, 4);
 
       // Telemetry Cards
-      const t1 = this.add.text(320, 204, '✦ PULSE RATE: 58 BPM // SENSORY CALIBRATION: HEIGHTENED ✦', {
+      const t1 = this.add.text(320, 212, '✦ PULSE RATE: 58 BPM // SENSORY CALIBRATION: HEIGHTENED ✦', {
         fontFamily: 'Courier New, monospace',
         fontSize: '10px',
         color: '#66bbff',
         fontStyle: 'bold'
       }).setOrigin(0.5);
 
-      const t2 = this.add.text(320, 224, 'EFFECT: HIGHLIGHTS ALL PROPS, CLUES, AND NPC DETAILS IN CURRENT ROOM', {
+      const t2 = this.add.text(320, 232, 'EFFECT: HIGHLIGHTS ALL PROPS, CLUES, AND NPC DETAILS IN CURRENT ROOM', {
         fontFamily: 'Courier New, monospace',
         fontSize: '9px',
         color: '#edf2f8'
       }).setOrigin(0.5);
 
-      const hotkey = this.add.text(320, 256, 'HOTKEY: PRESS [1] TO ACTIVATE TRANQUILITY FOCUS', {
+      const hotkey = this.add.text(320, 260, 'HOTKEY: PRESS [1] TO ACTIVATE TRANQUILITY FOCUS', {
         fontFamily: 'Courier New, monospace',
         fontSize: '11px',
         color: '#ffd700',
@@ -1171,20 +1171,20 @@ export class CutsceneScene extends Scene {
       g.stroke();
 
       // Telemetry
-      const t1 = this.add.text(320, 218, '✦ ACOUSTIC FREQUENCY MAPPING // 432 Hz HARMONIC DETECTED ✦', {
+      const t1 = this.add.text(320, 212, '✦ ACOUSTIC FREQUENCY MAPPING // 432 Hz HARMONIC DETECTED ✦', {
         fontFamily: 'Courier New, monospace',
         fontSize: '10px',
         color: '#33e0ff',
         fontStyle: 'bold'
       }).setOrigin(0.5);
 
-      const t2 = this.add.text(320, 236, 'APPLICATION: TRACE SOUND REFLECTIONS, VIBRATION ANOMALIES & RAIN SENSORS', {
+      const t2 = this.add.text(320, 232, 'APPLICATION: TRACE SOUND REFLECTIONS, VIBRATION ANOMALIES & RAIN SENSORS', {
         fontFamily: 'Courier New, monospace',
         fontSize: '9px',
         color: '#edf2f8'
       }).setOrigin(0.5);
 
-      const hotkey = this.add.text(320, 264, 'HOTKEY: PRESS [2] TO ACTIVATE ECHO LENS', {
+      const hotkey = this.add.text(320, 260, 'HOTKEY: PRESS [2] TO ACTIVATE ECHO LENS', {
         fontFamily: 'Courier New, monospace',
         fontSize: '11px',
         color: '#ffd700',
@@ -1251,20 +1251,20 @@ export class CutsceneScene extends Scene {
       }).setOrigin(0.5);
 
       // Telemetry
-      const t1 = this.add.text(320, 208, '✦ ULTRAVIOLET 365nm // FLUORESCENCE ACTIVE ✦', {
+      const t1 = this.add.text(320, 212, '✦ ULTRAVIOLET 365nm // FLUORESCENCE ACTIVE ✦', {
         fontFamily: 'Courier New, monospace',
         fontSize: '10px',
         color: '#d888ff',
         fontStyle: 'bold'
       }).setOrigin(0.5);
 
-      const t2 = this.add.text(320, 228, 'APPLICATION: EXPOSES LATENT FINGERPRINTS, POISON PUDDLES & HIDDEN RESIDUES', {
+      const t2 = this.add.text(320, 232, 'APPLICATION: EXPOSES LATENT FINGERPRINTS, POISON PUDDLES & HIDDEN RESIDUES', {
         fontFamily: 'Courier New, monospace',
         fontSize: '9px',
         color: '#edf2f8'
       }).setOrigin(0.5);
 
-      const hotkey = this.add.text(320, 258, 'HOTKEY: PRESS [3] TO ACTIVATE TRACE LIGHT', {
+      const hotkey = this.add.text(320, 260, 'HOTKEY: PRESS [3] TO ACTIVATE TRACE LIGHT', {
         fontFamily: 'Courier New, monospace',
         fontSize: '11px',
         color: '#ffd700',
