@@ -82,11 +82,27 @@ export class UIScene extends Phaser.Scene {
         const settingsClose = document.getElementById('settings-close');
         if (settingsClose) settingsClose.onclick = () => this.toggleSettings();
 
+        const btnRecon = document.getElementById('btn-reconstruction');
+        if (btnRecon) btnRecon.onclick = () => {
+            EventBus.emit('start-reconstruction');
+        };
+
+        const btnDeduct = document.getElementById('btn-deduction');
+        if (btnDeduct) btnDeduct.onclick = () => {
+            EventBus.emit('start-deduction');
+        };
+
         // Keyboard shortcuts
         this.input.keyboard?.on('keydown-M', () => this.openMap());
         this.input.keyboard?.on('keydown-N', () => this.toggleNotebook());
         this.input.keyboard?.on('keydown-T', () => this.playGadgetTutorial());
         this.input.keyboard?.on('keydown-F', () => this.toggleFullscreen());
+        this.input.keyboard?.on('keydown-R', () => {
+            const phase = storyManager.getCurrentPhase()?.id;
+            if (phase === 'reconstruction' || gameState.hasDialogueFlag('reconstruction_available')) {
+                EventBus.emit('start-reconstruction');
+            }
+        });
         this.input.keyboard?.on('keydown-ESC', () => {
             if (this.scene.isActive('CutsceneScene')) return;
             this.togglePause();
@@ -173,6 +189,18 @@ export class UIScene extends Phaser.Scene {
             if (this.objectiveText.innerText !== textToDisplay) {
                 this.objectiveText.innerText = textToDisplay;
             }
+        }
+
+        const phase = storyManager.getCurrentPhase()?.id;
+        const btnRecon = document.getElementById('btn-reconstruction');
+        if (btnRecon) {
+            const showRecon = phase === 'reconstruction' || gameState.hasDialogueFlag('reconstruction_available');
+            btnRecon.style.display = showRecon ? 'inline-block' : 'none';
+        }
+        const btnDeduct = document.getElementById('btn-deduction');
+        if (btnDeduct) {
+            const showDeduct = phase === 'final_confrontation';
+            btnDeduct.style.display = showDeduct ? 'inline-block' : 'none';
         }
     }
 

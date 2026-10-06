@@ -100,7 +100,7 @@ const PHASE_CONFIGS: PhaseConfig[] = [
     name: 'Echo Reconstruction',
     objective: 'Use the Echo Reconstruction to piece together what really happened.',
     musicTrack: 'deduction',
-    availableRooms: ['exhibition_chamber'],
+    availableRooms: ['main_hall', 'exhibition_chamber', 'clockwork_gallery', 'library_archive', 'pendulum_room', 'observation_deck'],
     canExit: () => gameState.hasDialogueFlag('reconstruction_complete'),
   },
   {
@@ -108,7 +108,7 @@ const PHASE_CONFIGS: PhaseConfig[] = [
     name: 'Confrontation',
     objective: 'Prove who the killer is. Present your evidence.',
     musicTrack: 'suspense',
-    availableRooms: ['main_hall'],
+    availableRooms: ['main_hall', 'exhibition_chamber', 'clockwork_gallery', 'library_archive', 'pendulum_room', 'observation_deck'],
     canExit: () => gameState.hasDialogueFlag('killer_identified'),
   },
   {
@@ -236,6 +236,11 @@ export class StoryPhaseManager {
 
     // Auto-advance when enough evidence for investigation_2
     if (phase === 'investigation_2' && this.currentConfig.canExit()) {
+      return true;
+    }
+
+    // Auto-advance when reconstruction is complete
+    if (phase === 'reconstruction' && this.currentConfig.canExit()) {
       return true;
     }
 

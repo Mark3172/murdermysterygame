@@ -4,6 +4,7 @@ import { AudioManager } from '../engine/AudioManager';
 import { SceneTransition } from '../engine/SceneTransition';
 import { timeline, TimelineEvent } from '../data/timeline';
 import { PixelRenderer } from '../rendering/PixelRenderer';
+import { storyManager } from '../logic/StoryPhaseManager';
 
 export class ReconstructionScene extends Phaser.Scene {
   private slots: Phaser.GameObjects.Rectangle[] = [];
@@ -168,20 +169,56 @@ export class ReconstructionScene extends Phaser.Scene {
 
       // Drag events
       this.input.setDraggable(bg);
+      let wasDragged = false;
       
       bg.on('dragstart', () => {
+        wasDragged = true;
         this.children.bringToTop(container);
         bg.setStrokeStyle(2, 0xffff00);
       });
 
-      bg.on('drag', (pointer: Phaser.Input.Pointer, dragX: number, dragY: number) => {
-        container.x = x + dragX;
-        container.y = y + dragY;
+      bg.on('drag', (pointer: Phaser.Input.Pointer) => {
+        container.x = pointer.x;
+        container.y = pointer.y;
       });
 
       bg.on('dragend', () => {
         bg.setStrokeStyle(1, 0xffffff);
         this.handleCardDrop(container);
+        this.time.delayedCall(50, () => { wasDragged = false; });
+      });
+
+      // Click to toggle place / return
+      bg.on('pointerup', () => {
+        if (wasDragged) return;
+        const evData = (container as any).eventData;
+        const currentSlotIdx = this.slotContents.indexOf(evData);
+        if (currentSlotIdx !== -1) {
+          // Return home
+          this.slotContents[currentSlotIdx] = null;
+          this.tweens.add({
+            targets: container,
+            x: (container as any).homeX,
+            y: (container as any).homeY,
+            duration: 200
+          });
+          this.updateGhosts();
+        } else {
+          // Find first empty slot
+          const firstEmpty = this.slotContents.indexOf(null);
+          if (firstEmpty !== -1) {
+            this.slotContents[firstEmpty] = evData;
+            const slot = this.slots[firstEmpty];
+            this.tweens.add({
+              targets: container,
+              x: slot.x,
+              y: slot.y,
+              duration: 200
+            });
+            AudioManager.getInstance().playSFX('item_pickup');
+            this.updateGhosts();
+          }
+        }
       });
     });
   }
@@ -340,7 +377,8 @@ export class ReconstructionScene extends Phaser.Scene {
       
       this.time.delayedCall(2000, () => {
         SceneTransition.fadeToBlack(this, 1000, () => {
-          this.scene.start('ExplorationScene');
+          storyManager.advancePhase();
+          this.scene.start('ExplorationScene', { roomId: 'main_hall' });
         });
       });
     } else {

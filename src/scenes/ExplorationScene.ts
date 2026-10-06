@@ -329,6 +329,12 @@ export class ExplorationScene extends Phaser.Scene {
       this.input.keyboard.on('keydown-THREE', () => this.useGadget('trace_light'));
       this.input.keyboard.on('keydown-FOUR', () => this.useGadget('micro_rover'));
       this.input.keyboard.on('keydown-FIVE', () => this.useGadget('voice_prism'));
+      this.input.keyboard.on('keydown-R', () => {
+        const p = storyManager.getCurrentPhase();
+        if (p?.id === 'reconstruction' || gameState.hasDialogueFlag('reconstruction_available')) {
+          this.scene.start('ReconstructionScene');
+        }
+      });
       this.input.keyboard.on('keydown-NUMPAD_ONE', () => this.useGadget('tranquility_focus'));
       this.input.keyboard.on('keydown-NUMPAD_TWO', () => this.useGadget('echo_lens'));
       this.input.keyboard.on('keydown-NUMPAD_THREE', () => this.useGadget('trace_light'));
@@ -630,12 +636,18 @@ export class ExplorationScene extends Phaser.Scene {
 
   private interact(obj: any) {
     // Contextual tabletop delegation (examining desk inspects the clue atop it)
-    if (obj.id === 'desk' && !gameState.hasEvidence('poisoned_tea')) {
-      const room = rooms[this.roomId];
-      const thermos = room?.interactables?.find((i: any) => i.id === 'thermos');
-      if (thermos) {
-        this.interact(thermos);
+    if (obj.id === 'desk') {
+      if (storyManager.getCurrentPhase()?.id === 'reconstruction') {
+        this.scene.start('ReconstructionScene');
         return;
+      }
+      if (!gameState.hasEvidence('poisoned_tea')) {
+        const room = rooms[this.roomId];
+        const thermos = room?.interactables?.find((i: any) => i.id === 'thermos');
+        if (thermos) {
+          this.interact(thermos);
+          return;
+        }
       }
     }
     if (obj.id === 'archive_desk' && !gameState.hasEvidence('felix_ink_stain')) {
@@ -706,7 +718,9 @@ export class ExplorationScene extends Phaser.Scene {
         itemObj.marker = null;
       }
       this.showDiscovery(ev?.name||obj.evidenceId, ev?.shortDesc||obj.description||'Evidence collected.');
-      this.save(); return;
+      this.save();
+      this.checkAdvance();
+      return;
     }
     if (obj.dialogueOnInteract) {
       if (dialogue[obj.dialogueOnInteract]) {
@@ -957,6 +971,7 @@ export class ExplorationScene extends Phaser.Scene {
       }
       closeConsole();
       this.save();
+      this.checkAdvance();
     });
 
     const closeBtn = this.add.text(390, 296, '✕ CLOSE [ESC]', {
@@ -1109,6 +1124,7 @@ export class ExplorationScene extends Phaser.Scene {
       this.time.delayedCall(1600, () => {
         closeConsole();
         this.save();
+        this.checkAdvance();
       });
     };
 
@@ -1350,6 +1366,7 @@ export class ExplorationScene extends Phaser.Scene {
       }
       closeConsole();
       this.save();
+      this.checkAdvance();
     });
 
     const closeBtn = this.add.text(390, 285, '✕ CLOSE [ESC]', {
@@ -1842,8 +1859,18 @@ export class ExplorationScene extends Phaser.Scene {
     if (storyManager.checkAutoAdvance && storyManager.checkAutoAdvance()) {
       storyManager.advancePhase();
       const p = storyManager.getCurrentPhase();
-      if (p?.cutsceneOnEnter && !gameState.hasCutsceneSeen(p.cutsceneOnEnter))
-        this.scene.start('CutsceneScene', {cutsceneId:p.cutsceneOnEnter});
+      if (p?.cutsceneOnEnter && !gameState.hasCutsceneSeen(p.cutsceneOnEnter)) {
+        this.scene.start('CutsceneScene', { cutsceneId: p.cutsceneOnEnter });
+      } else if (p?.id === 'reconstruction') {
+        this.showMsg('Echo Reconstruction is now available! Press [R] or interact with the desk.');
+        this.time.delayedCall(1600, () => {
+          if (!this.inDialogue) {
+            this.scene.start('ReconstructionScene');
+          }
+        });
+      } else if (p?.id === 'final_confrontation') {
+        this.showMsg('All contradictions exposed! Confront the culprit or start the Final Accusation.');
+      }
     }
   }
 

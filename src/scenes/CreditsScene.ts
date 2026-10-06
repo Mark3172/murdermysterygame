@@ -1,5 +1,6 @@
 import { Scene } from 'phaser';
 import { AudioManager } from '../engine/AudioManager';
+import { gameState } from '../logic/GameState';
 
 export class CreditsScene extends Scene {
     private scrollText!: Phaser.GameObjects.Text;
@@ -197,6 +198,10 @@ THE SILENT FREQUENCY
 
     private skipCredits() {
         AudioManager.getInstance().stopMusic();
-        this.scene.start('TitleScene');
+        if (!gameState.hasCutsceneSeen('post_credits')) {
+            this.scene.start('CutsceneScene', { cutsceneId: 'post_credits' });
+        } else {
+            this.scene.start('TitleScene');
+        }
     }
 }
