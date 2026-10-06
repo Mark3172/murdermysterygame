@@ -12,7 +12,7 @@ export class UIScene extends Phaser.Scene {
     private objectiveText!: HTMLElement;
 
     constructor() {
-        super({ key: 'UIScene', active: true });
+        super('UIScene');
     }
 
     create() {
@@ -132,15 +132,27 @@ export class UIScene extends Phaser.Scene {
         }).setOrigin(0, 1).setVisible(false);
         this.updateGadgetText();
 
-        EventBus.on('gadget-unlocked', this.updateGadgetText, this);
-        EventBus.on('gadget-changed', (g: string | null) => {
+        const onGadgetUnlocked = () => this.updateGadgetText();
+        const onGadgetChanged = (g: string | null) => {
             this.currentGadget = g;
             this.updateGadgetText();
-        }, this);
+        };
+        const onRoomChanged = (r: string) => this.updateRoomBadge(r);
+
+        EventBus.on('gadget-unlocked', onGadgetUnlocked);
+        EventBus.on('gadget-changed', onGadgetChanged);
+        EventBus.on('room-changed', onRoomChanged);
+
+        const cleanup = () => {
+            EventBus.off('gadget-unlocked', onGadgetUnlocked);
+            EventBus.off('gadget-changed', onGadgetChanged);
+            EventBus.off('room-changed', onRoomChanged);
+        };
+        this.events.once('shutdown', cleanup);
+        this.events.once('destroy', cleanup);
 
         // Room badge in top HUD
         this.updateRoomBadge(gameState.getCurrentRoom() || 'main_hall');
-        EventBus.on('room-changed', (r: string) => this.updateRoomBadge(r), this);
     }
 
     updateRoomBadge(roomId: string) {
@@ -256,17 +268,26 @@ export class UIScene extends Phaser.Scene {
         const gadgetSlotNums: Record<string, number> = {
             tranquility_focus: 1, echo_lens: 2, trace_light: 3, micro_rover: 4, voice_prism: 5
         };
+
         if (gadgetId) {
             const gadget = (gadgets as any)[gadgetId];
             const name = gadget ? gadget.name : gadgetId.replace(/_/g, ' ');
             const slot = gadgetSlotNums[gadgetId] || 1;
-            this.gadgetText.setText(`🔧 Active: [${slot}] ${name} [Click / 1-5 to switch]`);
-            this.gadgetText.setColor('#4ac47a');
             if (btnGadgets) btnGadgets.innerText = `🔧 [${slot}] ${name}`;
+            if (this.gadgetText && this.gadgetText.active && this.scene?.isActive()) {
+                try {
+                    this.gadgetText.setText(`🔧 Active: [${slot}] ${name} [Click / 1-5 to switch]`);
+                    this.gadgetText.setColor('#4ac47a');
+                } catch (e) {}
+            }
         } else {
-            this.gadgetText.setText('🔧 Gadgets: None equipped [Click / 1-5 to equip]');
-            this.gadgetText.setColor('#ffea70');
             if (btnGadgets) btnGadgets.innerText = 'Gadgets [1-5]';
+            if (this.gadgetText && this.gadgetText.active && this.scene?.isActive()) {
+                try {
+                    this.gadgetText.setText('🔧 Gadgets: None equipped [Click / 1-5 to equip]');
+                    this.gadgetText.setColor('#ffea70');
+                } catch (e) {}
+            }
         }
     }
 

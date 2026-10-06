@@ -388,10 +388,19 @@ export class CutsceneScene extends Scene {
         return;
     }
 
-    if (!this.isTransitioning) {
-        this.currentPanelIndex++;
-        this.showPanel();
+    if (this.isTransitioning) {
+        this.tweens.killAll();
+        if (this.panelContainer) {
+            this.panelContainer.setAlpha(1);
+            this.panelContainer.setPosition(0, 0);
+            this.panelContainer.setScale(1);
+        }
+        this.isTransitioning = false;
+        return;
     }
+
+    this.currentPanelIndex++;
+    this.showPanel();
   }
 
   private finishCutscene() {

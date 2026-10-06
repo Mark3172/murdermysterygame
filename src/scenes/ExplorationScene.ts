@@ -61,7 +61,6 @@ export class ExplorationScene extends Phaser.Scene {
     // Ensure all 5 detective gadgets are unlocked so the player can immediately investigate
     const detectiveGadgets = ['tranquility_focus', 'echo_lens', 'trace_light', 'micro_rover', 'voice_prism'];
     detectiveGadgets.forEach(g => gameState.unlockGadget(g));
-    EventBus.emit('gadget-unlocked', null);
 
     // Ensure phase is at least investigation_1 so clues and objectives match
     const curP = gameState.getPhase();
@@ -358,6 +357,7 @@ export class ExplorationScene extends Phaser.Scene {
 
     // HUD
     this.scene.launch('UIScene');
+    EventBus.emit('gadget-unlocked', null);
 
     // Events
     EventBus.on('dialogue-ended', () => { this.inDialogue = false; this.checkAdvance(); });

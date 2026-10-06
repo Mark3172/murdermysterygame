@@ -6,6 +6,7 @@ import { EventBus } from './engine/EventBus';
 
 // Initialize the game
 const game = new Phaser.Game(gameConfig);
+(window as any).__PHASER_GAME__ = game;
 
 // Initialize audio manager and hook up HTML controls
 const audioManager = AudioManager.getInstance();
