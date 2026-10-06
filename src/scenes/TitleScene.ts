@@ -209,6 +209,20 @@ export class TitleScene extends Phaser.Scene {
                 AudioManager.getInstance().startMusic('menu');
             } catch(e) {}
         });
+
+        // Fullscreen toggle shortcut
+        this.input.keyboard?.on('keydown-F', () => {
+            try { AudioManager.getInstance().playSFX('ui_click'); } catch(e) {}
+            if (!document.fullscreenElement) {
+                if (document.documentElement.requestFullscreen) {
+                    document.documentElement.requestFullscreen().catch(() => {});
+                }
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen().catch(() => {});
+                }
+            }
+        });
     }
 
     private createBackgroundGears() {

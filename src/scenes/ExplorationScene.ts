@@ -35,10 +35,15 @@ export class ExplorationScene extends Phaser.Scene {
   private obstacleColliders!: Phaser.Physics.Arcade.StaticGroup;
   private focusHighlights: Phaser.GameObjects.GameObject[] = [];
   private currentRoomZoom = 1;
+  private activeMiniGameCleaner: (() => void) | null = null;
 
   constructor() { super('ExplorationScene'); }
 
   init(data: any) {
+    if (this.activeMiniGameCleaner) {
+      this.activeMiniGameCleaner();
+      this.activeMiniGameCleaner = null;
+    }
     this.roomId = data?.roomId || gameState.getCurrentRoom() || 'main_hall';
     this.inDialogue = false;
     this.activeGadget = null;
@@ -303,6 +308,12 @@ export class ExplorationScene extends Phaser.Scene {
       };
       this.input.keyboard.on('keydown-ESC', () => {
         if (this.scene.isActive('CutsceneScene')) return;
+        if (this.activeMiniGameCleaner) {
+          const cleaner = this.activeMiniGameCleaner;
+          this.activeMiniGameCleaner = null;
+          cleaner();
+          return;
+        }
         this.scene.launch('SettingsScene');
       });
       this.input.keyboard.on('keydown-M', () => {
@@ -350,6 +361,11 @@ export class ExplorationScene extends Phaser.Scene {
       this.useGadget(gadgetId);
     });
     EventBus.on('toggle-notebook', (data?: { tab?: string }) => {
+      if (this.activeMiniGameCleaner) {
+        const cleaner = this.activeMiniGameCleaner;
+        this.activeMiniGameCleaner = null;
+        cleaner();
+      }
       if (this.scene.isActive('NotebookScene')) {
         if (data?.tab) {
           const nb = this.scene.get('NotebookScene') as any;
@@ -364,6 +380,11 @@ export class ExplorationScene extends Phaser.Scene {
 
     const onFastTravel = ({ roomId }: { roomId: string }) => {
       if (this.roomId === roomId || this.inDialogue) return;
+      if (this.activeMiniGameCleaner) {
+        const cleaner = this.activeMiniGameCleaner;
+        this.activeMiniGameCleaner = null;
+        cleaner();
+      }
       this.clearTranquilityFocus();
       AudioManager.getInstance().playSFX('doorOpen');
       const td = rooms[roomId];
@@ -428,6 +449,10 @@ export class ExplorationScene extends Phaser.Scene {
     });
 
     this.events.once('shutdown', () => {
+      if (this.activeMiniGameCleaner) {
+        this.activeMiniGameCleaner();
+        this.activeMiniGameCleaner = null;
+      }
       if (this.lightningTimer) this.lightningTimer.destroy();
       EventBus.off('fast-travel', onFastTravel);
       EventBus.emit('update-prompt', { text: '', visible: false });
@@ -696,6 +721,14 @@ export class ExplorationScene extends Phaser.Scene {
   }
 
   private useGadget(id: string) {
+    if (this.activeMiniGameCleaner) {
+      const cleaner = this.activeMiniGameCleaner;
+      this.activeMiniGameCleaner = null;
+      cleaner();
+      if (this.activeGadget === id) {
+        return;
+      }
+    }
     if (!gameState.hasGadget(id)) { this.showMsg('Gadget not unlocked yet.'); return; }
     if (this.activeGadget === id) {
       this.activeGadget = null;
@@ -748,14 +781,27 @@ export class ExplorationScene extends Phaser.Scene {
   }
 
   private echoLensMini() {
+    if (this.activeMiniGameCleaner) {
+      this.activeMiniGameCleaner();
+    }
     this.inDialogue = true;
     this.cameras.main.setZoom(1.0);
     const els: Phaser.GameObjects.GameObject[] = [];
     const isObsDeck = this.roomId === 'observation_deck';
     const isPendulum = this.roomId === 'pendulum_room';
 
+    // Full-screen interactive modal backdrop: dismisses console if player clicks outside
+    const modalBackdrop = this.add.rectangle(320, 180, 640, 360, 0x050814, 0.82)
+      .setDepth(599)
+      .setScrollFactor(0)
+      .setInteractive();
+    els.push(modalBackdrop);
+
     // 1. Steampunk Brass Oscilloscope Housing
-    const bkg = this.add.rectangle(320, 180, 520, 270, 0x0a0e1c, 0.98).setDepth(600).setScrollFactor(0);
+    const bkg = this.add.rectangle(320, 180, 520, 270, 0x0a0e1c, 0.98)
+      .setDepth(600)
+      .setScrollFactor(0)
+      .setInteractive(); // Intercepts clicks so clicking inside does not dismiss backdrop
     const frame = this.add.graphics().setDepth(601).setScrollFactor(0);
     frame.lineStyle(3, 0xd4af37, 1);
     frame.strokeRect(60, 45, 520, 270);
@@ -869,6 +915,9 @@ export class ExplorationScene extends Phaser.Scene {
     els.push(btn);
 
     const closeConsole = () => {
+      if (this.activeMiniGameCleaner === closeConsole) {
+        this.activeMiniGameCleaner = null;
+      }
       window.removeEventListener('keydown', onEsc);
       els.forEach(e => e.destroy());
       this.inDialogue = false;
@@ -878,6 +927,9 @@ export class ExplorationScene extends Phaser.Scene {
       this.cameras.main.setZoom(this.currentRoomZoom);
       EventBus.emit('gadget-changed', null);
     };
+
+    modalBackdrop.on('pointerdown', closeConsole);
+    this.activeMiniGameCleaner = closeConsole;
 
     const onEsc = (e: KeyboardEvent) => {
       if (e.key === 'Escape') closeConsole();
@@ -917,6 +969,9 @@ export class ExplorationScene extends Phaser.Scene {
   }
 
   private microRoverMini() {
+    if (this.activeMiniGameCleaner) {
+      this.activeMiniGameCleaner();
+    }
     this.inDialogue = true;
     this.cameras.main.setZoom(1.0);
     const els: Phaser.GameObjects.GameObject[] = [];
@@ -924,8 +979,18 @@ export class ExplorationScene extends Phaser.Scene {
     let roverTween: Phaser.Tweens.Tween | null = null;
     const cleanups: Array<() => void> = [];
 
+    // Full-screen interactive modal backdrop: dismisses console if player clicks outside
+    const modalBackdrop = this.add.rectangle(320, 180, 640, 360, 0x050814, 0.82)
+      .setDepth(599)
+      .setScrollFactor(0)
+      .setInteractive();
+    els.push(modalBackdrop);
+
     // Steampunk Drone Remote Console Base
-    const bkg = this.add.rectangle(320, 180, 480, 280, 0x0a0e1c, 0.98).setDepth(600).setScrollFactor(0);
+    const bkg = this.add.rectangle(320, 180, 480, 280, 0x0a0e1c, 0.98)
+      .setDepth(600)
+      .setScrollFactor(0)
+      .setInteractive(); // Intercepts clicks so clicking inside does not dismiss backdrop
     const frame = this.add.graphics().setDepth(601).setScrollFactor(0);
     frame.lineStyle(3, 0xd4af37, 1);
     frame.strokeRect(80, 40, 480, 280);
@@ -1000,6 +1065,9 @@ export class ExplorationScene extends Phaser.Scene {
     els.push(guideTxt);
 
     const closeConsole = () => {
+      if (this.activeMiniGameCleaner === closeConsole) {
+        this.activeMiniGameCleaner = null;
+      }
       cleanups.forEach(c => c());
       if (roverTween) roverTween.stop();
       els.forEach(e => e.destroy());
@@ -1010,6 +1078,9 @@ export class ExplorationScene extends Phaser.Scene {
       this.cameras.main.setZoom(this.currentRoomZoom);
       EventBus.emit('gadget-changed', null);
     };
+
+    modalBackdrop.on('pointerdown', closeConsole);
+    this.activeMiniGameCleaner = closeConsole;
 
     const finishMission = () => {
       if (isFinished) return;
@@ -1140,13 +1211,26 @@ export class ExplorationScene extends Phaser.Scene {
   }
 
   private voicePrismMini() {
+    if (this.activeMiniGameCleaner) {
+      this.activeMiniGameCleaner();
+    }
     this.inDialogue = true;
     this.cameras.main.setZoom(1.0);
     const els: Phaser.GameObjects.GameObject[] = [];
     const isClockwork = this.roomId === 'clockwork_gallery';
 
+    // Full-screen interactive modal backdrop: dismisses console if player clicks outside
+    const modalBackdrop = this.add.rectangle(320, 180, 640, 360, 0x050814, 0.82)
+      .setDepth(599)
+      .setScrollFactor(0)
+      .setInteractive();
+    els.push(modalBackdrop);
+
     // Antique Magnetic Wire Spectrograph Instrument
-    const bkg = this.add.rectangle(320, 180, 520, 280, 0x0a0e1c, 0.98).setDepth(600).setScrollFactor(0);
+    const bkg = this.add.rectangle(320, 180, 520, 280, 0x0a0e1c, 0.98)
+      .setDepth(600)
+      .setScrollFactor(0)
+      .setInteractive(); // Intercepts clicks so clicking inside does not dismiss backdrop
     const frame = this.add.graphics().setDepth(601).setScrollFactor(0);
     frame.lineStyle(3, 0xd4af37, 1);
     frame.strokeRect(60, 40, 520, 280);
@@ -1224,6 +1308,9 @@ export class ExplorationScene extends Phaser.Scene {
     els.push(btn);
 
     const closeConsole = () => {
+      if (this.activeMiniGameCleaner === closeConsole) {
+        this.activeMiniGameCleaner = null;
+      }
       window.removeEventListener('keydown', onEsc);
       els.forEach(e => e.destroy());
       this.inDialogue = false;
@@ -1233,6 +1320,9 @@ export class ExplorationScene extends Phaser.Scene {
       this.cameras.main.setZoom(this.currentRoomZoom);
       EventBus.emit('gadget-changed', null);
     };
+
+    modalBackdrop.on('pointerdown', closeConsole);
+    this.activeMiniGameCleaner = closeConsole;
 
     const onEsc = (e: KeyboardEvent) => {
       if (e.key === 'Escape') closeConsole();
@@ -1321,6 +1411,11 @@ export class ExplorationScene extends Phaser.Scene {
 
   private goToRoom(target: string, fromDir: string) {
     if (this.doorCooldown || this.inDialogue) return;
+    if (this.activeMiniGameCleaner) {
+      const cleaner = this.activeMiniGameCleaner;
+      this.activeMiniGameCleaner = null;
+      cleaner();
+    }
     this.clearTranquilityFocus();
     this.doorCooldown = true;
     this.inDialogue = true;

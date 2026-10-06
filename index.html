@@ -821,8 +821,9 @@
           <button class="hud-btn" id="btn-gadget-tutorial" title="Watch Dr. Vale's Gadget Operations Briefing">📺 Tutorial [T]</button>
           <button class="hud-btn" id="btn-hint">💡 Hint [H]</button>
           <span id="objective-text"></span>
-          <button class="hud-btn" id="btn-settings">⚙</button>
-          <button class="hud-btn" id="btn-pause">⏸</button>
+          <button class="hud-btn" id="btn-fullscreen" title="Toggle Fullscreen [F]">⛶</button>
+          <button class="hud-btn" id="btn-settings" title="Settings">⚙</button>
+          <button class="hud-btn" id="btn-pause" title="Pause Game [ESC]">⏸</button>
         </div>
         <div id="dialogue-container">
           <div id="dialogue-avatar">?</div>
@@ -848,6 +849,10 @@
         <div id="settings-overlay">
           <span class="close-btn" id="settings-close">✕</span>
           <div class="notebook-title">SETTINGS</div>
+          <div class="settings-row">
+            <span class="settings-label">Display Mode</span>
+            <button id="settings-fullscreen-btn" class="hud-btn" style="padding: 4px 12px; cursor: pointer; color: #ffd700; font-weight: bold;">⛶ Toggle Fullscreen [F]</button>
+          </div>
           <div class="settings-row">
             <span class="settings-label">Music Volume</span>
             <input type="range" class="settings-slider" id="vol-music" min="0" max="100" value="70">

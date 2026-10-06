@@ -52,6 +52,32 @@ export class UIScene extends Phaser.Scene {
         const btnSettings = document.getElementById('btn-settings');
         if (btnSettings) btnSettings.onclick = () => this.toggleSettings();
 
+        const btnPause = document.getElementById('btn-pause');
+        if (btnPause) btnPause.onclick = () => this.togglePause();
+
+        const btnFullscreen = document.getElementById('btn-fullscreen');
+        if (btnFullscreen) btnFullscreen.onclick = () => this.toggleFullscreen();
+
+        const settingsFsBtn = document.getElementById('settings-fullscreen-btn');
+        if (settingsFsBtn) settingsFsBtn.onclick = () => this.toggleFullscreen();
+
+        // Listen for browser fullscreen changes to keep UI in sync
+        const updateFullscreenUI = () => {
+            const isFs = !!document.fullscreenElement;
+            if (btnFullscreen) {
+                btnFullscreen.innerHTML = isFs ? '🗗' : '⛶';
+                btnFullscreen.title = isFs ? 'Exit Fullscreen [F]' : 'Toggle Fullscreen [F]';
+            }
+            if (settingsFsBtn) {
+                settingsFsBtn.innerText = isFs ? '🗗 Exit Fullscreen [F]' : '⛶ Enter Fullscreen [F]';
+            }
+        };
+        document.addEventListener('fullscreenchange', updateFullscreenUI);
+        this.events.once('shutdown', () => {
+            document.removeEventListener('fullscreenchange', updateFullscreenUI);
+        });
+        updateFullscreenUI();
+
         // Settings Overlay
         const settingsClose = document.getElementById('settings-close');
         if (settingsClose) settingsClose.onclick = () => this.toggleSettings();
@@ -60,6 +86,7 @@ export class UIScene extends Phaser.Scene {
         this.input.keyboard?.on('keydown-M', () => this.openMap());
         this.input.keyboard?.on('keydown-N', () => this.toggleNotebook());
         this.input.keyboard?.on('keydown-T', () => this.playGadgetTutorial());
+        this.input.keyboard?.on('keydown-F', () => this.toggleFullscreen());
         this.input.keyboard?.on('keydown-ESC', () => {
             if (this.scene.isActive('CutsceneScene')) return;
             this.togglePause();
@@ -131,7 +158,9 @@ export class UIScene extends Phaser.Scene {
                 <button id="btn-notebook" style="background:#20283e; color:#fff; border:1px solid #4a567a; padding:3px 8px; margin:0 2px; cursor:pointer;">Notebook [N]</button>
                 <button id="btn-gadgets" style="background:#20283e; color:#fff; border:1px solid #4a567a; padding:3px 8px; margin:0 2px; cursor:pointer;">Gadgets [1-5]</button>
                 <button id="btn-hint" style="background:#20283e; color:#ffdf6d; border:1px solid #4a567a; padding:3px 8px; margin:0 2px; cursor:pointer;">Hint [H]</button>
-                <button id="btn-settings" style="background:#20283e; color:#fff; border:1px solid #4a567a; padding:3px 8px; margin:0 2px; cursor:pointer;">⚙ [ESC]</button>
+                <button id="btn-fullscreen" style="background:#20283e; color:#fff; border:1px solid #4a567a; padding:3px 8px; margin:0 2px; cursor:pointer;" title="Toggle Fullscreen [F]">⛶</button>
+                <button id="btn-settings" style="background:#20283e; color:#fff; border:1px solid #4a567a; padding:3px 8px; margin:0 2px; cursor:pointer;" title="Settings">⚙</button>
+                <button id="btn-pause" style="background:#20283e; color:#fff; border:1px solid #4a567a; padding:3px 8px; margin:0 2px; cursor:pointer;" title="Pause [ESC]">⏸</button>
             </div>
         `;
         document.body.appendChild(hud);
@@ -351,5 +380,18 @@ export class UIScene extends Phaser.Scene {
     togglePause() {
         if (this.scene.isActive('CutsceneScene')) return;
         this.toggleSettings();
+    }
+
+    toggleFullscreen() {
+        try { AudioManager.getInstance().playSFX('ui_click'); } catch(e) {}
+        if (!document.fullscreenElement) {
+            if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            }
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen().catch(() => {});
+            }
+        }
     }
 }

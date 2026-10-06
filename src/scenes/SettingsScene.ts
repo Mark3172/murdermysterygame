@@ -22,7 +22,7 @@ export class SettingsScene extends Scene {
         backdrop.fillRect(0, 0, width, height);
 
         // 2. Gilded Victorian Plaque
-        const pw = 340, ph = 280;
+        const pw = 340, ph = 304;
         const px = (width - pw) / 2;
         const py = (height - ph) / 2;
 
@@ -116,8 +116,8 @@ export class SettingsScene extends Scene {
             return btnContainer;
         };
 
-        let btnY = py + 84;
-        const spacing = 42;
+        let btnY = py + 72;
+        const spacing = 37;
 
         // 1. Resume
         createGildedButton(btnY, '▶ RESUME INVESTIGATION [ESC]', () => {
@@ -125,7 +125,24 @@ export class SettingsScene extends Scene {
             this.scene.resume('ExplorationScene');
         }, '#7ac4d4');
 
-        // 2. Audio & Display Settings
+        // 2. Fullscreen Toggle
+        btnY += spacing;
+        const isFs = !!document.fullscreenElement;
+        const fsBtnText = isFs ? '🗗 EXIT FULLSCREEN [F]' : '⛶ ENTER FULLSCREEN [F]';
+        createGildedButton(btnY, fsBtnText, () => {
+            if (!document.fullscreenElement) {
+                if (document.documentElement.requestFullscreen) {
+                    document.documentElement.requestFullscreen().catch(() => {});
+                }
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen().catch(() => {});
+                }
+            }
+            this.time.delayedCall(100, () => this.scene.restart());
+        }, '#ffd700');
+
+        // 3. Audio & Display Settings
         btnY += spacing;
         createGildedButton(btnY, '⚙ AUDIO & DISPLAY SETTINGS', () => {
             const dom = document.getElementById('settings-overlay');
@@ -134,7 +151,7 @@ export class SettingsScene extends Scene {
             }
         });
 
-        // 3. Save Game
+        // 4. Save Game
         btnY += spacing;
         createGildedButton(btnY, '💾 SAVE CURRENT CASE PROGRESS', () => {
             SaveManager.save(gameState.serialize());
@@ -159,7 +176,7 @@ export class SettingsScene extends Scene {
             });
         }, '#4ac47a');
 
-        // 4. Return to Title
+        // 5. Return to Title
         btnY += spacing;
         createGildedButton(btnY, '🏠 RETURN TO MAIN MENU', () => {
             const dom = document.getElementById('settings-overlay');
@@ -177,6 +194,20 @@ export class SettingsScene extends Scene {
             }
             this.scene.stop();
             this.scene.resume('ExplorationScene');
+        });
+
+        // F Key for Fullscreen toggle
+        this.input.keyboard?.on('keydown-F', () => {
+            if (!document.fullscreenElement) {
+                if (document.documentElement.requestFullscreen) {
+                    document.documentElement.requestFullscreen().catch(() => {});
+                }
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen().catch(() => {});
+                }
+            }
+            this.time.delayedCall(100, () => this.scene.restart());
         });
     }
 }
