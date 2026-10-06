@@ -3,6 +3,7 @@ import { EventBus } from '../engine/EventBus';
 import { SaveManager } from '../engine/SaveManager';
 import { AudioManager } from '../engine/AudioManager';
 import { gameState } from '../logic/GameState';
+import { storyManager } from '../logic/StoryPhaseManager';
 
 export class TitleScene extends Phaser.Scene {
     private clockTimer?: Phaser.Time.TimerEvent;
@@ -15,6 +16,12 @@ export class TitleScene extends Phaser.Scene {
     }
 
     create() {
+        const hud = document.getElementById('hud-bar');
+        if (hud) hud.style.display = 'none';
+        if (this.scene.isActive('UIScene')) {
+            this.scene.stop('UIScene');
+        }
+
         const { width, height } = this.scale;
 
         // 1. Dark Atmospheric Gothic Sky & Observatory Backdrop
@@ -418,6 +425,8 @@ export class TitleScene extends Phaser.Scene {
     private startGame() {
         if (this.clockTimer) this.clockTimer.remove();
         if (this.lightningTimer) this.lightningTimer.remove();
+        gameState.reset();
+        storyManager.start();
         this.cameras.main.fadeOut(400, 0, 0, 0);
         this.cameras.main.once('camerafadeoutcomplete', () => {
             this.scene.start('CutsceneScene', { cutsceneId: 'cold_open' });
@@ -430,10 +439,11 @@ export class TitleScene extends Phaser.Scene {
         const saveData = SaveManager.load();
         if (saveData) {
             gameState.deserialize(saveData);
+            storyManager.start();
         }
         this.cameras.main.fadeOut(400, 0, 0, 0);
         this.cameras.main.once('camerafadeoutcomplete', () => {
-            this.scene.start('ExplorationScene');
+            this.scene.start('ExplorationScene', { roomId: gameState.getCurrentRoom() || 'main_hall' });
         });
     }
 }

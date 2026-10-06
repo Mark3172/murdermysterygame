@@ -23,6 +23,19 @@ export class ReconstructionScene extends Phaser.Scene {
     PixelRenderer.generateCharacterSprite(this, 'hugo');
     PixelRenderer.generateCharacterSprite(this, 'nadia');
 
+    const hud = document.getElementById('hud-bar');
+    if (hud) hud.style.display = 'none';
+
+    if (this.scene.isActive('UIScene')) {
+      this.scene.sleep('UIScene');
+    }
+
+    this.events.once('shutdown', () => {
+      if (this.scene.isSleeping('UIScene')) {
+        this.scene.wake('UIScene');
+      }
+    });
+
     // 1. Dark blueprint-style background with grid
     this.add.rectangle(0, 0, 640, 360, 0x001133).setOrigin(0);
     this.drawGrid();

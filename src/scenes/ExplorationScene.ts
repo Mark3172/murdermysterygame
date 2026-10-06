@@ -470,11 +470,8 @@ export class ExplorationScene extends Phaser.Scene {
   update() {
     // Safety: auto-recover if inDialogue was set but DialogueScene or mini-games are no longer active
     const dialogueDomActive = typeof document !== 'undefined' && document.getElementById('dialogue-container')?.style.display === 'flex';
-    const isMiniGameActive = this.inDialogue && (this.activeGadget === 'echo_lens' || this.activeGadget === 'micro_rover' || this.activeGadget === 'voice_prism');
-    if (this.inDialogue && !dialogueDomActive && !isMiniGameActive) {
-      if (this.scene.isActive('DialogueScene')) {
-        this.scene.stop('DialogueScene');
-      }
+    const isMiniGameActive = !!this.activeMiniGameCleaner;
+    if (this.inDialogue && !dialogueDomActive && !isMiniGameActive && !this.scene.isActive('DialogueScene')) {
       this.inDialogue = false;
     }
 

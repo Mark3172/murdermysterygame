@@ -181,7 +181,11 @@ export class SettingsScene extends Scene {
         createGildedButton(btnY, '🏠 RETURN TO MAIN MENU', () => {
             const dom = document.getElementById('settings-overlay');
             if (dom) dom.style.display = 'none';
+            const hud = document.getElementById('hud-bar');
+            if (hud) hud.style.display = 'none';
             this.scene.stop('ExplorationScene');
+            this.scene.stop('UIScene');
+            this.scene.stop();
             this.scene.start('TitleScene');
         }, '#ff7777');
 

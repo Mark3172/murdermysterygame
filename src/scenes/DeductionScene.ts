@@ -25,6 +25,19 @@ export class DeductionScene extends Phaser.Scene {
     }
 
     create() {
+        const hud = document.getElementById('hud-bar');
+        if (hud) hud.style.display = 'none';
+
+        if (this.scene.isActive('UIScene')) {
+            this.scene.sleep('UIScene');
+        }
+
+        this.events.once('shutdown', () => {
+            if (this.scene.isSleeping('UIScene')) {
+                this.scene.wake('UIScene');
+            }
+        });
+
         const { width, height } = this.scale;
         
         // 1. Dark atmospheric background with grid pattern

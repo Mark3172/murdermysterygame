@@ -11,6 +11,13 @@ export class CreditsScene extends Scene {
     }
 
     create() {
+        const hud = document.getElementById('hud-bar');
+        if (hud) hud.style.display = 'none';
+
+        if (this.scene.isActive('UIScene')) {
+            this.scene.stop('UIScene');
+        }
+
         this.add.graphics().fillStyle(0x000000, 1).fillRect(0, 0, 640, 360);
         
         this.scenesGroup = this.add.group();
