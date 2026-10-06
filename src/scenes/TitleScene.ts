@@ -427,10 +427,20 @@ export class TitleScene extends Phaser.Scene {
         if (this.lightningTimer) this.lightningTimer.remove();
         gameState.reset();
         storyManager.start();
-        this.cameras.main.fadeOut(400, 0, 0, 0);
-        this.cameras.main.once('camerafadeoutcomplete', () => {
+
+        let started = false;
+        const doStart = () => {
+            if (started) return;
+            started = true;
             this.scene.start('CutsceneScene', { cutsceneId: 'cold_open' });
-        });
+        };
+
+        try {
+            this.cameras.main.resetFX();
+            this.cameras.main.fadeOut(400, 0, 0, 0);
+            this.cameras.main.once('camerafadeoutcomplete', doStart);
+        } catch(e) {}
+        this.time.delayedCall(450, doStart);
     }
 
     private continueGame() {
@@ -441,9 +451,19 @@ export class TitleScene extends Phaser.Scene {
             gameState.deserialize(saveData);
             storyManager.start();
         }
-        this.cameras.main.fadeOut(400, 0, 0, 0);
-        this.cameras.main.once('camerafadeoutcomplete', () => {
+
+        let started = false;
+        const doStart = () => {
+            if (started) return;
+            started = true;
             this.scene.start('ExplorationScene', { roomId: gameState.getCurrentRoom() || 'main_hall' });
-        });
+        };
+
+        try {
+            this.cameras.main.resetFX();
+            this.cameras.main.fadeOut(400, 0, 0, 0);
+            this.cameras.main.once('camerafadeoutcomplete', doStart);
+        } catch(e) {}
+        this.time.delayedCall(450, doStart);
     }
 }

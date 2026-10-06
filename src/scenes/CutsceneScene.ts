@@ -20,6 +20,7 @@ export class CutsceneScene extends Scene {
   private returnRoom: string | null = null;
   private currentTypewriterTextObj: Phaser.GameObjects.Text | null = null;
   private currentFullText: string = '';
+  private isFinishing: boolean = false;
   
   constructor() {
     super('CutsceneScene');
@@ -31,6 +32,8 @@ export class CutsceneScene extends Scene {
     this.returnRoom = data.returnRoom || null;
     this.currentPanelIndex = 0;
     this.isTransitioning = false;
+    this.isFinishing = false;
+    if (this.input) this.input.enabled = true;
   }
 
   create() {
@@ -59,7 +62,8 @@ export class CutsceneScene extends Scene {
         return;
     }
 
-    this.cameras.main.fadeIn(500, 0, 0, 0);
+    this.cameras.main.resetFX();
+    this.cameras.main.fadeIn(400, 0, 0, 0);
 
     this.panelContainer = this.add.container(0, 0);
     this.uiContainer = this.add.container(0, 0);
@@ -391,6 +395,22 @@ export class CutsceneScene extends Scene {
   }
 
   private finishCutscene() {
+    if (this.isFinishing) return;
+    this.isFinishing = true;
+
+    if (this.autoAdvanceTimer) {
+        this.autoAdvanceTimer.destroy();
+        this.autoAdvanceTimer = undefined;
+    }
+    if (this.typeWriterTimer) {
+        this.typeWriterTimer.destroy();
+        this.typeWriterTimer = undefined;
+    }
+
+    if (this.input) {
+        this.input.enabled = false;
+    }
+
     gameState.markCutsceneSeen(this.cutsceneId);
 
     // Advance story phase
@@ -398,8 +418,11 @@ export class CutsceneScene extends Scene {
         storyManager.advancePhase();
     }
 
-    this.cameras.main.fadeOut(1000, 0, 0, 0);
-    this.cameras.main.once('camerafadeoutcomplete', () => {
+    let transitioned = false;
+    const doTransition = () => {
+        if (transitioned) return;
+        transitioned = true;
+
         if (this.returnTo) {
             const targetRoom = this.returnRoom || gameState.getCurrentRoom() || 'main_hall';
             this.scene.start(this.returnTo, { roomId: targetRoom });
@@ -410,14 +433,10 @@ export class CutsceneScene extends Scene {
                 this.scene.start('CutsceneScene', { cutsceneId: 'opening_title' });
                 break;
             case 'opening_title':
-                this.scene.start('CutsceneScene', { cutsceneId: 'gadget_tutorial' });
+                this.scene.start('ExplorationScene', { roomId: 'main_hall' });
                 break;
             case 'gadget_tutorial':
-                if (gameState.hasCutsceneSeen('discovery_scene')) {
-                    this.scene.start('ExplorationScene', { roomId: 'main_hall' });
-                } else {
-                    this.scene.start('CutsceneScene', { cutsceneId: 'discovery_scene' });
-                }
+                this.scene.start('ExplorationScene', { roomId: 'main_hall' });
                 break;
             case 'discovery_scene':
             case 'midpoint_reversal':
@@ -436,10 +455,17 @@ export class CutsceneScene extends Scene {
                 this.scene.start('TitleScene');
                 break;
             default:
-                this.scene.start('ExplorationScene');
+                this.scene.start('ExplorationScene', { roomId: 'main_hall' });
                 break;
         }
-    });
+    };
+
+    try {
+        this.cameras.main.resetFX();
+        this.cameras.main.fadeOut(400, 0, 0, 0);
+        this.cameras.main.once('camerafadeoutcomplete', doTransition);
+    } catch(e) {}
+    this.time.delayedCall(450, doTransition);
   }
 
   private renderSpecialCinematicIllustration(panel: CutscenePanel, width: number, height: number): boolean {
