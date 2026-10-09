@@ -62,6 +62,12 @@ export class CutsceneScene extends Scene {
         return;
     }
 
+    if (this.cutsceneData.music) {
+        try {
+            AudioManager.getInstance().startMusic(this.cutsceneData.music);
+        } catch(e) {}
+    }
+
     this.cameras.main.resetFX();
     this.cameras.main.fadeIn(400, 0, 0, 0);
 
@@ -373,6 +379,10 @@ export class CutsceneScene extends Scene {
   }
 
   private handleAdvance() {
+    try {
+        AudioManager.getInstance().resumeContext().catch(() => {});
+    } catch(e) {}
+
     if (this.autoAdvanceTimer) {
         this.autoAdvanceTimer.destroy();
         this.autoAdvanceTimer = undefined;

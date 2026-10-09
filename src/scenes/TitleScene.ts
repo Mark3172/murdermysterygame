@@ -207,15 +207,15 @@ export class TitleScene extends Phaser.Scene {
         });
 
         // Audio context unlock on first user interaction
-        this.input.once('pointerdown', () => {
-            const soundManager = this.sound as Phaser.Sound.WebAudioSoundManager;
-            if (soundManager.context && soundManager.context.state === 'suspended') {
-                soundManager.context.resume();
-            }
-            try {
+        const unlockAudio = () => {
+            AudioManager.getInstance().resumeContext().then(() => {
                 AudioManager.getInstance().startMusic('menu');
-            } catch(e) {}
-        });
+            }).catch(() => {
+                try { AudioManager.getInstance().startMusic('menu'); } catch(e) {}
+            });
+        };
+        this.input.once('pointerdown', unlockAudio);
+        this.input.keyboard?.once('keydown', unlockAudio);
 
         // Fullscreen toggle shortcut
         this.input.keyboard?.on('keydown-F', () => {

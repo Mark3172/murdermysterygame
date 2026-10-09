@@ -23,6 +23,7 @@ export class AudioManager {
     }
 
     public init() {
+        (window as any).AudioManager = AudioManager;
         // Hook up to HTML settings sliders
         const setupSlider = (id: string, channel: 'master' | 'music' | 'ambience' | 'sfx') => {
             const slider = document.getElementById(id) as HTMLInputElement;
@@ -44,22 +45,48 @@ export class AudioManager {
         setupSlider('vol-ambience', 'ambience');
         setupSlider('vol-sfx', 'sfx');
 
-        // Allow click to initialize context
+        // Allow user interaction on document/window to unlock audioContext
         const onUserInteraction = () => {
-            this.ensureContext();
-            document.removeEventListener('click', onUserInteraction);
-            document.removeEventListener('keydown', onUserInteraction);
-            document.removeEventListener('touchstart', onUserInteraction);
+            this.resumeContext().then(() => {
+                if (this.audioContext && this.audioContext.state === 'running') {
+                    window.removeEventListener('pointerdown', onUserInteraction);
+                    window.removeEventListener('click', onUserInteraction);
+                    window.removeEventListener('keydown', onUserInteraction);
+                    window.removeEventListener('touchstart', onUserInteraction);
+                    document.removeEventListener('pointerdown', onUserInteraction);
+                    document.removeEventListener('click', onUserInteraction);
+                    document.removeEventListener('keydown', onUserInteraction);
+                    document.removeEventListener('touchstart', onUserInteraction);
+                }
+            }).catch(() => {});
         };
 
-        document.addEventListener('click', onUserInteraction);
-        document.addEventListener('keydown', onUserInteraction);
-        document.addEventListener('touchstart', onUserInteraction);
+        window.addEventListener('pointerdown', onUserInteraction, { passive: true });
+        window.addEventListener('click', onUserInteraction, { passive: true });
+        window.addEventListener('keydown', onUserInteraction, { passive: true });
+        window.addEventListener('touchstart', onUserInteraction, { passive: true });
+        document.addEventListener('pointerdown', onUserInteraction, { passive: true });
+        document.addEventListener('click', onUserInteraction, { passive: true });
+        document.addEventListener('keydown', onUserInteraction, { passive: true });
+        document.addEventListener('touchstart', onUserInteraction, { passive: true });
+    }
+
+    public async resumeContext(): Promise<void> {
+        this.ensureContext();
+        if (this.audioContext && this.audioContext.state === 'suspended') {
+            try {
+                await this.audioContext.resume();
+            } catch (e) {
+                // Browser might prevent resume before gesture
+            }
+        }
     }
 
     private ensureContext() {
         if (!this.audioContext) {
-            this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+            const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+            if (!AudioCtx) return;
+            this.audioContext = new AudioCtx();
             
             this.masterGain = this.audioContext.createGain();
             this.musicGain = this.audioContext.createGain();
@@ -81,6 +108,10 @@ export class AudioManager {
             this.ambienceGain.gain.value = savedAmbience !== null ? parseFloat(savedAmbience) : 0.5;
             this.sfxGain.gain.value = savedSfx !== null ? parseFloat(savedSfx) : 0.8;
         }
+
+        if (this.audioContext && this.audioContext.state === 'suspended') {
+            this.audioContext.resume().catch(() => {});
+        }
     }
 
     public playNote(freq: number, duration: number, type: OscillatorType = 'sine', channel: 'music' | 'ambience' | 'sfx' = 'sfx') {
@@ -91,19 +122,23 @@ export class AudioManager {
         const gain = this.audioContext.createGain();
         
         osc.type = type;
-        osc.frequency.setValueAtTime(freq, this.audioContext.currentTime);
+        const now = this.audioContext.currentTime;
+        osc.frequency.setValueAtTime(freq, now);
         
-        gain.gain.setValueAtTime(0, this.audioContext.currentTime);
-        gain.gain.linearRampToValueAtTime(1, this.audioContext.currentTime + 0.05);
-        gain.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + duration);
+        const attack = Math.min(0.015, Math.max(0.005, duration * 0.2));
+        const decayEnd = Math.max(now + duration, now + attack + 0.01);
+
+        gain.gain.setValueAtTime(0.0001, now);
+        gain.gain.linearRampToValueAtTime(0.35, now + attack);
+        gain.gain.exponentialRampToValueAtTime(0.0001, decayEnd);
 
         osc.connect(gain);
         
         const destGain = channel === 'music' ? this.musicGain : (channel === 'ambience' ? this.ambienceGain : this.sfxGain);
         if (destGain) gain.connect(destGain);
 
-        osc.start();
-        osc.stop(this.audioContext.currentTime + duration);
+        osc.start(now);
+        osc.stop(decayEnd + 0.05);
     }
 
     public setVolume(channel: 'master' | 'music' | 'ambience' | 'sfx', value: number) {
@@ -128,6 +163,7 @@ export class AudioManager {
 
     public playSFX(name: string) {
         this.ensureContext();
+        this.resumeContext().catch(() => {});
 
         // Sound Captions accessibility feature
         try {
@@ -135,17 +171,25 @@ export class AudioManager {
                 const captions: Record<string, string> = {
                     thunder: '⚡ [Thunder rumbles]',
                     clockTick: '⏱ [Clock ticks]',
+                    clock_tick: '⏱ [Clock ticks]',
                     doorOpen: '🚪 [Door opens]',
+                    door_open: '🚪 [Door opens]',
                     discoveryString: '✨ [Discovery chime]',
+                    discovery_string: '✨ [Discovery chime]',
                     glass_shatter: '💥 [Glass shatters]',
                     type_blip: '⌨ [Typewriter click]',
                     ui_click: '🔘 [Click]',
                     uiClick: '🔘 [Click]',
+                    click: '🔘 [Click]',
+                    button_click: '🔘 [Click]',
                     digital_beep: '📡 [Gadget signal]',
                     gadget_beep: '📡 [Gadget signal]',
                     tensionDrone: '🎶 [Low tension drone]',
+                    tension_drone: '🎶 [Low tension drone]',
                     success: '🎺 [Victorian success fanfare]',
-                    error: '⚠ [Evidence mismatch buzz]'
+                    success_jingle: '🎺 [Victorian success fanfare]',
+                    error: '⚠ [Evidence mismatch buzz]',
+                    error_buzz: '⚠ [Evidence mismatch buzz]'
                 };
                 if (captions[name]) {
                     window.dispatchEvent(new CustomEvent('show-msg', { detail: { text: captions[name] } }));
@@ -154,21 +198,62 @@ export class AudioManager {
         } catch(e) {}
 
         switch(name) {
-            case 'footstep': this.footstep(); break;
-            case 'doorOpen': this.doorOpen(); break;
-            case 'thunder': this.thunder(); break;
-            case 'bellChime': this.bellChime(440); break;
-            case 'clockTick': this.clockTick(); break;
-            case 'paperRustle': this.paperRustle(); break;
-            case 'uiClick': this.uiClick(); break;
-            case 'discoveryString': this.discoveryString(); break;
-            case 'tensionDrone': this.tensionDrone(); break;
-            case 'success': this.successJingle(); break;
-            case 'error': this.errorBuzz(); break;
-            case 'type_blip': this.typeBlip(); break;
-            case 'ui_click': this.uiClick(); break;
-            case 'gadget_beep': this.gadgetBeep(); break;
-            default: this.uiClick(); break;
+            case 'footstep':
+            case 'footsteps':
+                this.footstep();
+                break;
+            case 'doorOpen':
+            case 'door_open':
+                this.doorOpen();
+                break;
+            case 'thunder':
+                this.thunder();
+                break;
+            case 'bellChime':
+            case 'bell_chime':
+                this.bellChime(440);
+                break;
+            case 'clockTick':
+            case 'clock_tick':
+                this.clockTick();
+                break;
+            case 'paperRustle':
+            case 'paper_rustle':
+            case 'item_pickup':
+                this.paperRustle();
+                break;
+            case 'uiClick':
+            case 'ui_click':
+            case 'click':
+            case 'button_click':
+                this.uiClick();
+                break;
+            case 'discoveryString':
+            case 'discovery_string':
+                this.discoveryString();
+                break;
+            case 'tensionDrone':
+            case 'tension_drone':
+                this.tensionDrone();
+                break;
+            case 'success':
+            case 'success_jingle':
+                this.successJingle();
+                break;
+            case 'error':
+            case 'error_buzz':
+                this.errorBuzz();
+                break;
+            case 'type_blip':
+                this.typeBlip();
+                break;
+            case 'gadget_beep':
+            case 'digital_beep':
+                this.gadgetBeep();
+                break;
+            default:
+                this.uiClick();
+                break;
         }
     }
 
@@ -368,16 +453,40 @@ export class AudioManager {
 
     // Music control
     public startMusic(trackName: string) {
-        this.stopMusic(500);
+        this.stopMusic(400);
         this.ensureContext();
+        this.resumeContext().catch(() => {});
         if (this.musicTimer) clearInterval(this.musicTimer);
 
         switch(trackName) {
-            case 'menu': this.menuMusic(); break;
-            case 'exploration': this.explorationMusic(); break;
-            case 'suspense': this.suspenseMusic(); break;
-            case 'deduction': this.deductionMusic(); break;
-            case 'resolution': this.resolutionMusic(); break;
+            case 'menu':
+            case 'main_theme':
+                this.menuMusic();
+                break;
+            case 'exploration':
+            case 'mysterious_theme':
+            case 'ambient_rain':
+                this.explorationMusic();
+                break;
+            case 'suspense':
+            case 'tense_theme':
+            case 'suspense_theme':
+            case 'climax_theme':
+                this.suspenseMusic();
+                break;
+            case 'deduction':
+            case 'revelation_theme':
+            case 'reconstruction_theme':
+                this.deductionMusic();
+                break;
+            case 'resolution':
+            case 'melancholy_theme':
+            case 'ending_theme':
+                this.resolutionMusic();
+                break;
+            default:
+                this.explorationMusic();
+                break;
         }
     }
 
