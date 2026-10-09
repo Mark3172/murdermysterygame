@@ -32,18 +32,8 @@ export class PreloadScene extends Phaser.Scene {
             if (loadingContainer) loadingContainer.style.display = 'none';
         };
 
-        // Safety fallback timer to ensure player is never stuck on loading screen
-        const safetyTimer = setTimeout(() => {
-            hideLoadingUI();
-            if (!this.scene.isActive('TitleScene')) {
-                this.scene.start('TitleScene');
-            }
-        }, 3000);
-
-        const generateCharacterAssets = async () => {
-            const totalSteps = characters.length * (1 + expressions.length);
-            let currentStep = 0;
-
+        // Instant generation without artificial throttling
+        const generateCharacterAssets = () => {
             for (let i = 0; i < characters.length; i++) {
                 const char = characters[i];
                 try {
@@ -55,10 +45,6 @@ export class PreloadScene extends Phaser.Scene {
                 } catch (e) {
                     this.generateFallbackCharacterSprite(char);
                 }
-                currentStep++;
-                const pct = Math.round((currentStep / totalSteps) * 90);
-                if (loadingBar) loadingBar.style.width = `${pct}%`;
-                if (loadingText) loadingText.innerText = `Preparing Observatory... ${pct}%`;
 
                 for (let j = 0; j < expressions.length; j++) {
                     const expr = expressions[j];
@@ -71,16 +57,11 @@ export class PreloadScene extends Phaser.Scene {
                     } catch (e) {
                         this.generateFallbackPortrait(char, expr);
                     }
-                    currentStep++;
-                    const subPct = Math.round((currentStep / totalSteps) * 90);
-                    if (loadingBar) loadingBar.style.width = `${subPct}%`;
                 }
-                
-                await new Promise(resolve => setTimeout(resolve, 8));
             }
         };
 
-        const generateOtherAssets = async () => {
+        const generateOtherAssets = () => {
             try {
                 if (PixelRenderer && PixelRenderer.generateAllProps) {
                     PixelRenderer.generateAllProps(this);
@@ -99,16 +80,17 @@ export class PreloadScene extends Phaser.Scene {
         };
 
         try {
-            await generateCharacterAssets();
-            await generateOtherAssets();
+            generateCharacterAssets();
+            generateOtherAssets();
         } catch (e) {
             console.error('Error during preload asset generation:', e);
         }
 
-        clearTimeout(safetyTimer);
         hideLoadingUI();
 
-        this.scene.start('TitleScene');
+        if (!this.scene.isActive('TitleScene')) {
+            this.scene.start('TitleScene');
+        }
     }
 
     private generateFallbackCharacterSprite(char: string) {
@@ -117,6 +99,7 @@ export class PreloadScene extends Phaser.Scene {
         const canvas = this.textures.createCanvas(`char_${char}`, 16 * 4, 24 * 4);
         if (!canvas) return;
         const ctx = canvas.getContext();
+        if (!ctx) return;
         const colors: Record<string, string> = {
             ren: '#3498db', vale: '#e74c3c', nadia: '#2ecc71',
             hugo: '#f1c40f', petra: '#9b59b6', felix: '#e67e22', iris: '#1abc9c'
@@ -141,6 +124,7 @@ export class PreloadScene extends Phaser.Scene {
         const canvas = this.textures.createCanvas(textureKey, 64, 64);
         if (!canvas) return;
         const ctx = canvas.getContext();
+        if (!ctx) return;
         const colors: Record<string, string> = {
             ren: '#3498db', vale: '#e74c3c', nadia: '#2ecc71',
             hugo: '#f1c40f', petra: '#9b59b6', felix: '#e67e22', iris: '#1abc9c'
@@ -157,6 +141,7 @@ export class PreloadScene extends Phaser.Scene {
         const canvas = this.textures.createCanvas('interaction_marker', 8, 8);
         if (!canvas) return;
         const ctx = canvas.getContext();
+        if (!ctx) return;
         ctx.fillStyle = '#ffffff';
         ctx.beginPath();
         ctx.moveTo(4, 0);
@@ -172,27 +157,33 @@ export class PreloadScene extends Phaser.Scene {
         const p1 = this.textures.createCanvas('particle_rain', 2, 4);
         if (p1) {
             const ctx1 = p1.getContext();
-            ctx1.fillStyle = '#4da6ff';
-            ctx1.fillRect(0, 0, 2, 4);
-            p1.refresh();
+            if (ctx1) {
+                ctx1.fillStyle = '#4da6ff';
+                ctx1.fillRect(0, 0, 2, 4);
+                p1.refresh();
+            }
         }
 
         // Dust
         const p2 = this.textures.createCanvas('particle_dust', 2, 2);
         if (p2) {
             const ctx2 = p2.getContext();
-            ctx2.fillStyle = '#dddddd';
-            ctx2.fillRect(0, 0, 2, 2);
-            p2.refresh();
+            if (ctx2) {
+                ctx2.fillStyle = '#dddddd';
+                ctx2.fillRect(0, 0, 2, 2);
+                p2.refresh();
+            }
         }
 
         // Sparks
         const p3 = this.textures.createCanvas('particle_spark', 4, 4);
         if (p3) {
             const ctx3 = p3.getContext();
-            ctx3.fillStyle = '#ffaa00';
-            ctx3.fillRect(0, 0, 4, 4);
-            p3.refresh();
+            if (ctx3) {
+                ctx3.fillStyle = '#ffaa00';
+                ctx3.fillRect(0, 0, 4, 4);
+                p3.refresh();
+            }
         }
     }
 }

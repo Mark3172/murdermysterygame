@@ -813,9 +813,10 @@
   <div id="app">
     <div id="game-container">
       <div id="ui-overlay">
-        <div id="loading-screen">
+        <div id="loading-screen" title="Click to skip loading if needed" style="cursor:pointer">
           <div id="loading-text">Loading...</div>
           <div id="loading-bar-bg"><div id="loading-bar"></div></div>
+          <div style="font-size:10px; color:#6b869e; margin-top:12px; cursor:pointer;">[ Click to continue ]</div>
         </div>
         <div id="hud-bar" style="display:none">
           <span id="hud-room-badge" class="hud-room-badge" title="Click to view Observatory Map [M]" style="cursor:pointer">📍 MAIN HALL</span>
@@ -1162,6 +1163,17 @@
         }
       }
     });
+
+    // Fail-safe auto-dismiss for loading screen: dismiss on click or after max 2.5s
+    const lsEl = document.getElementById('loading-screen');
+    if (lsEl) {
+      lsEl.addEventListener('click', () => { lsEl.style.display = 'none'; });
+      setTimeout(() => {
+        if (lsEl && lsEl.style.display !== 'none') {
+          lsEl.style.display = 'none';
+        }
+      }, 2500);
+    }
   </script>
 </body>
 </html>
