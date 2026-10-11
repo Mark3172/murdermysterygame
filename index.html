@@ -317,6 +317,24 @@
       text-transform: uppercase;
       white-space: nowrap;
       box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.5);
+      transition: all 0.3s ease;
+    }
+    .hud-room-badge.badge-pulse {
+      animation: badgeGlow 0.9s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+    @keyframes badgeGlow {
+      0% {
+        background: rgba(212, 175, 55, 0.45);
+        border-color: #ffd700;
+        box-shadow: 0 0 14px rgba(255, 215, 0, 0.7);
+        transform: scale(1.04);
+      }
+      100% {
+        background: rgba(212, 175, 55, 0.12);
+        border-color: rgba(212, 175, 55, 0.5);
+        box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.5);
+        transform: scale(1);
+      }
     }
     .hud-btn {
       background: rgba(22, 30, 48, 0.88);

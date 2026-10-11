@@ -161,6 +161,9 @@ export class UIScene extends Phaser.Scene {
             const r = rooms[roomId];
             const name = r ? r.name : roomId.replace(/_/g, ' ');
             badge.innerText = `📍 ${name.toUpperCase()}`;
+            badge.classList.remove('badge-pulse');
+            void badge.offsetWidth; // Force DOM reflow to re-trigger CSS keyframe
+            badge.classList.add('badge-pulse');
         }
     }
 

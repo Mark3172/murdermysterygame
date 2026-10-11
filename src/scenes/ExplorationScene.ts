@@ -294,8 +294,6 @@ export class ExplorationScene extends Phaser.Scene {
       this.tweens.add({targets:d, x:d.x+(Math.random()-0.5)*100, y:d.y+(Math.random()-0.5)*50, alpha:0, duration:4000+Math.random()*3000, repeat:-1, yoyo:true});
     }
 
-    // Grand Victorian Room Entrance Placard
-    this.showRoomPlacard(room);
 
     // Input
     if (this.input.keyboard) {
@@ -1479,61 +1477,6 @@ export class ExplorationScene extends Phaser.Scene {
     this.time.delayedCall(300, doRestart);
   }
 
-  private showRoomPlacard(room: RoomData) {
-    const banner = this.add.container(320, 16).setDepth(500).setScrollFactor(0).setAlpha(0);
-
-    const bg = this.add.graphics();
-    const bw = 320, bh = 42;
-    bg.fillStyle(0x070b16, 0.94);
-    bg.fillRoundedRect(-bw / 2, 0, bw, bh, 6);
-    bg.lineStyle(1.5, 0xd4af37, 0.9);
-    bg.strokeRoundedRect(-bw / 2, 0, bw, bh, 6);
-
-    // Corner filigree studs
-    bg.fillStyle(0xd4af37, 1);
-    bg.fillCircle(-bw / 2 + 6, 6, 2);
-    bg.fillCircle(bw / 2 - 6, 6, 2);
-    bg.fillCircle(-bw / 2 + 6, bh - 6, 2);
-    bg.fillCircle(bw / 2 - 6, bh - 6, 2);
-
-    const title = this.add.text(0, 12, `✦ ${room.name.toUpperCase()} ✦`, {
-      fontFamily: 'Georgia, serif',
-      fontSize: '12px',
-      color: '#ffd700',
-      fontStyle: 'bold',
-      letterSpacing: 1.5
-    }).setOrigin(0.5);
-
-    const descText = room.description && room.description.length > 55 ? room.description.substring(0, 52) + '...' : (room.description || '');
-    const desc = this.add.text(0, 28, descText, {
-      fontFamily: 'Courier New, monospace',
-      fontSize: '8px',
-      color: '#a0b8d0'
-    }).setOrigin(0.5);
-
-    banner.add([bg, title, desc]);
-
-    // Smooth slide down and fade out
-    this.tweens.add({
-      targets: banner,
-      y: 42,
-      alpha: 1,
-      duration: 400,
-      ease: 'Cubic.easeOut',
-      onComplete: () => {
-        this.time.delayedCall(2200, () => {
-          this.tweens.add({
-            targets: banner,
-            y: 20,
-            alpha: 0,
-            duration: 600,
-            ease: 'Cubic.easeIn',
-            onComplete: () => banner.destroy()
-          });
-        });
-      }
-    });
-  }
 
   private showMsg(text: string) {
     AudioManager.getInstance().playSFX('ui_click');
@@ -1627,16 +1570,6 @@ export class ExplorationScene extends Phaser.Scene {
       this.add.image(TILE * 2 + 10, wallH - 8, 'window_gothic_storm').setDepth(3);
       this.add.image(w - TILE * 2 - 10, wallH - 8, 'window_gothic_storm').setDepth(3);
     }
-
-    // Room Name Plaque Banner
-    this.add.text(w / 2, 14, `★ ${room.name.toUpperCase()} ★`, {
-      fontFamily: 'serif',
-      fontSize: '11px',
-      color: '#d4af37',
-      fontStyle: 'bold',
-      backgroundColor: '#0c0f1aee',
-      padding: { x: 8, y: 3 }
-    }).setOrigin(0.5).setDepth(5);
   }
 
   private drawFeatures(room: any, w: number, h: number) {
