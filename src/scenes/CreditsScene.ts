@@ -71,6 +71,17 @@ THE SILENT FREQUENCY
         // Music
         AudioManager.getInstance().startMusic('resolution');
 
+        // On-screen skip/continue prompt
+        const prompt = this.add.text(320, 342, '▶ [ Click or Press Space to Continue ]', {
+            fontSize: '11px',
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            color: '#ffd700',
+            fontStyle: 'bold',
+            backgroundColor: '#0a101ee6',
+            padding: { x: 10, y: 5 }
+        }).setOrigin(0.5).setDepth(20).setInteractive({ useHandCursor: true });
+        prompt.on('pointerdown', () => this.skipCredits());
+
         this.input.keyboard?.on('keydown', () => this.skipCredits());
         this.input.on('pointerdown', () => this.skipCredits());
     }

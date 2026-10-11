@@ -130,22 +130,23 @@ export class ReconstructionScene extends Phaser.Scene {
 
     // Scene Title
     this.add.text(200, 19, '✦ ECHO RECONSTRUCTION ✦', {
-      fontFamily: 'Courier New, monospace',
-      fontSize: '12px',
-      color: '#d4af37',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontSize: '13px',
+      color: '#ffd700',
       fontStyle: 'bold',
       letterSpacing: 1
     }).setOrigin(0.5);
 
     // Hypothesis Tabs on the Right
     // Tab A
-    this.tabABg = this.add.rectangle(450, 19, 108, 20, 0x11223a)
+    this.tabABg = this.add.rectangle(450, 19, 108, 22, 0x11223a)
       .setStrokeStyle(1, 0x2a5078)
       .setInteractive({ useHandCursor: true });
     this.tabAText = this.add.text(450, 19, 'Hypothesis A', {
-      fontFamily: 'Courier New, monospace',
-      fontSize: '10px',
-      color: '#7f9ebd'
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontSize: '11px',
+      color: '#7f9ebd',
+      fontStyle: 'bold'
     }).setOrigin(0.5);
 
     this.tabABg.on('pointerdown', () => this.switchHypothesis('A'));
@@ -157,12 +158,12 @@ export class ReconstructionScene extends Phaser.Scene {
     });
 
     // Tab B
-    this.tabBBg = this.add.rectangle(568, 19, 116, 20, 0x1f4870)
-      .setStrokeStyle(1, 0xd4af37)
+    this.tabBBg = this.add.rectangle(568, 19, 116, 22, 0x1f4870)
+      .setStrokeStyle(1.5, 0xd4af37)
       .setInteractive({ useHandCursor: true });
     this.tabBText = this.add.text(568, 19, 'Hypothesis B ★', {
-      fontFamily: 'Courier New, monospace',
-      fontSize: '10px',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontSize: '11px',
       color: '#ffd700',
       fontStyle: 'bold'
     }).setOrigin(0.5);
@@ -181,43 +182,43 @@ export class ReconstructionScene extends Phaser.Scene {
     const dossierBg = this.add.rectangle(100, 88, 176, 104, 0x071324, 0.9)
       .setStrokeStyle(1, 0x1e4268);
 
-    this.add.text(18, 42, 'CASE DOSSIER THEORY:', {
-      fontFamily: 'Courier New, monospace',
-      fontSize: '9px',
-      color: '#7ac4d4',
+    this.add.text(18, 41, 'CASE DOSSIER THEORY:', {
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontSize: '10px',
+      color: '#8ae2ff',
       fontStyle: 'bold'
     });
 
-    this.hypothesisTitleText = this.add.text(18, 56, '', {
-      fontFamily: 'Courier New, monospace',
-      fontSize: '10px',
+    this.hypothesisTitleText = this.add.text(18, 55, '', {
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontSize: '11px',
       color: '#ffd700',
       fontStyle: 'bold'
     });
 
-    this.hypothesisDescText = this.add.text(18, 68, '', {
-      fontFamily: 'Courier New, monospace',
-      fontSize: '8.5px',
-      color: '#b6cadc',
-      lineSpacing: 2,
+    this.hypothesisDescText = this.add.text(18, 69, '', {
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontSize: '10px',
+      color: '#ffffff',
+      lineSpacing: 3,
       wordWrap: { width: 166 }
     });
 
     this.hypothesisBadge = this.add.text(18, 116, '', {
-      fontFamily: 'Courier New, monospace',
-      fontSize: '8px',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontSize: '9.5px',
       fontStyle: 'bold',
-      padding: { x: 4, y: 2 }
+      padding: { x: 5, y: 2 }
     });
 
     // 2. Center Exhibition Chamber Blueprint (x: 194, y: 36, w: 304, h: 104)
     const diagBox = this.add.rectangle(346, 88, 304, 104, 0x051020, 0.95)
       .setStrokeStyle(1, 0x1e4268);
 
-    this.add.text(346, 43, 'EXHIBITION CHAMBER // OVERHEAD BLUEPRINT', {
-      fontFamily: 'Courier New, monospace',
-      fontSize: '8.5px',
-      color: '#4ac4d4',
+    this.add.text(346, 43, 'EXHIBITION CHAMBER BLUEPRINT', {
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontSize: '10px',
+      color: '#8ae2ff',
       fontStyle: 'bold',
       letterSpacing: 1
     }).setOrigin(0.5);
@@ -265,9 +266,10 @@ export class ReconstructionScene extends Phaser.Scene {
     g.strokePath();
 
     this.add.text(diagX - roomW / 2 - 4, diagY, '🚪 MAIN DOOR\n[BOLTED]', {
-      fontFamily: 'Courier New, monospace',
-      fontSize: '7px',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontSize: '8.5px',
       color: '#ffb300',
+      fontStyle: 'bold',
       align: 'right'
     }).setOrigin(1, 0.5);
 
@@ -279,9 +281,10 @@ export class ReconstructionScene extends Phaser.Scene {
     g.strokePath();
 
     this.add.text(diagX + roomW / 2 - 20, diagY - roomH / 2 - 4, '⚡ FLUE PASSAGE', {
-      fontFamily: 'Courier New, monospace',
-      fontSize: '7px',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontSize: '8.5px',
       color: '#e040fb',
+      fontStyle: 'bold',
       align: 'center'
     }).setOrigin(0.5, 1);
 
@@ -295,8 +298,8 @@ export class ReconstructionScene extends Phaser.Scene {
       .setStrokeStyle(1.5, 0x4ac47a)
       .setInteractive({ useHandCursor: true });
     const valTxt = this.add.text(0, 0, '✔ VALIDATE', {
-      fontFamily: 'Courier New, monospace',
-      fontSize: '12px',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontSize: '13px',
       color: '#ffffff',
       fontStyle: 'bold',
       letterSpacing: 1
@@ -321,8 +324,8 @@ export class ReconstructionScene extends Phaser.Scene {
       .setStrokeStyle(1, 0x8a3838)
       .setInteractive({ useHandCursor: true });
     const clrTxt = this.add.text(0, 0, '↺ CLEAR SLOTS', {
-      fontFamily: 'Courier New, monospace',
-      fontSize: '10px',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontSize: '11px',
       color: '#e0b4b4',
       fontStyle: 'bold'
     }).setOrigin(0.5);
@@ -393,10 +396,10 @@ export class ReconstructionScene extends Phaser.Scene {
   }
 
   private createEventCards() {
-    this.add.text(14, 146, 'AVAILABLE TIMELINE EVENTS (Click to Place / Drag into Slots):', {
-      fontFamily: 'Courier New, monospace',
-      fontSize: '9px',
-      color: '#7ac4d4',
+    this.add.text(14, 150, 'AVAILABLE TIMELINE EVENTS [Click or Drag to Place]:', {
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontSize: '10px',
+      color: '#ffd700',
       fontStyle: 'bold',
       letterSpacing: 0.5
     });
@@ -405,9 +408,9 @@ export class ReconstructionScene extends Phaser.Scene {
 
     // 4 columns x 2 rows
     // Centers: x = 80, 240, 400, 560
-    // Rows: y = 174, 216
+    // Rows: y = 176, 218
     const colCenters = [80, 240, 400, 560];
-    const rowCenters = [174, 216];
+    const rowCenters = [176, 218];
     const cardW = 114;
     const cardH = 38;
 
@@ -431,25 +434,27 @@ export class ReconstructionScene extends Phaser.Scene {
       // Top line: Time badge & Location tag
       const locTag = this.getLocationTag(ev.description);
       const timeTxt = this.add.text(-cardW / 2 + 8, -cardH / 2 + 3, `⏱ ${ev.time}`, {
-        fontFamily: 'Courier New, monospace',
-        fontSize: '8.5px',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontSize: '10px',
         color: '#ffd700',
         fontStyle: 'bold'
       });
 
       const locTxt = this.add.text(cardW / 2 - 5, -cardH / 2 + 3, locTag, {
-        fontFamily: 'Courier New, monospace',
-        fontSize: '7.5px',
-        color: '#7ac4d4'
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontSize: '9.5px',
+        color: '#8ae2ff',
+        fontStyle: 'bold'
       }).setOrigin(1, 0);
 
       // Event short description
       const descShort = this.getCardShortDescription(ev);
-      const descTxt = this.add.text(-cardW / 2 + 8, -cardH / 2 + 15, descShort, {
-        fontFamily: 'Courier New, monospace',
-        fontSize: '7.5px',
-        color: '#d0dfed',
-        lineSpacing: 1,
+      const descTxt = this.add.text(-cardW / 2 + 8, -cardH / 2 + 16, descShort, {
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontSize: '9.5px',
+        color: '#ffffff',
+        fontStyle: 'bold',
+        lineSpacing: 1.5,
         wordWrap: { width: cardW - 14 }
       });
 
@@ -560,8 +565,8 @@ export class ReconstructionScene extends Phaser.Scene {
 
   private createTimelineSlots() {
     this.add.text(14, 248, 'HYPOTHESIS TIMELINE SEQUENCE (5 Chronological Order Slots):', {
-      fontFamily: 'Courier New, monospace',
-      fontSize: '9px',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontSize: '10.5px',
       color: '#ffd700',
       fontStyle: 'bold',
       letterSpacing: 0.5
@@ -571,12 +576,12 @@ export class ReconstructionScene extends Phaser.Scene {
     const slotH = 72;
     const slotCenters = [72, 196, 320, 444, 568];
     const slotY = 296;
-    const romanNumerals = ['I', 'II', 'III', 'IV', 'V'];
+    const romanNumerals = ['[ I ]', '[ II ]', '[ III ]', '[ IV ]', '[ V ]'];
     const slotGuides = [
-      '1. Initial Action',
-      '2. Broadcast Cue',
-      '3. Crime Reaction',
-      '4. Breach Discovery',
+      '1. Poison Solvent',
+      '2. PA Broadcast',
+      '3. Death in Room',
+      '4. Hugo Discovery',
       '5. Locked Room'
     ];
 
@@ -590,24 +595,25 @@ export class ReconstructionScene extends Phaser.Scene {
 
       // Step Tag Badge on Left
       this.add.text(x - slotW / 2 + 6, slotY - slotH / 2 + 6, romanNumerals[i], {
-        fontFamily: 'Courier New, monospace',
-        fontSize: '10px',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontSize: '11px',
         color: '#ffd700',
         fontStyle: 'bold'
       });
 
       // Guide label aligned on Right
       this.add.text(x + slotW / 2 - 6, slotY - slotH / 2 + 7, slotGuides[i], {
-        fontFamily: 'Courier New, monospace',
-        fontSize: '7px',
-        color: '#7faac8'
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontSize: '9.5px',
+        color: '#8ae2ff',
+        fontStyle: 'bold'
       }).setOrigin(1, 0);
 
       // Empty slot prompt
-      this.add.text(x, slotY + 8, '[ Drop Event ]', {
-        fontFamily: 'Courier New, monospace',
-        fontSize: '8px',
-        color: '#2a5078',
+      this.add.text(x, slotY + 8, '[ Place Event Here ]', {
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontSize: '9px',
+        color: '#3a6694',
         fontStyle: 'italic'
       }).setOrigin(0.5);
 
@@ -738,7 +744,7 @@ export class ReconstructionScene extends Phaser.Scene {
       this.time.delayedCall(1600, () => {
         SceneTransition.fadeToBlack(this, 800, () => {
           storyManager.advancePhase();
-          this.scene.start('ExplorationScene', { roomId: 'main_hall' });
+          this.scene.start('DeductionScene');
         });
       });
     } else {

@@ -264,18 +264,30 @@ export class CutsceneScene extends Scene {
         this.typewriterEffect(dialogTxt, panel.dialogue || '');
 
         // Prompt
-        const prompt = this.add.text(width - 32, boxY + boxH - 14, '▼ [SPACE] / Click', {
-            fontFamily: 'Courier New, monospace',
-            fontSize: '9px',
-            color: '#7ac4d4',
+        const prompt = this.add.text(width - 32, boxY + boxH - 14, '▶ [ Click or Space to continue ]', {
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            fontSize: '10px',
+            color: '#ffd700',
             fontStyle: 'bold',
             backgroundColor: '#0d1424',
-            padding: { x: 5, y: 2 }
+            padding: { x: 6, y: 2 }
         }).setOrigin(1, 0.5);
         this.panelContainer.add(prompt);
     } else if (panel.type === 'transition') {
         const bg = this.add.rectangle(0, 0, width, height, panelBgColor).setOrigin(0, 0);
         this.panelContainer.add(bg);
+    }
+
+    if (!panel.autoAdvance && panel.type !== 'dialogue') {
+        const genPrompt = this.add.text(width - 24, height - 16, '▶ [ Click or Space to continue ]', {
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            fontSize: '10px',
+            color: '#ffd700',
+            fontStyle: 'bold',
+            backgroundColor: '#0a101ee6',
+            padding: { x: 7, y: 3 }
+        }).setOrigin(1, 1);
+        this.panelContainer.add(genPrompt);
     }
     
     // Apply animations

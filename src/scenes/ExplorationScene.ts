@@ -441,8 +441,25 @@ export class ExplorationScene extends Phaser.Scene {
       color: '#ffea70',
       backgroundColor: '#0a0e1cf0',
       padding: { x: 12, y: 5 },
-      fontFamily: 'Courier New, monospace'
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
     }).setOrigin(0.5).setDepth(600).setScrollFactor(0).setVisible(false).setInteractive({ useHandCursor: true });
+
+    // Prominent Final Confrontation Banner when in final_confrontation phase
+    if (gameState.getPhase() === 'final_confrontation') {
+      const confrontBtn = this.add.text(320, 52, '⚖ CONFRONT THE KILLER (Click to Open Final Accusation) ⚖', {
+        fontSize: '11.5px',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontStyle: 'bold',
+        color: '#ffd700',
+        backgroundColor: '#0d2214fa',
+        padding: { x: 14, y: 6 }
+      }).setOrigin(0.5).setDepth(600).setScrollFactor(0).setInteractive({ useHandCursor: true });
+      confrontBtn.setStroke('#4ac47a', 1.5);
+      confrontBtn.on('pointerdown', () => {
+        this.scene.start('DeductionScene');
+      });
+      this.tweens.add({ targets: confrontBtn, scale: 1.05, yoyo: true, repeat: -1, duration: 800 });
+    }
 
     this.interactionPrompt.on('pointerdown', () => {
       this.touchAction = true;
