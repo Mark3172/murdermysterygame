@@ -4,9 +4,14 @@ import { gameConfig } from './engine/GameConfig';
 import { AudioManager } from './engine/AudioManager';
 import { EventBus } from './engine/EventBus';
 
+import { gameState } from './logic/GameState';
+import { storyManager } from './logic/StoryPhaseManager';
+
 // Initialize the game
 const game = new Phaser.Game(gameConfig);
 (window as any).__PHASER_GAME__ = game;
+(window as any).gameState = gameState;
+(window as any).storyManager = storyManager;
 
 // Initialize audio manager and hook up HTML controls
 const audioManager = AudioManager.getInstance();
