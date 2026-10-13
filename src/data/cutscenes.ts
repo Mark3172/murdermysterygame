@@ -351,12 +351,49 @@ export const cutscenes: Record<string, CutsceneData> = {
     skippable: true,
     music: 'melancholy_theme',
     panels: [
-      { type: 'text', text: 'The police arrive shortly after the confession.', textColor: '#ffffff', animation: 'fade_in' },
-      { type: 'dialogue', speaker: 'Hugo', dialogue: 'I just... I didn\'t want them to see what I\'d been giving him. I panicked. I\'m sorry.' },
-      { type: 'dialogue', speaker: 'Dr. Vale', dialogue: 'Your father\'s legacy is tarnished, Hugo. But truth is more important than reputation.' },
-      { type: 'text', text: 'As Nadia is led away, she turns back one last time.', textColor: '#ffffff' },
-      { type: 'dialogue', speaker: 'Nadia', dialogue: 'Project Echo was a mistake. We should never have played god with sound.' },
-      { type: 'image', backgroundColor: '#000000', animation: 'fade_in', duration: 3000, autoAdvance: true, autoAdvanceDelay: 1000 }
+      {
+        type: 'image',
+        backgroundColor: '#0a0d18',
+        animation: 'fade_in',
+        duration: 800
+      },
+      {
+        type: 'dialogue',
+        speaker: 'Ren',
+        dialogue: 'It\'s over, Nadia. You used the 13th chime\'s resonance to mask the blackout and poison Aldric Sable with aconitine tea.',
+        animation: 'slide_left'
+      },
+      {
+        type: 'dialogue',
+        speaker: 'Nadia',
+        dialogue: '...He called it "Project Echo." But it wasn\'t an acoustic study—it was weaponized frequency research. He stole twelve years of my life and threatened to destroy my work.',
+        animation: 'slide_right'
+      },
+      {
+        type: 'dialogue',
+        speaker: 'Hugo',
+        dialogue: 'I... I panicked when I found my father on the floor. I thought my experimental medication had killed him, so I locked the chamber door through the flue passage to hide the bottle... I\'m so sorry, everyone.',
+        animation: 'slide_left'
+      },
+      {
+        type: 'dialogue',
+        speaker: 'Dr. Vale',
+        dialogue: 'Your father\'s ambition blinded him, Hugo. But no secret stays buried forever under the chimes of Stellara.',
+        animation: 'slide_right'
+      },
+      {
+        type: 'image',
+        backgroundColor: '#080a14',
+        animation: 'fade_in',
+        duration: 800
+      },
+      {
+        type: 'text',
+        text: 'The mountain storm begins to clear as the police arrive at Stellara Observatory.\n\nThe truth behind the thirteenth chime has finally come to light.',
+        textColor: '#e8edf5',
+        textSize: 15,
+        animation: 'fade_in'
+      }
     ]
   },
   credits_scene: {

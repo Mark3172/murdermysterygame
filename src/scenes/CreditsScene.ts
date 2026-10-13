@@ -27,42 +27,54 @@ export class CreditsScene extends Scene {
 THE THIRTEENTH CHIME
 Episode 1: The Clockwork Observatory
 
-Created with Phaser 3
+DEVELOPED & DIRECTED BY
+Mark
 
-Story & Design
-[Procedurally Generated]
+Game Engine & Programming
+Mark
 
-Art Direction
-Procedural Pixel Art Engine
+Story, World & Case Deduction Design
+Mark
 
-Sound Design
-Web Audio API Synthesis
+Visual Direction & Pixel Art Engine
+Mark
 
-Characters
-Ren Kasuga - Detective
-Dr. Mira Vale - Inventor
-Professor Aldric Sable - Victim
-Nadia Thorn - Acoustician
-Hugo Wren - Doctor
-Petra Solano - Journalist
-Felix Ashworth - Patron
-Iris Blackwell - Engineer
+Acoustic & Synthesizer Sound Design
+Mark
 
-Built with
-TypeScript • Phaser 3 • Vite
-Web Audio API
+• • •
 
-All assets procedurally generated
-No external art or audio files used
+CAST OF CHARACTERS
+Ren Kasuga — The Detective
+Dr. Mira Vale — The Inventor
+Professor Aldric Sable — The Victim
+Nadia Thorn — The Acoustician
+Dr. Hugo Wren — The Physician
+Petra Solano — The Investigative Journalist
+Felix Ashworth — The Observatory Patron
+Iris Blackwell — The Lead Engineer
 
-Thank you for playing
+• • •
 
-Ren will return in:
+TECHNOLOGY
+Phaser 3 • TypeScript • Vite
+Web Audio API Synthesizer Bus
+Procedural 16-Bit Pixel Art Renderer
+
+All procedural visual and audio assets created for
+THE THIRTEENTH CHIME
+
+• • •
+
+Special Thanks to All Players
+
+Ren Kasuga will return in:
 THE SILENT FREQUENCY
         `;
 
-        this.scrollText = this.add.text(320, 400, credits, {
-            fontSize: '16px',
+        this.scrollText = this.add.text(320, 380, credits, {
+            fontSize: '15px',
+            fontFamily: 'Georgia, serif',
             color: '#ffffff',
             align: 'center',
             lineSpacing: 10
@@ -71,25 +83,43 @@ THE SILENT FREQUENCY
         // Music
         AudioManager.getInstance().startMusic('resolution');
 
-        // On-screen skip/continue prompt
-        const prompt = this.add.text(320, 342, '▶ [ Click or Press Space to Continue ]', {
+        // On-screen skip/continue button
+        const prompt = this.add.text(320, 335, '▶ [ Continue / Skip Credits: Click or Press SPACE ]', {
             fontSize: '11px',
-            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            fontFamily: 'Courier New, monospace',
             color: '#ffd700',
             fontStyle: 'bold',
             backgroundColor: '#0a101ee6',
-            padding: { x: 10, y: 5 }
+            padding: { x: 12, y: 6 }
         }).setOrigin(0.5).setDepth(20).setInteractive({ useHandCursor: true });
         prompt.on('pointerdown', () => this.skipCredits());
 
-        this.input.keyboard?.on('keydown', () => this.skipCredits());
-        this.input.on('pointerdown', () => this.skipCredits());
+        // Cooldown protection: ignore inputs during the first 1.5 seconds to prevent accidental carry-over skip from cutscenes
+        this.time.delayedCall(1500, () => {
+            this.canSkip = true;
+        });
+
+        this.input.keyboard?.on('keydown-SPACE', () => {
+            if (this.canSkip) this.skipCredits();
+        });
+        this.input.keyboard?.on('keydown-ENTER', () => {
+            if (this.canSkip) this.skipCredits();
+        });
+        this.input.keyboard?.on('keydown-ESC', () => {
+            if (this.canSkip) this.skipCredits();
+        });
+        this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+            // Only skip on mouse click if clicking the continue button or after cooldown
+            if (this.canSkip) this.skipCredits();
+        });
     }
+
+    private canSkip: boolean = false;
 
     update(time: number, delta: number) {
         if (this.scrollText) {
-            this.scrollText.y -= delta * 0.03;
-            if (this.scrollText.y < -1200) {
+            this.scrollText.y -= delta * 0.035;
+            if (this.scrollText.y < -1400) {
                 this.skipCredits();
             }
         }

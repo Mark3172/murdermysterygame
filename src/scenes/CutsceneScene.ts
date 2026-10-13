@@ -37,6 +37,8 @@ export class CutsceneScene extends Scene {
   }
 
   create() {
+    this.sceneStartTime = this.time.now;
+
     // Hide HUD bar during cinematic cutscene
     const hud = document.getElementById('hud-bar');
     if (hud) hud.style.display = 'none';
@@ -104,14 +106,31 @@ export class CutsceneScene extends Scene {
     }).setOrigin(1, 0);
     this.uiContainer.add(this.panelCounterText);
 
-    // Inputs
-    this.input.on('pointerdown', this.handleAdvance, this);
-    this.input.keyboard?.on('keydown-SPACE', this.handleAdvance, this);
-    this.input.keyboard?.on('keydown-ESC', () => this.finishCutscene());
-    this.input.keyboard?.on('keydown-S', () => this.finishCutscene());
+    // Inputs with debounce to prevent input leakage from prior scene transitions
+    const onAdvanceInput = () => {
+        if (this.time.now - this.sceneStartTime < 400) return;
+        this.handleAdvance();
+    };
+
+    this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+        if (pointer.y < 40 && pointer.x > width - 120) return; // Clicking skip button handled by skipButton
+        onAdvanceInput();
+    });
+    this.input.keyboard?.on('keydown-SPACE', onAdvanceInput);
+    this.input.keyboard?.on('keydown-ENTER', onAdvanceInput);
+    this.input.keyboard?.on('keydown-ESC', () => {
+        if (this.time.now - this.sceneStartTime < 400) return;
+        this.finishCutscene();
+    });
+    this.input.keyboard?.on('keydown-S', () => {
+        if (this.time.now - this.sceneStartTime < 400) return;
+        this.finishCutscene();
+    });
 
     this.showPanel();
   }
+  
+  private sceneStartTime: number = 0;
   
   private showPanel() {
     if (!this.cutsceneData) return;
@@ -970,6 +989,103 @@ export class CutsceneScene extends Scene {
       }).setOrigin(0.5);
 
       this.panelContainer.add([g, tag, caption]);
+      return true;
+    }
+
+    // 7b. ending Panel 0: The Confrontation in the Exhibition Chamber
+    if (cid === 'ending' && pIdx === 0) {
+      const g = this.add.graphics();
+      g.fillGradientStyle(0x060812, 0x060812, 0x121828, 0x181e30, 1);
+      g.fillRect(0, 0, width, height);
+
+      // Chamber archway and broken glass
+      g.fillStyle(0x0a0e18, 1);
+      g.fillRect(80, 40, width - 160, 240);
+      g.lineStyle(3, 0xd4af37, 0.85);
+      g.strokeRect(80, 40, width - 160, 240);
+
+      // Warm amber glow from chamber chandelier
+      g.fillStyle(0xffd700, 0.15);
+      g.fillCircle(320, 120, 90);
+
+      // Ren and Nadia confrontation busts
+      const renKey = PortraitRenderer.generatePortrait(this, 'ren', 'determined');
+      const nadiaKey = PortraitRenderer.generatePortrait(this, 'nadia', 'shocked');
+      const renImg = this.add.image(220, 150, renKey).setDisplaySize(80, 80);
+      const nadiaImg = this.add.image(420, 150, nadiaKey).setDisplaySize(80, 80);
+
+      // VS / Accusation indicator banner
+      const badge = this.add.text(width / 2, 85, '✦ THE VEIL LIFTS • CASE RESOLVED ✦', {
+        fontFamily: 'Georgia, serif',
+        fontSize: '12px',
+        color: '#ffd700',
+        fontStyle: 'bold',
+        backgroundColor: '#0c1020e6',
+        padding: { x: 8, y: 4 }
+      }).setOrigin(0.5);
+
+      const renLabel = this.add.text(220, 205, 'REN KASUGA\nDetective', {
+        fontFamily: 'Courier New, monospace',
+        fontSize: '9px',
+        color: '#7ac4d4',
+        align: 'center'
+      }).setOrigin(0.5);
+
+      const nadiaLabel = this.add.text(420, 205, 'NADIA THORN\nAcoustician', {
+        fontFamily: 'Courier New, monospace',
+        fontSize: '9px',
+        color: '#ff8888',
+        align: 'center'
+      }).setOrigin(0.5);
+
+      this.panelContainer.add([g, renImg, nadiaImg, badge, renLabel, nadiaLabel]);
+      return true;
+    }
+
+    // 7c. ending Panel 5: Storm Clearing Over Mountain Observatory
+    if (cid === 'ending' && pIdx === 5) {
+      const g = this.add.graphics();
+      // Dawn sky gradient breaking through storm clouds
+      g.fillGradientStyle(0x0a1024, 0x0a1024, 0x221a38, 0x3a2848, 1);
+      g.fillRect(0, 0, width, height);
+
+      // Distant Stellara Mountain silhouette
+      g.fillStyle(0x080c18, 1);
+      g.beginPath();
+      g.moveTo(0, height);
+      g.lineTo(0, 210);
+      g.lineTo(140, 160);
+      g.lineTo(320, 120); // Observatory peak
+      g.lineTo(500, 180);
+      g.lineTo(width, 220);
+      g.lineTo(width, height);
+      g.closePath();
+      g.fillPath();
+
+      // Observatory dome silhouette with soft golden dawn horizon
+      g.fillStyle(0x05070e, 1);
+      g.fillRect(280, 130, 80, 60);
+      g.beginPath();
+      g.arc(320, 130, 40, Math.PI, 0);
+      g.fill();
+
+      // Police lantern beacon flashes on the winding mountain road
+      const beacon1 = this.add.circle(180, 240, 4, 0x4488ff, 0.9);
+      const beacon2 = this.add.circle(230, 260, 4, 0xff3333, 0.9);
+      const beacon3 = this.add.circle(280, 280, 4, 0x4488ff, 0.9);
+      this.tweens.add({ targets: [beacon1, beacon3], alpha: 0.2, yoyo: true, repeat: -1, duration: 400 });
+      this.tweens.add({ targets: [beacon2], alpha: 0.2, yoyo: true, repeat: -1, duration: 350 });
+
+      const heading = this.add.text(width / 2, 70, '✦ DAWN BREAKS OVER STELLARA OBSERVATORY ✦', {
+        fontFamily: 'Georgia, serif',
+        fontSize: '13px',
+        color: '#ffd700',
+        stroke: '#05070e',
+        strokeThickness: 3,
+        letterSpacing: 1.5
+      }).setOrigin(0.5);
+
+      this.panelContainer.add([g, beacon1, beacon2, beacon3, heading]);
       return true;
     }
 
