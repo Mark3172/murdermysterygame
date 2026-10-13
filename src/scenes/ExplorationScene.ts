@@ -613,9 +613,9 @@ export class ExplorationScene extends Phaser.Scene {
     if (this.activeGadget !== 'tranquility_focus') return;
 
     AudioManager.getInstance().playSFX('discoveryString');
-    this.showMsg('🧠 TRANQUILITY FOCUS • Detective vision active. Points of interest illuminated.');
+    this.showMsg('🧠 TRANQUILITY FOCUS • Detective Mind Concentrating... Click or press SPACE on alignment rings!');
 
-    // Highlight interactable clues
+    // Highlight interactable clues in room
     for (const obj of this.interactableObjects) {
       if (obj.data.evidenceId && gameState.hasEvidence(obj.data.evidenceId)) continue;
       const ox = obj.zone.x, oy = obj.zone.y;
@@ -639,6 +639,117 @@ export class ExplorationScene extends Phaser.Scene {
       }).setOrigin(0.5).setDepth(200);
       this.focusHighlights.push(halo, tag);
     }
+
+    // Interactive Detective Concentration Pulse Overlay Minigame
+    const cx = 320, cy = 180;
+    const focusContainer = this.add.container(0, 0).setDepth(450).setScrollFactor(0);
+    this.focusHighlights.push(focusContainer);
+
+    // Vignette ring & brass HUD frame
+    const ringBack = this.add.circle(cx, cy, 74, 0x050c18, 0.75);
+    const outerRing = this.add.graphics();
+    outerRing.lineStyle(2, 0x4ac4e2, 0.85);
+    outerRing.strokeCircle(cx, cy, 70);
+    outerRing.lineStyle(1, 0xd4af37, 0.6);
+    outerRing.strokeCircle(cx, cy, 50);
+
+    // Target perfect alignment zone (between radius 45 and 55)
+    const targetRing = this.add.graphics();
+    targetRing.lineStyle(4, 0x00ff88, 0.4);
+    targetRing.strokeCircle(cx, cy, 50);
+
+    // Expanding / Contracting thought pulse wave
+    const pulseRing = this.add.graphics();
+    let pulseRadius = 15;
+    let pulseDirection = 1;
+    let focusScore = 0;
+    const targetScore = 3;
+
+    const banner = this.add.text(cx, cy - 88, '🧠 MIND CONCENTRATION: ALIGN PULSE RINGS [CLICK / SPACE]', {
+      fontSize: '9px', color: '#ffea70', fontFamily: 'Courier New, monospace', fontStyle: 'bold',
+      backgroundColor: '#0a1020ee', padding: { x: 8, y: 3 }
+    }).setOrigin(0.5);
+
+    const scoreText = this.add.text(cx, cy + 85, `HARMONY: 0/${targetScore}  •  CLICK WHEN RINGS OVERLAP`, {
+      fontSize: '8px', color: '#7ac4e2', fontFamily: 'Courier New, monospace',
+      backgroundColor: '#0a1020ee', padding: { x: 6, y: 2 }
+    }).setOrigin(0.5);
+
+    focusContainer.add([ringBack, outerRing, targetRing, pulseRing, banner, scoreText]);
+
+    const pulseTimer = this.time.addEvent({
+      delay: 24,
+      loop: true,
+      callback: () => {
+        if (!focusContainer.active) return;
+        pulseRadius += pulseDirection * 1.5;
+        if (pulseRadius >= 72) pulseDirection = -1;
+        if (pulseRadius <= 15) pulseDirection = 1;
+
+        pulseRing.clear();
+        const dist = Math.abs(pulseRadius - 50);
+        const col = dist < 7 ? 0x00ff88 : (dist < 15 ? 0xffea70 : 0x4ac4e2);
+        pulseRing.lineStyle(2.5, col, 0.95);
+        pulseRing.strokeCircle(cx, cy, pulseRadius);
+      }
+    });
+
+    const triggerFocusAttempt = () => {
+      if (!focusContainer.active) return;
+      const dist = Math.abs(pulseRadius - 50);
+      if (dist < 9) {
+        // Perfect focus alignment hit!
+        focusScore++;
+        try { AudioManager.getInstance().playSFX('discoveryString'); } catch(e) {}
+        scoreText.setText(`HARMONY: ${focusScore}/${targetScore}  •  PERFECT FOCUS!`);
+        scoreText.setColor('#00ff88');
+        targetRing.clear();
+        targetRing.lineStyle(6, 0x00ff88, 0.9);
+        targetRing.strokeCircle(cx, cy, 50);
+        this.time.delayedCall(160, () => {
+          targetRing.clear();
+          targetRing.lineStyle(4, 0x00ff88, 0.4);
+          targetRing.strokeCircle(cx, cy, 50);
+        });
+
+        if (focusScore >= targetScore) {
+          try { AudioManager.getInstance().playSFX('success'); } catch(e) {}
+          banner.setText('✦ ZEN CLARITY ACHIEVED • ALL SURROUNDING CLUES PINPOINTED! ✦');
+          banner.setColor('#00ff88');
+          pulseTimer.remove();
+          this.time.delayedCall(800, () => {
+            this.tweens.add({
+              targets: focusContainer,
+              alpha: 0,
+              duration: 400,
+              onComplete: () => {
+                focusContainer.destroy();
+              }
+            });
+          });
+        }
+      } else {
+        // Off tempo
+        try { AudioManager.getInstance().playSFX('ui_click'); } catch(e) {}
+        scoreText.setText(`OFF-TEMPO (${Math.round(dist)}px off)  •  TIME IT WITH THE GREEN RING!`);
+        scoreText.setColor('#ff6666');
+      }
+    };
+
+    // Click anywhere on screen to sync pulse
+    ringBack.setInteractive({ useHandCursor: true });
+    ringBack.on('pointerdown', triggerFocusAttempt);
+
+    const onSpacePress = (e: KeyboardEvent) => {
+      if (e.code === 'Space' && focusContainer.active) {
+        triggerFocusAttempt();
+      }
+    };
+    window.addEventListener('keydown', onSpacePress);
+    focusContainer.once('destroy', () => {
+      pulseTimer.remove();
+      window.removeEventListener('keydown', onSpacePress);
+    });
   }
 
   private clearTranquilityFocus() {
@@ -907,31 +1018,132 @@ export class ExplorationScene extends Phaser.Scene {
       }
     }
 
-    // 3. Right-side Brass Control Panel with Rotary Dials
+    // 3. Right-side Brass Control Panel with Interactive Frequency Calibration Rotary Dials
     const panelBg = this.add.rectangle(480, 175, 120, 160, 0x121828, 1).setDepth(602).setScrollFactor(0);
-    const dials = this.add.graphics().setDepth(603).setScrollFactor(0);
-    dials.fillStyle(0xd4af37, 1);
-    dials.fillCircle(480, 125, 12); dials.fillCircle(480, 175, 12); dials.fillCircle(480, 225, 12);
-    dials.fillStyle(0x181206, 1);
-    dials.fillCircle(480, 125, 4); dials.fillCircle(480, 175, 4); dials.fillCircle(480, 225, 4);
-    dials.lineStyle(1.5, 0xffe066, 1);
-    dials.moveTo(480, 125); dials.lineTo(488, 120);
-    dials.moveTo(480, 175); dials.lineTo(485, 165);
-    dials.moveTo(480, 225); dials.lineTo(475, 218);
-    dials.stroke();
-    els.push(panelBg, dials);
+    const dialsGfx = this.add.graphics().setDepth(603).setScrollFactor(0);
+    els.push(panelBg, dialsGfx);
 
-    els.push(this.add.text(480, 142, 'FREQ (Hz)', { fontSize: '7px', color: '#8899aa', fontFamily: 'Courier New' }).setOrigin(0.5).setDepth(603).setScrollFactor(0));
-    els.push(this.add.text(480, 192, 'RESONANCE', { fontSize: '7px', color: '#8899aa', fontFamily: 'Courier New' }).setOrigin(0.5).setDepth(603).setScrollFactor(0));
-    els.push(this.add.text(480, 242, 'TELEMETRY', { fontSize: '7px', color: '#8899aa', fontFamily: 'Courier New' }).setOrigin(0.5).setDepth(603).setScrollFactor(0));
+    let tunedFreq = 380; // Starting slightly detuned
+    const targetFreq = 440;
+    let isAligned = false;
+
+    const renderDials = () => {
+      dialsGfx.clear();
+      // Dial 1: Frequency Rotary Dial (Interactive)
+      dialsGfx.fillStyle(0xd4af37, 1);
+      dialsGfx.fillCircle(480, 125, 14);
+      dialsGfx.fillStyle(0x181206, 1);
+      dialsGfx.fillCircle(480, 125, 5);
+      
+      // Pointer needle
+      const angleRad = Phaser.Math.DegToRad((tunedFreq - 350) * 3);
+      const nx = 480 + Math.cos(angleRad) * 11;
+      const ny = 125 + Math.sin(angleRad) * 11;
+      dialsGfx.lineStyle(2, 0xffe066, 1);
+      dialsGfx.moveTo(480, 125); dialsGfx.lineTo(nx, ny);
+
+      // Dial 2: Static Resonance indicator
+      dialsGfx.fillStyle(0xd4af37, 1);
+      dialsGfx.fillCircle(480, 175, 12);
+      dialsGfx.fillStyle(0x181206, 1);
+      dialsGfx.fillCircle(480, 175, 4);
+      dialsGfx.lineStyle(1.5, 0xffe066, 1);
+      dialsGfx.moveTo(480, 175); dialsGfx.lineTo(485, 165);
+
+      // Dial 3: Telemetry meter
+      dialsGfx.fillStyle(0xd4af37, 1);
+      dialsGfx.fillCircle(480, 225, 12);
+      dialsGfx.fillStyle(0x181206, 1);
+      dialsGfx.fillCircle(480, 225, 4);
+      dialsGfx.lineStyle(1.5, isAligned ? 0x00ff88 : 0xffe066, 1);
+      dialsGfx.moveTo(480, 225); dialsGfx.lineTo(isAligned ? 490 : 475, 218);
+      dialsGfx.stroke();
+    };
+    renderDials();
+
+    const freqLabel = this.add.text(480, 144, `TUNING: ${tunedFreq}Hz`, { 
+      fontSize: '7px', color: '#ffd700', fontFamily: 'Courier New, monospace', fontStyle: 'bold' 
+    }).setOrigin(0.5).setDepth(603).setScrollFactor(0);
+    els.push(freqLabel);
+
+    // Rotary Tuning Buttons [-10Hz] and [+10Hz]
+    const tuneDownBtn = this.add.text(450, 110, '◀', {
+      fontSize: '11px', color: '#ffea70', backgroundColor: '#20283e', padding: { x: 4, y: 1 }
+    }).setOrigin(0.5).setDepth(604).setScrollFactor(0).setInteractive({ useHandCursor: true });
+    const tuneUpBtn = this.add.text(510, 110, '▶', {
+      fontSize: '11px', color: '#ffea70', backgroundColor: '#20283e', padding: { x: 4, y: 1 }
+    }).setOrigin(0.5).setDepth(604).setScrollFactor(0).setInteractive({ useHandCursor: true });
+    els.push(tuneDownBtn, tuneUpBtn);
+
+    const matchStatusText = this.add.text(480, 192, 'MISALIGNED', { 
+      fontSize: '7px', color: '#ff6666', fontFamily: 'Courier New, monospace', fontStyle: 'bold' 
+    }).setOrigin(0.5).setDepth(603).setScrollFactor(0);
+    els.push(matchStatusText);
+
+    els.push(this.add.text(480, 242, 'HARMONIC LOCK', { fontSize: '7px', color: '#8899aa', fontFamily: 'Courier New' }).setOrigin(0.5).setDepth(603).setScrollFactor(0));
 
     // Summary diagnosis text
     const summaryStr = isObsDeck
       ? 'Acoustic telemetry confirms: Zero footsteps registered on the deck during the blackout. Hugo\'s alibi is shattered!'
       : 'Acoustic signature verified: The 13th chime vibrates at Project Echo\'s calibration frequency.';
-    els.push(this.add.text(320, 268, summaryStr, {
-      fontSize: '9px', color: '#e6edf4', fontFamily: 'Georgia, serif', fontStyle: 'italic', align: 'center'
-    }).setOrigin(0.5).setDepth(603).setScrollFactor(0));
+    const summaryLabel = this.add.text(320, 268, 'TUNE OSCILLOSCOPE TO 440Hz HARMONIC TO LOCK ACOUSTIC TELEMETRY', {
+      fontSize: '8px', color: '#ffd700', fontFamily: 'Courier New, monospace', fontStyle: 'bold', align: 'center'
+    }).setOrigin(0.5).setDepth(603).setScrollFactor(0);
+    els.push(summaryLabel);
+
+    // Update Waveforms with Live Tuning Effect
+    const redrawWaveforms = () => {
+      w2.clear();
+      const diff = Math.abs(tunedFreq - targetFreq);
+      if (diff <= 5) {
+        isAligned = true;
+        matchStatusText.setText('HARMONIC LOCK (100%)');
+        matchStatusText.setColor('#00ff88');
+        summaryLabel.setText(summaryStr);
+        summaryLabel.setColor('#00ff88');
+      } else {
+        isAligned = false;
+        matchStatusText.setText(`DEVIATION: ${diff}Hz`);
+        matchStatusText.setColor('#ffbb33');
+        summaryLabel.setText('TUNE OSCILLOSCOPE TO 440Hz HARMONIC TO LOCK ACOUSTIC TELEMETRY');
+        summaryLabel.setColor('#ffd700');
+      }
+
+      if (isObsDeck) {
+        w2.lineStyle(2, isAligned ? 0x00ff88 : 0xff4444, 0.95);
+        w2.moveTo(100, 215); w2.lineTo(380, 215);
+        w2.stroke();
+      } else {
+        w2.lineStyle(2, isAligned ? 0x00ff88 : 0xffbb33, 0.95);
+        const freqFactor = (tunedFreq / targetFreq) * 0.12;
+        for (let x = 0; x < 280; x++) {
+          const y = (Math.sin(x * freqFactor) * 12 + Math.sin(x * 0.04) * 8) * Math.exp(-x * 0.005);
+          if (x === 0) w2.moveTo(100 + x, 215 + y);
+          else w2.lineTo(100 + x, 215 + y);
+        }
+      }
+      renderDials();
+    };
+
+    const tuneFrequency = (delta: number) => {
+      tunedFreq = Phaser.Math.Clamp(tunedFreq + delta, 360, 520);
+      freqLabel.setText(`TUNING: ${tunedFreq}Hz`);
+      try { AudioManager.getInstance().playSFX('type_blip'); } catch(e) {}
+      redrawWaveforms();
+    };
+
+    tuneDownBtn.on('pointerdown', () => tuneFrequency(-10));
+    tuneUpBtn.on('pointerdown', () => tuneFrequency(10));
+
+    // Keyboard frequency tuning arrow controls
+    const onKeyFreq = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') tuneFrequency(-10);
+      else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') tuneFrequency(10);
+    };
+    window.addEventListener('keydown', onKeyFreq);
+
+    // Initial waveform render
+    redrawWaveforms();
 
     // Buttons
     const btn = this.add.text(250, 296, '✔ RECORD FINDING', {
@@ -945,6 +1157,7 @@ export class ExplorationScene extends Phaser.Scene {
         this.activeMiniGameCleaner = null;
       }
       window.removeEventListener('keydown', onEsc);
+      window.removeEventListener('keydown', onKeyFreq);
       els.forEach(e => e.destroy());
       this.inDialogue = false;
       this.activeGadget = null;
@@ -963,6 +1176,13 @@ export class ExplorationScene extends Phaser.Scene {
     window.addEventListener('keydown', onEsc);
 
     btn.on('pointerdown', () => {
+      if (!isAligned) {
+        // Provide friendly guidance or auto-snap
+        tunedFreq = targetFreq;
+        freqLabel.setText(`TUNING: ${tunedFreq}Hz`);
+        redrawWaveforms();
+        try { AudioManager.getInstance().playSFX('discoveryString'); } catch(e) {}
+      }
       if (isObsDeck) {
         if (!gameState.hasEvidence('rain_sensor_data')) {
           gameState.collectEvidence('rain_sensor_data');
@@ -1292,9 +1512,21 @@ export class ExplorationScene extends Phaser.Scene {
     specFrame.strokeRect(130, 112, 380, 85);
     els.push(specBg, specFrame);
 
+    // Interactive Scrubber Playhead & Audio Frequency Analyzer
+    let scrubberPos = 140; // X position from 140 to 484
+    const targetSpliceX = 140 + 24 * 8; // 332
+    let spliceDiscovered = false;
+
+    // Scrub Guidance banner
+    const scrubGuide = this.add.text(320, 102, 'DRAG SCRUBBER / CLICK TIMELINE OR USE [◀ / ▶] TO ISOLATE AUDIO SPLICE', {
+      fontSize: '7px', color: '#ffea70', fontFamily: 'Courier New, monospace', fontStyle: 'bold'
+    }).setOrigin(0.5).setDepth(605).setScrollFactor(0);
+    els.push(scrubGuide);
+
     // Audio frequency bands
     const b1 = this.add.graphics().setDepth(604).setScrollFactor(0);
-    els.push(b1);
+    const playheadGfx = this.add.graphics().setDepth(606).setScrollFactor(0);
+    els.push(b1, playheadGfx);
     const trackLabel = isClockwork
       ? 'PLAYBACK: Hidden Pocket Dictaphone (Recovered from Dark Alcove)'
       : 'PLAYBACK: 7:45 PM Demonstration Announcement Track';
@@ -1302,20 +1534,11 @@ export class ExplorationScene extends Phaser.Scene {
       fontSize: '8px', color: '#7ac4d4', fontFamily: 'Courier New, monospace', fontStyle: 'bold'
     }).setDepth(604).setScrollFactor(0));
 
-    for (let i = 0; i < 44; i++) {
-      const h = Math.abs(Math.sin(i * 0.28)) * 22 + 4;
-      b1.fillStyle(0x3a8296);
-      b1.fillRect(140 + i * 8, 172 - h, 6, h);
-      b1.fillStyle(0x6ad0e6);
-      b1.fillRect(140 + i * 8, 172 - h, 6, 2); // peak light
-    }
-
-    // Magnetic wire splice marker
-    b1.fillStyle(0xff3333, 0.9);
-    b1.fillRect(140 + 24 * 8, 128, 3, 58);
-    els.push(this.add.text(140 + 24 * 8 + 6, 130, '◀ SPLICE ARTIFACT DETECTED', {
+    // Splice artifact text indicator
+    const spliceIndicator = this.add.text(targetSpliceX + 6, 128, '◀ SPLICE ARTIFACT DETECTED', {
       fontSize: '7px', color: '#ff4444', fontFamily: 'Courier New, monospace', fontStyle: 'bold'
-    }).setDepth(604).setScrollFactor(0));
+    }).setDepth(605).setScrollFactor(0).setVisible(false);
+    els.push(spliceIndicator);
 
     // Acoustic Analysis & Confidence Result Box
     const matchBox = this.add.rectangle(320, 230, 420, 36, 0x141c2c, 0.9).setDepth(602).setScrollFactor(0);
@@ -1323,10 +1546,83 @@ export class ExplorationScene extends Phaser.Scene {
     const matchString = isClockwork
       ? 'ACOUSTIC MATCH: 94% CONFIDENCE — NADIA THORN\nWhispered tape confession: "I\'m sorry, Aldric... I had no choice."'
       : 'SPLICE DETECTED: Announcement was assembled from pre-recorded tape spools.\nAldric Sable was already dead before the broadcast began!';
-    const matchTxt = this.add.text(320, 230, matchString, {
+    const matchTxt = this.add.text(320, 230, 'SCRUB AUDIO TIMELINE TO PINPOINT SPLICE ARTIFACT', {
       fontSize: '9px', color: '#ffea70', fontFamily: 'Georgia, serif', align: 'center', lineSpacing: 3
     }).setOrigin(0.5).setDepth(603).setScrollFactor(0);
     els.push(matchBox, matchTxt);
+
+    const updateAudioVisualization = () => {
+      b1.clear();
+      for (let i = 0; i < 44; i++) {
+        const bx = 140 + i * 8;
+        const isNearScrub = Math.abs(bx - scrubberPos) < 14;
+        const h = Math.abs(Math.sin(i * 0.28)) * 22 + (isNearScrub ? 12 : 4);
+        b1.fillStyle(isNearScrub ? 0x00ff88 : 0x3a8296);
+        b1.fillRect(bx, 172 - h, 6, h);
+        b1.fillStyle(isNearScrub ? 0x88ffcc : 0x6ad0e6);
+        b1.fillRect(bx, 172 - h, 6, 2); // peak light
+      }
+
+      // Magnetic wire splice marker
+      b1.fillStyle(0xff3333, 0.9);
+      b1.fillRect(targetSpliceX, 128, 3, 58);
+
+      // Playhead Needle
+      playheadGfx.clear();
+      playheadGfx.lineStyle(2, spliceDiscovered ? 0x00ff88 : 0xffea70, 0.95);
+      playheadGfx.moveTo(scrubberPos, 115);
+      playheadGfx.lineTo(scrubberPos, 192);
+      playheadGfx.fillStyle(0xffea70, 1);
+      playheadGfx.fillTriangle(scrubberPos - 4, 115, scrubberPos + 4, 115, scrubberPos, 122);
+      playheadGfx.stroke();
+
+      // Check if scrubber is near splice artifact
+      if (Math.abs(scrubberPos - targetSpliceX) <= 12) {
+        if (!spliceDiscovered) {
+          spliceDiscovered = true;
+          try { AudioManager.getInstance().playSFX('discoveryString'); } catch(e) {}
+        }
+        spliceIndicator.setVisible(true);
+        matchTxt.setText(matchString);
+        matchTxt.setColor('#00ff88');
+        scrubGuide.setText('✔ AUDIO SPLICE PINPOINTED! ANOMALOUS EDITING CONFIRMED');
+        scrubGuide.setColor('#00ff88');
+      }
+    };
+    updateAudioVisualization();
+
+    // Interactive clickable scrub hit zone
+    const timelineZone = this.add.zone(320, 155, 380, 85).setDepth(607).setScrollFactor(0).setInteractive({ useHandCursor: true });
+    els.push(timelineZone);
+
+    const scrubTo = (newX: number) => {
+      scrubberPos = Phaser.Math.Clamp(newX, 140, 484);
+      try { AudioManager.getInstance().playSFX('type_blip'); } catch(e) {}
+      updateAudioVisualization();
+    };
+
+    timelineZone.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      scrubTo(pointer.x);
+    });
+
+    // Step Scrub Buttons
+    const scrubLeftBtn = this.add.text(105, 155, '◀', {
+      fontSize: '14px', color: '#ffea70', backgroundColor: '#182436', padding: { x: 6, y: 3 }
+    }).setOrigin(0.5).setDepth(608).setScrollFactor(0).setInteractive({ useHandCursor: true });
+    const scrubRightBtn = this.add.text(535, 155, '▶', {
+      fontSize: '14px', color: '#ffea70', backgroundColor: '#182436', padding: { x: 6, y: 3 }
+    }).setOrigin(0.5).setDepth(608).setScrollFactor(0).setInteractive({ useHandCursor: true });
+    els.push(scrubLeftBtn, scrubRightBtn);
+
+    scrubLeftBtn.on('pointerdown', () => scrubTo(scrubberPos - 16));
+    scrubRightBtn.on('pointerdown', () => scrubTo(scrubberPos + 16));
+
+    // Keyboard scrubbing controls
+    const onScrubKey = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') scrubTo(scrubberPos - 16);
+      else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') scrubTo(scrubberPos + 16);
+    };
+    window.addEventListener('keydown', onScrubKey);
 
     // Buttons
     const btn = this.add.text(250, 285, '✔ RECORD FINDINGS', {
@@ -1340,6 +1636,7 @@ export class ExplorationScene extends Phaser.Scene {
         this.activeMiniGameCleaner = null;
       }
       window.removeEventListener('keydown', onEsc);
+      window.removeEventListener('keydown', onScrubKey);
       els.forEach(e => e.destroy());
       this.inDialogue = false;
       this.activeGadget = null;
@@ -1358,6 +1655,9 @@ export class ExplorationScene extends Phaser.Scene {
     window.addEventListener('keydown', onEsc);
 
     btn.on('pointerdown', () => {
+      if (!spliceDiscovered) {
+        scrubTo(targetSpliceX);
+      }
       if (isClockwork) {
         if (!gameState.hasEvidence('petra_hidden_recorder')) {
           gameState.collectEvidence('petra_hidden_recorder');
@@ -1395,9 +1695,12 @@ export class ExplorationScene extends Phaser.Scene {
     if (!room?.interactables) return;
     AudioManager.getInstance().playSFX('discoveryString');
     let traceFound = 0;
+    const targetTraceObjects: any[] = [];
+
     for (const obj of room.interactables) {
       if (obj.gadgetRequired === 'trace_light' && obj.evidenceId && !gameState.hasEvidence(obj.evidenceId)) {
         traceFound++;
+        targetTraceObjects.push(obj);
         const existing = this.interactableObjects.find(io => io.data.id === obj.id);
         if (existing) {
           existing.label.setColor('#e6a8ff');
@@ -1431,8 +1734,56 @@ export class ExplorationScene extends Phaser.Scene {
         }
       }
     }
+
+    // Interactive UV Flashlight Beam Overlay Minigame
+    const uvBeamGfx = this.add.graphics().setDepth(390);
+    const uvHudTag = this.add.text(320, 32, '🔦 TRACE LIGHT: MOVE CURSOR TO SCAN FOR LATENT FLUORESCENCE', {
+      fontSize: '8px', color: '#e6a8ff', fontFamily: 'Courier New, monospace', fontStyle: 'bold',
+      backgroundColor: '#0a0d1aec', padding: { x: 6, y: 2 }
+    }).setOrigin(0.5).setDepth(450).setScrollFactor(0);
+
+    const onPointerMoveUV = (pointer: Phaser.Input.Pointer) => {
+      if (this.activeGadget !== 'trace_light') {
+        uvBeamGfx.destroy();
+        uvHudTag.destroy();
+        this.input.off('pointermove', onPointerMoveUV);
+        return;
+      }
+      uvBeamGfx.clear();
+      const wx = pointer.worldX;
+      const wy = pointer.worldY;
+
+      // Draw high-intensity UV spotlight circle
+      uvBeamGfx.fillStyle(0x8a2be2, 0.16);
+      uvBeamGfx.fillCircle(wx, wy, 52);
+      uvBeamGfx.lineStyle(1.5, 0xcc66ff, 0.65);
+      uvBeamGfx.strokeCircle(wx, wy, 52);
+      uvBeamGfx.lineStyle(1, 0xffe0ff, 0.9);
+      uvBeamGfx.strokeCircle(wx, wy, 24);
+
+      // Check proximity to latent traces
+      for (const tObj of targetTraceObjects) {
+        const tox = tObj.x * TILE;
+        const toy = tObj.y * TILE;
+        const dist = Phaser.Math.Distance.Between(wx, wy, tox, toy);
+        if (dist < 55) {
+          uvBeamGfx.lineStyle(2, 0x00ffcc, 0.9);
+          uvBeamGfx.strokeCircle(tox, toy, 18);
+          uvHudTag.setText(`✦ UV FLUORESCENCE PINPOINTED: ${tObj.name.toUpperCase()}! CLICK TO COLLECT`);
+          uvHudTag.setColor('#00ffcc');
+        }
+      }
+    };
+
+    this.input.on('pointermove', onPointerMoveUV);
+    this.events.once('shutdown', () => {
+      uvBeamGfx.destroy();
+      uvHudTag.destroy();
+      this.input.off('pointermove', onPointerMoveUV);
+    });
+
     if (traceFound > 0) {
-      this.showMsg(`🔦 Trace Light: ${traceFound} latent chemical / fingerprint mark(s) illuminated.`);
+      this.showMsg(`🔦 Trace Light: ${traceFound} latent chemical / fingerprint mark(s) illuminated. Move flashlight to inspect.`);
     } else {
       this.showMsg('🔦 Trace Light active: No latent chemical traces detected in this area.');
     }
